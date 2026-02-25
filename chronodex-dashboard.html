@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chronodex Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
 
@@ -195,6 +196,36 @@ body.pomo-open { grid-template-columns:1fr 1.6fr 1fr 310px; }
 [data-theme="light"] .swipe-control { background:#dedad4; }
 [data-theme="light"] .task-group-lbl { color:#8a6a28; }
 
+
+/* ══ SIGN-IN OVERLAY ══ */
+#signin-overlay {
+  position:fixed; inset:0; z-index:2000; background:var(--bg);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px;
+}
+#signin-overlay.hidden { display:none; }
+.signin-logo { font-size:54px; opacity:0.6; }
+.signin-title { font-family:'JetBrains Mono',monospace; font-size:22px; letter-spacing:0.22em; text-transform:uppercase; color:var(--ink); text-align:center; }
+.signin-sub { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-dim); letter-spacing:0.06em; text-align:center; line-height:1.8; }
+.signin-btn { font-family:'JetBrains Mono',monospace; font-size:15px; letter-spacing:0.12em; text-transform:uppercase; padding:16px 36px; border-radius:6px; cursor:pointer; background:var(--gold-dim); border:2px solid var(--gold); color:var(--gold); min-height:56px; }
+.signin-btn:active { background:var(--gold); color:var(--bg); }
+.signin-note { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-faint); text-align:center; max-width:340px; line-height:1.8; }
+/* ══ SYNC BAR ══ */
+#sync-bar {
+  position:fixed; bottom:0; left:0; right:0; z-index:1000;
+  background:var(--surface); border-top:2px solid var(--border);
+  padding:8px 18px; display:flex; align-items:center; gap:12px;
+  font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim);
+  transform:translateY(100%); transition:transform 0.2s ease;
+}
+#sync-bar.visible { transform:translateY(0); }
+.sync-dot { width:8px; height:8px; border-radius:50%; background:var(--gold); animation:pulse 1.5s ease-in-out infinite; }
+.sync-dot.ok  { background:var(--green); animation:none; }
+.sync-dot.err { background:var(--red);   animation:none; }
+#sync-user { margin-left:auto; color:var(--ink-faint); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px; }
+.signout-btn { background:none; border:1px solid var(--border); border-radius:3px; color:var(--ink-dim); font-family:'JetBrains Mono',monospace; font-size:12px; padding:5px 12px; cursor:pointer; min-height:34px; }
+.signout-btn:active { background:var(--ink-faint); }
+.loading-msg { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-dim); padding:24px 18px; letter-spacing:0.06em; }
+
 /* Paper grain */
 body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:0.25; z-index:998;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); }
@@ -293,6 +324,24 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
   </div>
 </section>
 
+
+<!-- SIGN-IN OVERLAY -->
+<div id="signin-overlay">
+  <div class="signin-logo">◷</div>
+  <div class="signin-title">Chronodex</div>
+  <div class="signin-sub">Your day, at a glance.<br>Sign in to load your calendar &amp; tasks.</div>
+  <button class="signin-btn" id="signin-btn">Sign in with Google</button>
+  <div class="signin-note">Read-only access to Calendar &amp; Tasks.<br>No data is stored anywhere.</div>
+</div>
+
+<!-- SYNC STATUS BAR -->
+<div id="sync-bar">
+  <div class="sync-dot" id="sync-dot"></div>
+  <span id="sync-msg">Syncing&#x2026;</span>
+  <span id="sync-user"></span>
+  <button class="signout-btn" id="signout-btn">Sign out</button>
+</div>
+
 <div id="event-picker">
   <div class="picker-label">Start Pomodoro for</div>
   <div id="picker-items"></div>
@@ -301,49 +350,239 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
 </div>
 
 <script>
-const EVENTS = [
-  { title:"Morning Pages",    startISO:"2026-02-23T07:00", endISO:"2026-02-23T07:30", color:"#5a8f6a" },
-  { title:"Team Standup",     startISO:"2026-02-23T09:00", endISO:"2026-02-23T09:30", color:"#4a7fa5" },
-  { title:"Design Review",    startISO:"2026-02-24T11:00", endISO:"2026-02-24T12:00", color:"#c9a84c" },
-  { title:"Lunch with Aisha", startISO:"2026-02-24T13:00", endISO:"2026-02-24T14:00", color:"#c44b3a" },
-  { title:"Focus Block",      startISO:"2026-02-25T10:00", endISO:"2026-02-25T12:00", color:"#4a7fa5" },
-  { title:"Quarterly Review", startISO:"2026-02-25T14:00", endISO:"2026-02-25T15:30", color:"#c9a84c" },
-  { title:"1:1 with Manager", startISO:"2026-02-25T16:00", endISO:"2026-02-25T16:30", color:"#5a8f6a" },
-  { title:"Dentist",          startISO:"2026-02-26T09:00", endISO:"2026-02-26T10:00", color:"#c44b3a" },
-  { title:"Product Sync",     startISO:"2026-02-26T15:00", endISO:"2026-02-26T15:45", color:"#4a7fa5" },
-  { title:"Yoga",             startISO:"2026-02-27T07:00", endISO:"2026-02-27T08:00", color:"#5a8f6a" },
-  { title:"Workshop Prep",    startISO:"2026-02-27T14:00", endISO:"2026-02-27T17:00", color:"#c9a84c" },
-  { title:"Date Night",       startISO:"2026-02-28T19:00", endISO:"2026-02-28T22:00", color:"#c44b3a" },
-  { title:"Market Visit",     startISO:"2026-03-01T10:00", endISO:"2026-03-01T11:30", color:"#5a8f6a" },
-];
-const TASKS = [
-  { title:"Review Q1 OKRs deck",           due:"2026-02-25", done:false, priority:"high" },
-  { title:"Send invoice to client",         due:"2026-02-25", done:false, priority:"high" },
-  { title:"Book flights to Tokyo",          due:"2026-02-26", done:false, priority:"med"  },
-  { title:"Read Thinking Fast & Slow ch.4", due:null,         done:false, priority:"low"  },
-  { title:"Fix login bug in dashboard",     due:"2026-02-24", done:false, priority:"high" },
-  { title:"Call Mum",                       due:"2026-02-25", done:false, priority:"med"  },
-  { title:"Update portfolio site",          due:"2026-03-01", done:false, priority:"low"  },
-  { title:"Submit expense report",          due:"2026-02-24", done:true,  priority:"high" },
-  { title:"Water the plants",               due:null,         done:false, priority:"low"  },
-  { title:"Write weekly newsletter",        due:"2026-02-27", done:false, priority:"med"  },
-  { title:"Organise Notion workspace",      due:null,         done:false, priority:"low"  },
-  { title:"Buy birthday gift for Priya",    due:"2026-02-28", done:false, priority:"high" },
-  { title:"Schedule car service",           due:"2026-03-05", done:false, priority:"low"  },
-  { title:"Draft blog post",                due:"2026-02-28", done:false, priority:"med"  },
-];
+// ════════════════════════════════════════════════════════
+//  GOOGLE API INTEGRATION — Calendar + Tasks (read-only)
+//  Auth: Google Identity Services token model (no redirect)
+// ════════════════════════════════════════════════════════
+const CLIENT_ID = '663470287783-ljsv9gr282m780ue4mlbu6qoqulenk7u.apps.googleusercontent.com';
+const SCOPES    = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/tasks.readonly https://www.googleapis.com/auth/userinfo.email';
+const CAL_API   = 'https://www.googleapis.com/calendar/v3';
+const TASKS_API = 'https://www.googleapis.com/tasks/v1';
 
-// THEME
+// Live data — populated by API
+let EVENTS = [];
+let TASKS  = [];
+
+// Google colorId → theme palette
+const GCAL_COLORS = {
+  '1':'#4a7fa5','2':'#5a8f6a','3':'#5a8f6a','4':'#c44b3a',
+  '5':'#d4813a','6':'#d4813a','7':'#4a7fa5','8':'#7a7568',
+  '9':'#4a7fa5','10':'#5a8f6a','11':'#c9a84c',
+};
+const calColors = {}; // calendarId → hex
+
+// ── AUTH ──────────────────────────────────────────────
+let accessToken = null;
+let tokenExpiry  = 0;
+let tokenClient  = null;
+let currentUser  = '';
+
+// Restore from sessionStorage on load
+try {
+  const saved = JSON.parse(sessionStorage.getItem('cdx_tok') || 'null');
+  if (saved && saved.expiry > Date.now() + 90000) {
+    accessToken = saved.token;
+    tokenExpiry  = saved.expiry;
+    currentUser  = saved.user || '';
+  }
+} catch(e) {}
+
+function saveSession() {
+  try { sessionStorage.setItem('cdx_tok', JSON.stringify({token:accessToken,expiry:tokenExpiry,user:currentUser})); } catch(e){}
+}
+function clearSession() {
+  accessToken=null; tokenExpiry=0; currentUser='';
+  try { sessionStorage.removeItem('cdx_tok'); } catch(e){}
+}
+
+function initGIS() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: async (resp) => {
+      if (resp.error) { showSyncBar('Auth error: ' + resp.error, 'err'); return; }
+      accessToken = resp.access_token;
+      tokenExpiry  = Date.now() + (resp.expires_in - 60) * 1000;
+      await fetchUserInfo();
+      saveSession();
+      document.getElementById('signin-overlay').classList.add('hidden');
+      document.getElementById('sync-user').textContent = currentUser;
+      await loadAllData();
+    },
+  });
+}
+
+async function fetchUserInfo() {
+  try {
+    const r = await apiFetch('https://www.googleapis.com/oauth2/v2/userinfo');
+    currentUser = r.email || '';
+  } catch(e) {}
+}
+
+function requestToken() {
+  if (!tokenClient) { showSyncBar('Identity Services loading — please try again in a moment', 'err'); return; }
+  // prompt:'select_account' shows account picker; '' reuses existing session silently
+  tokenClient.requestAccessToken({ prompt: currentUser ? '' : 'select_account' });
+}
+
+function signOut() {
+  if (accessToken) { try { google.accounts.oauth2.revoke(accessToken, ()=>{}); } catch(e){} }
+  clearSession();
+  EVENTS=[]; TASKS=[];
+  renderLeft(); buildTasks(); updateClock(); drawChronodex();
+  document.getElementById('signin-overlay').classList.remove('hidden');
+  hideSyncBar();
+}
+
+document.getElementById('signin-btn').addEventListener('click', requestToken);
+document.getElementById('signout-btn').addEventListener('click', signOut);
+
+// ── SYNC BAR ──────────────────────────────────────────
+let _syncTimer = null;
+function showSyncBar(msg, state) {
+  document.getElementById('sync-msg').textContent = msg;
+  const dot = document.getElementById('sync-dot');
+  dot.className = 'sync-dot' + (state==='ok'?' ok':state==='err'?' err':'');
+  document.getElementById('sync-bar').classList.add('visible');
+  clearTimeout(_syncTimer);
+  if (state === 'ok') _syncTimer = setTimeout(() => document.getElementById('sync-bar').classList.remove('visible'), 3500);
+}
+function hideSyncBar() {
+  clearTimeout(_syncTimer);
+  document.getElementById('sync-bar').classList.remove('visible');
+}
+
+// ── API HELPER ────────────────────────────────────────
+async function apiFetch(url, params) {
+  if (!accessToken) throw new Error('not_authenticated');
+  // Silent token refresh if expiring soon
+  if (Date.now() > tokenExpiry) {
+    clearSession();
+    throw new Error('token_expired');
+  }
+  const qs = params ? '?' + new URLSearchParams(params) : '';
+  const r = await fetch(url + qs, { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (r.status === 401) { clearSession(); throw new Error('token_expired'); }
+  if (!r.ok) throw new Error('API ' + r.status + ' at ' + url.split('/').pop());
+  return r.json();
+}
+
+// ── CALENDAR COLORS ───────────────────────────────────
+async function fetchCalColors() {
+  try {
+    const list = await apiFetch(CAL_API + '/users/me/calendarList');
+    const palette = ['#4a7fa5','#5a8f6a','#c9a84c','#c44b3a','#d4813a'];
+    (list.items || []).forEach((cal, i) => {
+      calColors[cal.id] = cal.backgroundColor || palette[i % palette.length];
+    });
+  } catch(e) {}
+}
+
+function evColor(gcalEv, calId) {
+  if (gcalEv.colorId) return GCAL_COLORS[gcalEv.colorId] || '#c9a84c';
+  return calColors[calId] || '#4a7fa5';
+}
+
+// ── FETCH EVENTS ──────────────────────────────────────
+async function fetchEvents() {
+  const now = new Date();
+  const tMin = new Date(now); tMin.setDate(now.getDate() - 3);
+  const tMax = new Date(now); tMax.setDate(now.getDate() + 14);
+
+  const calList = await apiFetch(CAL_API + '/users/me/calendarList');
+  const cals = (calList.items || []).filter(c => c.selected !== false);
+
+  const all = [];
+  await Promise.all(cals.map(async cal => {
+    try {
+      const resp = await apiFetch(CAL_API + '/calendars/' + encodeURIComponent(cal.id) + '/events', {
+        timeMin: tMin.toISOString(),
+        timeMax: tMax.toISOString(),
+        singleEvents: 'true',
+        orderBy: 'startTime',
+        maxResults: '500',
+        fields: 'items(id,summary,start,end,colorId,status)',
+      });
+      (resp.items || []).forEach(ev => {
+        if (ev.status === 'cancelled') return;
+        const startISO = (ev.start.dateTime || ev.start.date + 'T06:00').slice(0,16);
+        const endISO   = (ev.end.dateTime   || ev.end.date   + 'T07:00').slice(0,16);
+        all.push({
+          title:    (ev.summary || '(No title)').replace(/</g,'&lt;'),
+          startISO, endISO,
+          color: evColor(ev, cal.id),
+        });
+      });
+    } catch(e) {}
+  }));
+
+  all.sort((a,b) => a.startISO.localeCompare(b.startISO));
+  EVENTS = all;
+}
+
+// ── FETCH TASKS ───────────────────────────────────────
+async function fetchTasks() {
+  const tlResp = await apiFetch(TASKS_API + '/users/@me/lists', { maxResults: '20' });
+  const lists  = tlResp.items || [];
+  const today  = new Date().toISOString().slice(0,10);
+  const all    = [];
+
+  await Promise.all(lists.map(async tl => {
+    try {
+      const resp = await apiFetch(TASKS_API + '/lists/' + tl.id + '/tasks', {
+        showCompleted: 'false', showHidden: 'false', maxResults: '100',
+        fields: 'items(id,title,due,status)',
+      });
+      (resp.items || []).forEach(t => {
+        if (!t.title || t.title.trim() === '') return;
+        const due = t.due ? t.due.slice(0,10) : null;
+        const daysUntil = due ? (new Date(due) - new Date(today)) / 86400000 : null;
+        const priority = daysUntil === null ? 'low' : daysUntil <= 0 ? 'high' : daysUntil <= 2 ? 'high' : daysUntil <= 7 ? 'med' : 'low';
+        all.push({ title: t.title.replace(/</g,'&lt;'), due, done: false, priority, _id: t.id, _list: tl.id });
+      });
+    } catch(e) {}
+  }));
+
+  all.sort((a,b) => {
+    if (!a.due && !b.due) return 0;
+    if (!a.due) return 1; if (!b.due) return -1;
+    return a.due.localeCompare(b.due);
+  });
+  TASKS = all;
+}
+
+// ── LOAD ALL DATA ─────────────────────────────────────
+async function loadAllData() {
+  showSyncBar('Syncing\u2026', 'syncing');
+  try {
+    await fetchCalColors();
+    await Promise.all([fetchEvents(), fetchTasks()]);
+    renderLeft(); buildTasks(); updateClock(); drawChronodex();
+    const t = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+    showSyncBar('Synced \u00b7 ' + t, 'ok');
+  } catch(err) {
+    if (err.message === 'token_expired' || err.message === 'not_authenticated') {
+      clearSession();
+      document.getElementById('signin-overlay').classList.remove('hidden');
+      hideSyncBar();
+      return;
+    }
+    showSyncBar('\u26a0 ' + err.message, 'err');
+    renderLeft(); buildTasks(); updateClock(); drawChronodex();
+  }
+}
+
+// ── THEME ─────────────────────────────────────────────
 let isDark = true;
 document.getElementById('theme-btn').addEventListener('click', () => {
   isDark = !isDark;
-  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-  document.getElementById('theme-icon').textContent  = isDark ? '☀' : '☾';
-  document.getElementById('theme-label').textContent = isDark ? 'Light' : 'Dark';
+  document.documentElement.setAttribute('data-theme', isDark?'dark':'light');
+  document.getElementById('theme-icon').textContent  = isDark?'☀':'☾';
+  document.getElementById('theme-label').textContent = isDark?'Light':'Dark';
   drawChronodex(); drawPomoRing();
 });
 
-// VIEW STATE
+// ── VIEW STATE ────────────────────────────────────────
 let currentView='week', dayOff=0, weekOff=0, monthOff=0;
 document.querySelectorAll('.view-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -357,7 +596,7 @@ function renderLeft() {
   ({day:buildDay,week:buildWeek,month:buildMonth})[currentView]();
 }
 
-// DAY VIEW
+// ── DAY VIEW ──────────────────────────────────────────
 function buildDay() {
   const now=new Date(), d=new Date(now); d.setDate(now.getDate()+dayOff);
   const ds=d.toISOString().slice(0,10), isToday=ds===now.toISOString().slice(0,10);
@@ -367,10 +606,10 @@ function buildDay() {
   document.getElementById('left-content').innerHTML=`
     <div class="daily-view">
       <div class="daily-top">
-        <button class="nav-arrow" id="d-prev">‹</button>
+        <button class="nav-arrow" id="d-prev">&#8249;</button>
         <div style="text-align:center"><div class="daily-title-num">${d.getDate()}</div>
-          <div class="daily-title-sub">${DN[d.getDay()].toUpperCase()} · ${MN[d.getMonth()].toUpperCase()} ${d.getFullYear()}</div></div>
-        <button class="nav-arrow" id="d-next">›</button>
+          <div class="daily-title-sub">${DN[d.getDay()].toUpperCase()} &middot; ${MN[d.getMonth()].toUpperCase()} ${d.getFullYear()}</div></div>
+        <button class="nav-arrow" id="d-next">&#8250;</button>
       </div><div class="daily-timeline" id="d-tl"></div></div>`;
   document.getElementById('d-prev').onclick=()=>{dayOff--;buildDay();};
   document.getElementById('d-next').onclick=()=>{dayOff++;buildDay();};
@@ -379,13 +618,13 @@ function buildDay() {
     const isNow=isToday&&h===nowH;
     const row=document.createElement('div'); row.className='hour-row'+(isNow?' hour-now':'');
     const lbl=document.createElement('div'); lbl.className='hour-label'+(isNow?' now-lbl':'');
-    lbl.textContent=`${String(h).padStart(2,'0')}:00`;
+    lbl.textContent=String(h).padStart(2,'0')+':00';
     const evDiv=document.createElement('div'); evDiv.className='hour-events';
     evts.filter(e=>new Date(e.startISO).getHours()===h).forEach(ev=>{
       const dur=Math.round((new Date(ev.endISO)-new Date(ev.startISO))/60000);
       const el=document.createElement('div'); el.className='hour-event';
-      el.style.cssText=`border-color:${ev.color};background:${ev.color}30;color:var(--ink);`;
-      el.textContent=`${ev.title} · ${dur}m`;
+      el.style.cssText='border-color:'+ev.color+';background:'+ev.color+'30;color:var(--ink);';
+      el.textContent=dur>0?ev.title+' \u00b7 '+dur+'m':ev.title;
       el.addEventListener('click',()=>openPomo(ev)); evDiv.appendChild(el);
     });
     row.appendChild(lbl); row.appendChild(evDiv); tl.appendChild(row);
@@ -393,20 +632,20 @@ function buildDay() {
   if(isToday){const rows=tl.querySelectorAll('.hour-row');const idx=Math.max(0,nowH-6-1);if(rows[idx])rows[idx].scrollIntoView({block:'start'});}
 }
 
-// WEEK VIEW
+// ── WEEK VIEW ─────────────────────────────────────────
 function buildWeek() {
   const now=new Date(), base=new Date(now); base.setDate(now.getDate()+weekOff*7);
   const dow=base.getDay(), mon=new Date(base); mon.setDate(base.getDate()-((dow+6)%7));
   const sun=new Date(mon); sun.setDate(mon.getDate()+6);
   const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const fmt=d=>`${d.getDate()} ${M[d.getMonth()]}`;
+  const fmt=d=>d.getDate()+' '+M[d.getMonth()];
   const DN=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], todayStr=now.toISOString().slice(0,10);
-  document.getElementById('left-content').innerHTML=`
-    <div class="week-view">
-      <div class="week-nav"><button class="nav-arrow" id="w-prev">‹</button>
-        <span class="week-range">${fmt(mon)} – ${fmt(sun)}</span>
-        <button class="nav-arrow" id="w-next">›</button></div>
-      <div class="week-grid" id="w-grid"></div></div>`;
+  document.getElementById('left-content').innerHTML=
+    '<div class="week-view"><div class="week-nav">'+
+    '<button class="nav-arrow" id="w-prev">&#8249;</button>'+
+    '<span class="week-range">'+fmt(mon)+' \u2013 '+fmt(sun)+'</span>'+
+    '<button class="nav-arrow" id="w-next">&#8250;</button></div>'+
+    '<div class="week-grid" id="w-grid"></div></div>';
   document.getElementById('w-prev').onclick=()=>{weekOff--;buildWeek();};
   document.getElementById('w-next').onclick=()=>{weekOff++;buildWeek();};
   const grid=document.getElementById('w-grid');
@@ -415,50 +654,50 @@ function buildWeek() {
     const ds=d.toISOString().slice(0,10), isToday=ds===todayStr;
     const dayEvts=EVENTS.filter(e=>e.startISO.startsWith(ds)).sort((a,b)=>a.startISO.localeCompare(b.startISO));
     const row=document.createElement('div'); row.className='week-day'+(isToday?' today':'');
-    row.innerHTML=`<div class="day-label"><span class="day-name">${DN[i]}</span><span class="day-num">${d.getDate()}</span></div><div class="day-events" id="de${i}"></div>`;
+    row.innerHTML='<div class="day-label"><span class="day-name">'+DN[i]+'</span><span class="day-num">'+d.getDate()+'</span></div><div class="day-events" id="de'+i+'"></div>';
     grid.appendChild(row);
-    const evDiv=row.querySelector(`#de${i}`);
-    if(!dayEvts.length){evDiv.innerHTML=`<span style="font-size:15px;color:var(--ink-faint);font-style:italic">clear</span>`;}
+    const evDiv=row.querySelector('#de'+i);
+    if(!dayEvts.length){evDiv.innerHTML='<span style="font-size:15px;color:var(--ink-faint);font-style:italic">clear</span>';}
     dayEvts.slice(0,3).forEach(e=>{
       const t=new Date(e.startISO).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
       const el=document.createElement('div'); el.className='cal-event';
-      el.innerHTML=`<span class="cal-event-dot" style="background:${e.color}"></span><span class="cal-event-time">${t}</span><span style="overflow:hidden;text-overflow:ellipsis">${e.title}</span>`;
+      el.innerHTML='<span class="cal-event-dot" style="background:'+e.color+'"></span><span class="cal-event-time">'+t+'</span><span style="overflow:hidden;text-overflow:ellipsis">'+e.title+'</span>';
       evDiv.appendChild(el);
     });
-    if(dayEvts.length>3){const m=document.createElement('div');m.style.cssText='font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-dim);padding-left:15px;';m.textContent=`+${dayEvts.length-3} more`;evDiv.appendChild(m);}
+    if(dayEvts.length>3){const m=document.createElement('div');m.style.cssText='font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-dim);padding-left:15px;';m.textContent='+'+( dayEvts.length-3)+' more';evDiv.appendChild(m);}
   }
 }
 
-// MONTH VIEW
+// ── MONTH VIEW ────────────────────────────────────────
 function buildMonth() {
   const now=new Date(), ref=new Date(now.getFullYear(),now.getMonth()+monthOff,1);
   const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
   const dim=new Date(ref.getFullYear(),ref.getMonth()+1,0).getDate();
   let fd=ref.getDay(); fd=fd===0?6:fd-1;
   const prevDim=new Date(ref.getFullYear(),ref.getMonth(),0).getDate(), todayStr=now.toISOString().slice(0,10);
-  document.getElementById('left-content').innerHTML=`
-    <div class="month-view">
-      <div class="month-nav"><button class="nav-arrow" id="m-prev">‹</button>
-        <span class="month-title">${MN[ref.getMonth()]} ${ref.getFullYear()}</span>
-        <button class="nav-arrow" id="m-next">›</button></div>
-      <div class="month-dow-row">${['M','T','W','T','F','S','S'].map(x=>`<div class="month-dow">${x}</div>`).join('')}</div>
-      <div class="month-grid" id="m-grid"></div></div>`;
+  document.getElementById('left-content').innerHTML=
+    '<div class="month-view"><div class="month-nav">'+
+    '<button class="nav-arrow" id="m-prev">&#8249;</button>'+
+    '<span class="month-title">'+MN[ref.getMonth()]+' '+ref.getFullYear()+'</span>'+
+    '<button class="nav-arrow" id="m-next">&#8250;</button></div>'+
+    '<div class="month-dow-row">'+['M','T','W','T','F','S','S'].map(x=>'<div class="month-dow">'+x+'</div>').join('')+'</div>'+
+    '<div class="month-grid" id="m-grid"></div></div>';
   document.getElementById('m-prev').onclick=()=>{monthOff--;buildMonth();};
   document.getElementById('m-next').onclick=()=>{monthOff++;buildMonth();};
   const grid=document.getElementById('m-grid');
-  for(let i=fd-1;i>=0;i--){const c=document.createElement('div');c.className='month-cell other-month';c.innerHTML=`<div class="month-day-num">${prevDim-i}</div>`;grid.appendChild(c);}
+  for(let i=fd-1;i>=0;i--){const c=document.createElement('div');c.className='month-cell other-month';c.innerHTML='<div class="month-day-num">'+(prevDim-i)+'</div>';grid.appendChild(c);}
   for(let d=1;d<=dim;d++){
-    const ds=`${ref.getFullYear()}-${String(ref.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const ds=ref.getFullYear()+'-'+String(ref.getMonth()+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
     const isToday=ds===todayStr, de=EVENTS.filter(e=>e.startISO.startsWith(ds));
     const c=document.createElement('div'); c.className='month-cell'+(isToday?' today':'');
-    c.innerHTML=`<div class="month-day-num">${d}</div><div class="month-dots">${de.slice(0,5).map(e=>`<div class="month-dot" style="background:${e.color}"></div>`).join('')}</div>`;
+    c.innerHTML='<div class="month-day-num">'+d+'</div><div class="month-dots">'+de.slice(0,5).map(e=>'<div class="month-dot" style="background:'+e.color+'"></div>').join('')+'</div>';
     grid.appendChild(c);
   }
   const total=fd+dim, rem=total%7===0?0:7-(total%7);
-  for(let d=1;d<=rem;d++){const c=document.createElement('div');c.className='month-cell other-month';c.innerHTML=`<div class="month-day-num">${d}</div>`;grid.appendChild(c);}
+  for(let d=1;d<=rem;d++){const c=document.createElement('div');c.className='month-cell other-month';c.innerHTML='<div class="month-day-num">'+d+'</div>';grid.appendChild(c);}
 }
 
-// CHRONODEX
+// ── CHRONODEX ─────────────────────────────────────────
 const DS=6*60, DE=24*60, DSPAN=DE-DS;
 const BANDS=[
   {from:360,to:480,ri:28,ro:68},
@@ -469,15 +708,12 @@ const BANDS=[
   {from:960,to:1080,ri:186,ro:194},
 ];
 function mta(min){return((Math.min(Math.max(min,DS),DE)-DS)/DSPAN)*Math.PI*2-Math.PI/2;}
-
 let todayEventsForPicker=[];
 
-function drawChronodex() {
+function drawChronodex(){
   const cv=document.getElementById('chronodex-canvas');
-  const ctx=cv.getContext('2d'), W=cv.width, H=cv.height, cx=W/2, cy=H/2;
-  ctx.clearRect(0,0,W,H);
-  todayEventsForPicker=[];
-
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height,cx=W/2,cy=H/2;
+  ctx.clearRect(0,0,W,H); todayEventsForPicker=[];
   const dark=isDark;
   const goldR=dark?'201,168,76':'138,106,40';
   const bgRing=dark?'rgba(255,255,255,0.04)':'rgba(28,31,38,0.04)';
@@ -485,94 +721,69 @@ function drawChronodex() {
   const sepH=dark?'rgba(255,255,255,0.22)':'rgba(28,31,38,0.26)';
   const sepL=dark?'rgba(255,255,255,0.07)':'rgba(28,31,38,0.07)';
   const lblC=dark?'rgba(232,228,216,1.0)':'rgba(28,31,38,0.95)';
-  const needle=dark?'#c44b3a':'#b83228';
-  const hub=dark?'#c9a84c':'#8a6a28';
-
+  const needle=dark?'#c44b3a':'#b83228', hub=dark?'#c9a84c':'#8a6a28';
   const now=new Date(), tm=now.getHours()*60+now.getMinutes();
   const today=now.toISOString().slice(0,10);
   const te=EVENTS.filter(e=>e.startISO.startsWith(today));
   todayEventsForPicker=te;
-
-  // 1. Faint band backgrounds (show dial shape)
   BANDS.forEach(b=>{
-    ctx.beginPath(); ctx.arc(cx,cy,b.ro,mta(b.from),mta(b.to)); ctx.arc(cx,cy,b.ri,mta(b.to),mta(b.from),true); ctx.closePath();
-    ctx.fillStyle=bgRing; ctx.fill();
+    ctx.beginPath();ctx.arc(cx,cy,b.ro,mta(b.from),mta(b.to));ctx.arc(cx,cy,b.ri,mta(b.to),mta(b.from),true);ctx.closePath();
+    ctx.fillStyle=bgRing;ctx.fill();
   });
-
-  // 2. Ring outlines
   BANDS.forEach(b=>[b.ri,b.ro].forEach(r=>{
-    ctx.beginPath(); ctx.arc(cx,cy,r,-Math.PI/2,Math.PI*1.5);
-    ctx.strokeStyle=ringC; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.beginPath();ctx.arc(cx,cy,r,-Math.PI/2,Math.PI*1.5);
+    ctx.strokeStyle=ringC;ctx.lineWidth=1.5;ctx.stroke();
   }));
-
-  // 3. Hour separators
   for(let h=6;h<=24;h++){
     const a=mta(h*60);
-    ctx.beginPath(); ctx.moveTo(cx+22*Math.cos(a),cy+22*Math.sin(a)); ctx.lineTo(cx+196*Math.cos(a),cy+196*Math.sin(a));
-    ctx.strokeStyle=h%2===0?sepH:sepL; ctx.lineWidth=h%2===0?2:0.8; ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx+22*Math.cos(a),cy+22*Math.sin(a));ctx.lineTo(cx+196*Math.cos(a),cy+196*Math.sin(a));
+    ctx.strokeStyle=h%2===0?sepH:sepL;ctx.lineWidth=h%2===0?2:0.8;ctx.stroke();
   }
-
-  // 4. ELAPSED — solid filled wedge segments (maximum ink)
   BANDS.forEach(b=>{
-    if(tm<=b.from) return;
-    const fe=Math.min(tm,b.to), prog=(fe-b.from)/(b.to-b.from);
+    if(tm<=b.from)return;
+    const fe=Math.min(tm,b.to),prog=(fe-b.from)/(b.to-b.from);
     const alpha=dark?(0.55+prog*0.38):(0.60+prog*0.32);
-    ctx.beginPath(); ctx.arc(cx,cy,b.ro-2,mta(b.from),mta(fe)); ctx.arc(cx,cy,b.ri+2,mta(fe),mta(b.from),true); ctx.closePath();
-    ctx.fillStyle=`rgba(${goldR},${alpha})`; ctx.fill();
-    // Bright leading edge
-    ctx.beginPath(); ctx.arc(cx,cy,(b.ri+b.ro)/2,mta(fe)-0.005,mta(fe)+0.005);
-    ctx.lineWidth=b.ro-b.ri-2; ctx.strokeStyle=`rgba(${goldR},0.98)`; ctx.lineCap='round'; ctx.stroke();
+    ctx.beginPath();ctx.arc(cx,cy,b.ro-2,mta(b.from),mta(fe));ctx.arc(cx,cy,b.ri+2,mta(fe),mta(b.from),true);ctx.closePath();
+    ctx.fillStyle='rgba('+goldR+','+alpha+')';ctx.fill();
+    ctx.beginPath();ctx.arc(cx,cy,(b.ri+b.ro)/2,mta(fe)-0.005,mta(fe)+0.005);
+    ctx.lineWidth=b.ro-b.ri-2;ctx.strokeStyle='rgba('+goldR+',0.98)';ctx.lineCap='round';ctx.stroke();
   });
-
-  // 5. EVENTS — fully solid filled wedge segments
   te.forEach(ev=>{
     const sm=new Date(ev.startISO).getHours()*60+new Date(ev.startISO).getMinutes();
     const em=new Date(ev.endISO).getHours()*60+new Date(ev.endISO).getMinutes();
-    if(em<DS||sm>DE) return;
+    if(em<DS||sm>DE)return;
     BANDS.forEach(b=>{
-      const os=Math.max(sm,b.from), oe=Math.min(em,b.to);
-      if(oe<=os) return;
-      ctx.beginPath(); ctx.arc(cx,cy,b.ro-2,mta(os),mta(oe)); ctx.arc(cx,cy,b.ri+2,mta(oe),mta(os),true); ctx.closePath();
-      ctx.fillStyle=ev.color+'dd'; ctx.fill();
-      ctx.beginPath(); ctx.arc(cx,cy,b.ro-2,mta(os),mta(oe)); ctx.arc(cx,cy,b.ri+2,mta(oe),mta(os),true); ctx.closePath();
-      ctx.strokeStyle=ev.color; ctx.lineWidth=2; ctx.stroke();
+      const os=Math.max(sm,b.from),oe=Math.min(em,b.to);
+      if(oe<=os)return;
+      ctx.beginPath();ctx.arc(cx,cy,b.ro-2,mta(os),mta(oe));ctx.arc(cx,cy,b.ri+2,mta(oe),mta(os),true);ctx.closePath();
+      ctx.fillStyle=ev.color+'dd';ctx.fill();
+      ctx.beginPath();ctx.arc(cx,cy,b.ro-2,mta(os),mta(oe));ctx.arc(cx,cy,b.ri+2,mta(oe),mta(os),true);ctx.closePath();
+      ctx.strokeStyle=ev.color;ctx.lineWidth=2;ctx.stroke();
     });
   });
-
-  // 6. Hour labels
-  ctx.font='bold 13px "JetBrains Mono",monospace'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle=lblC;
-  for(let h=6;h<=24;h+=2){
-    const a=mta(h*60)+0.07;
-    ctx.fillText(h===24?'0':String(h), cx+205*Math.cos(a), cy+205*Math.sin(a));
-  }
-
-  // 7. Needle (red, thick, shadow)
-  const na=mta(tm);
-  ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+198*Math.cos(na),cy+198*Math.sin(na));
-  ctx.strokeStyle=dark?'rgba(0,0,0,0.55)':'rgba(255,255,255,0.65)'; ctx.lineWidth=8; ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+198*Math.cos(na),cy+198*Math.sin(na));
-  ctx.strokeStyle=needle; ctx.lineWidth=4; ctx.stroke();
-  ctx.beginPath(); ctx.arc(cx+198*Math.cos(na),cy+198*Math.sin(na),7,0,Math.PI*2);
-  ctx.fillStyle=needle; ctx.fill();
-
-  // 8. Hub
-  ctx.beginPath(); ctx.arc(cx,cy,11,0,Math.PI*2); ctx.fillStyle=hub; ctx.fill();
-  ctx.beginPath(); ctx.arc(cx,cy,11,0,Math.PI*2);
-  ctx.strokeStyle=dark?'rgba(201,168,76,0.7)':'rgba(138,106,40,0.7)'; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.font='bold 13px "JetBrains Mono",monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=lblC;
+  for(let h=6;h<=24;h+=2){const a=mta(h*60)+0.07;ctx.fillText(h===24?'0':String(h),cx+205*Math.cos(a),cy+205*Math.sin(a));}
+  const na=mta(tm);ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+198*Math.cos(na),cy+198*Math.sin(na));
+  ctx.strokeStyle=dark?'rgba(0,0,0,0.55)':'rgba(255,255,255,0.65)';ctx.lineWidth=8;ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+198*Math.cos(na),cy+198*Math.sin(na));
+  ctx.strokeStyle=needle;ctx.lineWidth=4;ctx.stroke();
+  ctx.beginPath();ctx.arc(cx+198*Math.cos(na),cy+198*Math.sin(na),7,0,Math.PI*2);ctx.fillStyle=needle;ctx.fill();
+  ctx.beginPath();ctx.arc(cx,cy,11,0,Math.PI*2);ctx.fillStyle=hub;ctx.fill();
+  ctx.beginPath();ctx.arc(cx,cy,11,0,Math.PI*2);
+  ctx.strokeStyle=dark?'rgba(201,168,76,0.7)':'rgba(138,106,40,0.7)';ctx.lineWidth=2.5;ctx.stroke();
 }
 
-// SMART TAP via overlay
+// ── SMART TAP ────────────────────────────────────────
 const overlay=document.getElementById('chrono-overlay');
 const canvas=document.getElementById('chronodex-canvas');
 const picker=document.getElementById('event-picker');
 
-overlay.addEventListener('click', e=>{
+overlay.addEventListener('click',e=>{
   const rect=overlay.getBoundingClientRect();
   const mx=(e.clientX-rect.left)*(canvas.width/rect.width);
   const my=(e.clientY-rect.top)*(canvas.height/rect.height);
-  const cx=canvas.width/2, cy=canvas.height/2;
-  const dx=mx-cx, dy=my-cy, dist=Math.sqrt(dx*dx+dy*dy);
+  const cx=canvas.width/2,cy=canvas.height/2,dx=mx-cx,dy=my-cy,dist=Math.sqrt(dx*dx+dy*dy);
   if(dist<20||dist>210){closePicker();return;}
   let frac=(Math.atan2(dy,dx)+Math.PI/2)/(Math.PI*2);
   if(frac<0)frac+=1;
@@ -587,24 +798,24 @@ overlay.addEventListener('click', e=>{
   showPicker(near,e.clientX,e.clientY);
 });
 
-function showPicker(events,cx,cy){
-  const items=document.getElementById('picker-items'); items.innerHTML='';
+function showPicker(events,px,py){
+  const items=document.getElementById('picker-items');items.innerHTML='';
   events.forEach(ev=>{
     const fmt=d=>d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
-    const div=document.createElement('div'); div.className='picker-item';
-    div.innerHTML=`<div class="picker-dot" style="background:${ev.color}"></div>
-      <div class="picker-text"><div class="picker-title">${ev.title}</div>
-      <div class="picker-time">${fmt(new Date(ev.startISO))} – ${fmt(new Date(ev.endISO))}</div></div>`;
+    const div=document.createElement('div');div.className='picker-item';
+    div.innerHTML='<div class="picker-dot" style="background:'+ev.color+'"></div>'+
+      '<div class="picker-text"><div class="picker-title">'+ev.title+'</div>'+
+      '<div class="picker-time">'+fmt(new Date(ev.startISO))+' \u2013 '+fmt(new Date(ev.endISO))+'</div></div>';
     div.addEventListener('click',()=>{closePicker();openPomo(ev);});
     items.appendChild(div);
   });
   picker.classList.add('open');
-  const pw=320, ph=picker.offsetHeight||200;
-  let left=cx+12, top=cy-ph/2;
-  if(left+pw>window.innerWidth-10)left=cx-pw-12;
+  const pw=320,ph=picker.offsetHeight||200;
+  let left=px+12,top=py-ph/2;
+  if(left+pw>window.innerWidth-10)left=px-pw-12;
   if(top<10)top=10;
   if(top+ph>window.innerHeight-10)top=window.innerHeight-ph-10;
-  picker.style.left=left+'px'; picker.style.top=top+'px';
+  picker.style.left=left+'px';picker.style.top=top+'px';
 }
 function closePicker(){picker.classList.remove('open');}
 document.getElementById('picker-cancel').addEventListener('click',closePicker);
@@ -612,20 +823,20 @@ document.addEventListener('click',e=>{
   if(picker.classList.contains('open')&&!picker.contains(e.target)&&e.target!==overlay)closePicker();
 },{capture:true});
 
-// CLOCK + NEXT EVENT
+// ── CLOCK ─────────────────────────────────────────────
 function updateClock(){
   const now=new Date();
-  document.getElementById('time-big').textContent=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  document.getElementById('time-big').textContent=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   const DN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  document.getElementById('time-date').textContent=`${DN[now.getDay()]} · ${now.getDate()} ${MN[now.getMonth()]} ${now.getFullYear()}`;
-  const nm=now.getTime(), in30=nm+30*60*1000;
+  document.getElementById('time-date').textContent=DN[now.getDay()]+' \u00b7 '+now.getDate()+' '+MN[now.getMonth()]+' '+now.getFullYear();
+  const nm=now.getTime(),in30=nm+30*60*1000;
   const up=EVENTS.map(e=>({...e,sm:new Date(e.startISO).getTime()})).filter(e=>e.sm>=nm&&e.sm<=in30).sort((a,b)=>a.sm-b.sm);
   if(up.length){
     const nx=up[0],st=new Date(nx.startISO),mu=Math.round((nx.sm-nm)/60000);
     document.getElementById('next-title').textContent=nx.title;
     document.getElementById('next-title').style.color=nx.color;
-    document.getElementById('next-time').textContent=`${st.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false})} · in ${mu} min`;
+    document.getElementById('next-time').textContent=st.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false})+' \u00b7 in '+mu+' min';
   } else {
     document.getElementById('next-title').textContent='Nothing in next 30 min';
     document.getElementById('next-title').style.color='var(--ink-dim)';
@@ -633,10 +844,14 @@ function updateClock(){
   }
 }
 
-// TASKS
+// ── TASKS ─────────────────────────────────────────────
 function buildTasks(){
-  const list=document.getElementById('tasks-list'), today=new Date().toISOString().slice(0,10);
+  const list=document.getElementById('tasks-list'),today=new Date().toISOString().slice(0,10);
   list.innerHTML='';
+  if(!TASKS.length){
+    list.innerHTML='<div class="loading-msg">'+(accessToken?'Loading tasks\u2026':'Sign in to see your tasks')+'</div>';
+    document.getElementById('tasks-count').textContent='';return;
+  }
   const ov=TASKS.filter(t=>!t.done&&t.due&&t.due<today);
   const dt=TASKS.filter(t=>!t.done&&t.due===today);
   const up=TASKS.filter(t=>!t.done&&(!t.due||t.due>today));
@@ -646,27 +861,29 @@ function buildTasks(){
     const gl=document.createElement('div');gl.className='task-group-lbl';gl.textContent=lbl;list.appendChild(gl);
     items.forEach(task=>{
       const item=document.createElement('div');item.className='task-item'+(task.done?' done':'');
-      item.innerHTML=`<div class="task-pri pri-${task.priority}"></div><div class="task-check"></div>
-        <div class="task-body"><div class="task-title">${task.title}</div>
-        ${task.due?`<div class="task-meta ${mc||''}">${fmtDue(task.due,today)}</div>`:''}</div>`;
+      item.innerHTML='<div class="task-pri pri-'+task.priority+'"></div><div class="task-check"></div>'+
+        '<div class="task-body"><div class="task-title">'+task.title+'</div>'+
+        (task.due?'<div class="task-meta '+(mc||'')+'">'+fmtDue(task.due,today)+'</div>':'')+'</div>';
       item.querySelector('.task-check').addEventListener('click',ev=>{ev.stopPropagation();task.done=!task.done;buildTasks();});
       list.appendChild(item);
     });
   }
-  grp('⚠ Overdue',ov,'overdue'); grp('· Today',dt,'today-due'); grp('· Upcoming',up,''); grp('· Completed',dn,'');
-  document.getElementById('tasks-count').textContent=`${TASKS.filter(t=>!t.done).length} remaining`;
+  grp('\u26a0 Overdue',ov,'overdue');grp('\u00b7 Today',dt,'today-due');grp('\u00b7 Upcoming',up,'');grp('\u00b7 Completed',dn,'');
+  document.getElementById('tasks-count').textContent=TASKS.filter(t=>!t.done).length+' remaining';
 }
-function fmtDue(due,today){if(due===today)return'Today';return new Date(due+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});}
+function fmtDue(due,today){
+  if(due===today)return'Today';
+  return new Date(due+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
 
-// POMODORO
-const PMIN=1,PMAX=80;
-let pomoDuration=25;
+// ── POMODORO ──────────────────────────────────────────
+const PMIN=1,PMAX=80;let pomoDuration=25;
 const pomo={running:false,totalSecs:25*60,remainSecs:25*60,interval:null,sessions:0};
 
 function openPomo(ev){
   if(!pomo.running)document.getElementById('pomo-ev-title').textContent=ev?ev.title:'Focus Session';
   document.body.classList.add('pomo-open');
-  drawPomoRing(); renderPomo(); buildTicks();
+  drawPomoRing();renderPomo();buildTicks();
 }
 document.getElementById('pomo-close').addEventListener('click',()=>document.body.classList.remove('pomo-open'));
 
@@ -680,14 +897,13 @@ function setDuration(v){
 function buildTicks(){
   const c=document.getElementById('sw-ticks');if(!c)return;c.innerHTML='';
   for(let i=-15;i<=15;i++){
-    const val=pomoDuration+i, el=document.createElement('div');
+    const val=pomoDuration+i,el=document.createElement('div');
     if(val<PMIN||val>PMAX){el.style.width='4px';c.appendChild(el);continue;}
-    el.className='tick'+(i===0?' current':(val%5===0?' major':''));
+    el.className='tick'+(i===0?' current':val%5===0?' major':'');
     el.style.height=i===0?'16px':val%5===0?'11px':'6px';
     c.appendChild(el);
   }
 }
-
 let swX=null,swDur=null;
 const swTrack=document.getElementById('sw-track');
 swTrack.addEventListener('pointerdown',e=>{swX=e.clientX;swDur=pomoDuration;swTrack.setPointerCapture(e.pointerId);e.preventDefault();});
@@ -695,42 +911,36 @@ swTrack.addEventListener('pointermove',e=>{if(swX===null)return;setDuration(swDu
 swTrack.addEventListener('pointerup',()=>swX=null);
 swTrack.addEventListener('pointercancel',()=>swX=null);
 swTrack.addEventListener('wheel',e=>{e.preventDefault();setDuration(pomoDuration+(e.deltaY>0?-1:1));},{passive:false});
-
 ['sw-minus','sw-plus'].forEach(id=>{
   const btn=document.getElementById(id),d=id==='sw-minus'?-1:1;
   btn.addEventListener('click',()=>setDuration(pomoDuration+d));
-  btn.addEventListener('pointerdown',()=>{
-    let tid=setInterval(()=>setDuration(pomoDuration+d),90);
-    document.addEventListener('pointerup',()=>clearInterval(tid),{once:true});
-  });
+  btn.addEventListener('pointerdown',()=>{let tid=setInterval(()=>setDuration(pomoDuration+d),90);document.addEventListener('pointerup',()=>clearInterval(tid),{once:true});});
 });
 
 function drawPomoRing(){
   const cv=document.getElementById('pomo-ring');if(!cv)return;
   const ctx=cv.getContext('2d'),W=cv.width,H=cv.height,cx=W/2,cy=H/2,R=64;
   ctx.clearRect(0,0,W,H);
-  const frac=pomo.remainSecs/pomo.totalSecs, sa=-Math.PI/2, ea=sa+(1-frac)*Math.PI*2;
-  const dark=isDark, gRGB=dark?'201,168,76':'138,106,40';
+  const frac=pomo.remainSecs/pomo.totalSecs,sa=-Math.PI/2,ea=sa+(1-frac)*Math.PI*2;
+  const dark=isDark,gRGB=dark?'201,168,76':'138,106,40';
   ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);
   ctx.strokeStyle=dark?'rgba(255,255,255,0.10)':'rgba(28,31,38,0.12)';ctx.lineWidth=13;ctx.stroke();
-  if(frac>0){ctx.beginPath();ctx.arc(cx,cy,R,ea,sa+Math.PI*2);ctx.strokeStyle=`rgba(${gRGB},0.15)`;ctx.lineWidth=13;ctx.lineCap='butt';ctx.stroke();}
+  if(frac>0){ctx.beginPath();ctx.arc(cx,cy,R,ea,sa+Math.PI*2);ctx.strokeStyle='rgba('+gRGB+',0.15)';ctx.lineWidth=13;ctx.lineCap='butt';ctx.stroke();}
   if(frac<1){
-    const col=pomo.running?(dark?'#c44b3a':'#b83228'):pomo.remainSecs<pomo.totalSecs?(dark?'#4a7fa5':'#2e5c8a'):`rgba(${gRGB},0.7)`;
+    const col=pomo.running?(dark?'#c44b3a':'#b83228'):pomo.remainSecs<pomo.totalSecs?(dark?'#4a7fa5':'#2e5c8a'):'rgba('+gRGB+',0.7)';
     ctx.beginPath();ctx.arc(cx,cy,R,sa,ea);ctx.strokeStyle=col;ctx.lineWidth=13;ctx.lineCap='round';ctx.stroke();
   }
 }
-
 function renderPomo(){
   const m=Math.floor(pomo.remainSecs/60),s=pomo.remainSecs%60;
-  document.getElementById('pomo-time').textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  document.getElementById('pomo-phase').textContent=pomo.running?'Focusing':pomo.remainSecs===0?'Complete ✓':pomo.remainSecs<pomo.totalSecs?'Paused':'Ready';
+  document.getElementById('pomo-time').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  document.getElementById('pomo-phase').textContent=pomo.running?'Focusing':pomo.remainSecs===0?'Complete \u2713':pomo.remainSecs<pomo.totalSecs?'Paused':'Ready';
   document.getElementById('pomo-start').textContent=pomo.running?'Pause':pomo.remainSecs>0&&pomo.remainSecs<pomo.totalSecs?'Resume':'Start';
   document.querySelectorAll('.sess-dot').forEach((d,i)=>d.classList.toggle('done',i<pomo.sessions));
   const sw=document.querySelector('.swipe-section');
   if(sw){sw.style.opacity=pomo.running?'0.4':'1';sw.style.pointerEvents=pomo.running?'none':'auto';}
   drawPomoRing();
 }
-
 document.getElementById('pomo-start').addEventListener('click',()=>{
   if(pomo.running){clearInterval(pomo.interval);pomo.running=false;}
   else{
@@ -747,14 +957,29 @@ document.getElementById('pomo-start').addEventListener('click',()=>{
   }
   renderPomo();
 });
-
 document.getElementById('pomo-reset').addEventListener('click',()=>{
   clearInterval(pomo.interval);pomo.running=false;pomo.totalSecs=pomoDuration*60;pomo.remainSecs=pomoDuration*60;renderPomo();
 });
 
-// INIT
+// ── INIT ──────────────────────────────────────────────
 renderLeft(); buildTasks(); updateClock(); drawChronodex(); buildTicks(); renderPomo();
-setInterval(()=>{updateClock();drawChronodex();},30000);
+setInterval(()=>{updateClock();drawChronodex();}, 30000);
+setInterval(()=>{if(accessToken)loadAllData();}, 15*60*1000);
+
+// Wait for GIS library, then either auto-load (stored token) or show sign-in overlay
+const _gisWait = setInterval(()=>{
+  if(window.google && window.google.accounts){
+    clearInterval(_gisWait);
+    initGIS();
+    if(accessToken){
+      document.getElementById('signin-overlay').classList.add('hidden');
+      document.getElementById('sync-user').textContent = currentUser;
+      loadAllData();
+    }
+    // If no token, overlay stays visible — user taps "Sign in with Google"
+  }
+}, 150);
 </script>
+
 </body>
 </html>
