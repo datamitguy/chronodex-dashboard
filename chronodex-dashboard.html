@@ -25,7 +25,6 @@
 }
 
 html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--ink); font-family:'Cormorant Garamond',serif; }
-
 body { display:grid; grid-template-columns:1fr 1.6fr 1fr 0px; height:100vh; transition:grid-template-columns 0.3s ease; }
 body.pomo-open { grid-template-columns:1fr 1.6fr 1fr 310px; }
 
@@ -33,161 +32,169 @@ body.pomo-open { grid-template-columns:1fr 1.6fr 1fr 310px; }
 .panel:last-child { border-right:none; }
 
 /* HEADERS */
-.panel-header { padding:14px 18px; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:10px; flex-shrink:0; }
+.panel-header { padding:12px 14px; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:8px; flex-shrink:0; }
 .panel-title { font-size:15px; letter-spacing:0.20em; text-transform:uppercase; color:var(--ink-dim); font-family:'JetBrains Mono',monospace; }
 .panel-accent { width:6px; height:6px; border-radius:50%; background:var(--gold); animation:pulse 3s ease-in-out infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
 
+/* Add button */
+.add-btn { margin-left:auto; background:none; border:2px solid var(--gold-dim); border-radius:5px; color:var(--gold); cursor:pointer; font-size:22px; line-height:1; padding:4px 10px; min-height:44px; min-width:44px; display:flex; align-items:center; justify-content:center; }
+.add-btn:active { background:var(--gold-dim); }
+
 /* Theme toggle */
-.theme-btn { margin-left:auto; background:none; border:2px solid var(--border); border-radius:6px; padding:10px 18px; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:14px; letter-spacing:0.08em; color:var(--ink-dim); display:flex; align-items:center; gap:8px; min-height:48px; }
+.theme-btn { background:none; border:2px solid var(--border); border-radius:6px; padding:8px 14px; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:14px; letter-spacing:0.08em; color:var(--ink-dim); display:flex; align-items:center; gap:8px; min-height:44px; }
 .theme-btn:active { background:var(--ink-faint); }
 
-/* View toggle — large tap targets */
+/* View toggle */
 .view-toggle { display:flex; gap:3px; background:var(--ink-faint); border-radius:6px; padding:3px; margin-left:auto; }
-.view-btn { font-family:'JetBrains Mono',monospace; font-size:15px; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-dim); background:none; border:none; padding:10px 16px; border-radius:4px; cursor:pointer; min-height:48px; min-width:60px; }
+.view-btn { font-family:'JetBrains Mono',monospace; font-size:14px; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-dim); background:none; border:none; padding:8px 14px; border-radius:4px; cursor:pointer; min-height:44px; min-width:56px; }
 .view-btn.active { background:var(--border); color:var(--gold); }
 
 /* Nav arrows */
-.nav-arrow { background:none; border:2px solid var(--border); border-radius:5px; color:var(--ink-dim); cursor:pointer; font-size:24px; padding:8px 14px; line-height:1; min-height:48px; min-width:52px; }
+.nav-arrow { background:none; border:2px solid var(--border); border-radius:5px; color:var(--ink-dim); cursor:pointer; font-size:22px; padding:6px 12px; line-height:1; min-height:44px; min-width:48px; }
 .nav-arrow:active { background:var(--ink-faint); }
+
+/* ── TABS (shared by calendar + tasks panels) ── */
+.tab-bar { display:flex; gap:0; border-bottom:2px solid var(--border); flex-shrink:0; overflow-x:auto; scrollbar-width:none; }
+.tab-bar::-webkit-scrollbar { display:none; }
+.tab { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-dim); background:none; border:none; border-bottom:3px solid transparent; padding:9px 14px; cursor:pointer; white-space:nowrap; flex-shrink:0; min-height:40px; }
+.tab.active { color:var(--gold); border-bottom-color:var(--gold); }
+.tab-dot { display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:6px; vertical-align:middle; }
 
 /* DAY VIEW */
 .daily-view { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-.daily-top { display:flex; align-items:center; justify-content:space-between; padding:10px 18px 8px; border-bottom:2px solid var(--ink-faint); flex-shrink:0; }
-.daily-title-num { font-size:36px; font-weight:300; line-height:1; }
-.daily-title-sub { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-dim); letter-spacing:0.08em; margin-top:3px; }
+.daily-top { display:flex; align-items:center; justify-content:space-between; padding:8px 14px; border-bottom:2px solid var(--ink-faint); flex-shrink:0; }
+.daily-title-num { font-size:34px; font-weight:300; line-height:1; }
+.daily-title-sub { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); letter-spacing:0.08em; margin-top:2px; }
 .daily-timeline { flex:1; overflow-y:auto; scrollbar-width:none; }
 .daily-timeline::-webkit-scrollbar { display:none; }
 .hour-row { display:flex; min-height:40px; border-bottom:1.5px solid var(--ink-faint); }
 .hour-row.hour-now { background:rgba(160,120,48,0.07); }
-.hour-label { width:56px; flex-shrink:0; font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-dim); padding:7px 8px 0; text-align:right; }
+.hour-label { width:52px; flex-shrink:0; font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); padding:6px 6px 0; text-align:right; }
 .hour-label.now-lbl { color:var(--gold); }
-.hour-events { flex:1; padding:4px 10px; display:flex; flex-direction:column; gap:3px; }
-.hour-event { font-size:17px; padding:5px 10px; border-radius:3px; cursor:pointer; border-left:4px solid; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.hour-events { flex:1; padding:4px 8px; display:flex; flex-direction:column; gap:3px; }
+.hour-event { font-size:16px; padding:4px 10px; border-radius:3px; cursor:pointer; border-left:4px solid; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 /* WEEK VIEW */
 .week-view { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-.week-nav { display:flex; align-items:center; justify-content:space-between; padding:6px 18px; flex-shrink:0; }
-.week-range { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-dim); }
+.week-nav { display:flex; align-items:center; justify-content:space-between; padding:5px 14px; flex-shrink:0; }
+.week-range { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); }
 .week-grid { flex:1; display:flex; flex-direction:column; overflow:hidden; }
 .week-day { flex:1; display:flex; align-items:stretch; border-bottom:1.5px solid var(--ink-faint); }
 .week-day:last-child { border-bottom:none; }
 .week-day.today { background:rgba(160,120,48,0.06); }
-.day-label { width:58px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:center; border-right:2px solid var(--ink-faint); }
-.day-name { font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0.08em; color:var(--ink-dim); text-transform:uppercase; }
-.day-num { font-size:24px; font-weight:300; line-height:1; margin-top:2px; }
+.day-label { width:54px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:center; border-right:2px solid var(--ink-faint); }
+.day-name { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.08em; color:var(--ink-dim); text-transform:uppercase; }
+.day-num { font-size:22px; font-weight:300; line-height:1; margin-top:2px; }
 .week-day.today .day-num { color:var(--gold); font-weight:400; }
-.day-events { flex:1; padding:4px 10px; display:flex; flex-direction:column; gap:3px; justify-content:center; overflow:hidden; }
-.cal-event { display:flex; align-items:center; gap:7px; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.cal-event-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-.cal-event-time { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); flex-shrink:0; }
+.day-events { flex:1; padding:3px 8px; display:flex; flex-direction:column; gap:2px; justify-content:center; overflow:hidden; }
+.cal-event { display:flex; align-items:center; gap:6px; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cal-event-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.cal-event-time { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-dim); flex-shrink:0; }
 
 /* MONTH VIEW */
 .month-view { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-.month-nav { display:flex; align-items:center; justify-content:space-between; padding:8px 18px 4px; flex-shrink:0; }
-.month-title { font-size:24px; font-weight:300; }
-.month-dow-row { display:grid; grid-template-columns:repeat(7,1fr); padding:0 8px; flex-shrink:0; }
-.month-dow { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); text-align:center; padding:4px 0; text-transform:uppercase; }
-.month-grid { flex:1; display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:1fr; padding:0 8px 8px; gap:2px; overflow:hidden; }
-.month-cell { display:flex; flex-direction:column; padding:4px 5px; border:2px solid transparent; border-radius:3px; cursor:pointer; min-height:0; }
+.month-nav { display:flex; align-items:center; justify-content:space-between; padding:6px 14px 3px; flex-shrink:0; }
+.month-title { font-size:22px; font-weight:300; }
+.month-dow-row { display:grid; grid-template-columns:repeat(7,1fr); padding:0 6px; flex-shrink:0; }
+.month-dow { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-dim); text-align:center; padding:3px 0; text-transform:uppercase; }
+.month-grid { flex:1; display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:1fr; padding:0 6px 6px; gap:2px; overflow:hidden; }
+.month-cell { display:flex; flex-direction:column; padding:3px 4px; border:2px solid transparent; border-radius:3px; min-height:0; }
 .month-cell.today { border-color:var(--gold); background:rgba(160,120,48,0.07); }
 .month-cell.other-month { opacity:0.22; }
-.month-day-num { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-dim); line-height:1.3; }
+.month-day-num { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); line-height:1.3; }
 .month-cell.today .month-day-num { color:var(--gold); font-weight:400; }
-.month-dots { display:flex; flex-wrap:wrap; gap:3px; margin-top:3px; }
-.month-dot { width:7px; height:7px; border-radius:50%; }
+.month-dots { display:flex; flex-wrap:wrap; gap:2px; margin-top:2px; }
+.month-dot { width:6px; height:6px; border-radius:50%; }
 
-/* CHRONODEX CENTER */
+/* CHRONODEX */
 #panel-chrono { background:var(--bg); }
-.chrono-wrapper { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:8px; padding:8px 14px 12px; width:100%; }
+.chrono-wrapper { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:7px; padding:6px 12px 10px; width:100%; }
 .time-display { text-align:center; }
 .time-big { font-size:52px; font-weight:300; letter-spacing:-0.02em; line-height:1; font-variant-numeric:tabular-nums; }
-.time-date { font-family:'JetBrains Mono',monospace; font-size:15px; color:var(--ink-dim); letter-spacing:0.10em; margin-top:3px; text-transform:uppercase; }
-
-/* Canvas: NEVER interactive — overlay catches taps */
+.time-date { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-dim); letter-spacing:0.10em; margin-top:2px; text-transform:uppercase; }
 #chronodex-canvas { max-width:100%; display:block; pointer-events:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
 .chrono-canvas-wrap { position:relative; display:inline-block; max-width:100%; }
 .chrono-tap-overlay { position:absolute; inset:0; cursor:pointer; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+.next-strip { background:var(--ink-faint); border:2px solid var(--border); border-radius:3px; padding:10px 16px; width:100%; }
+.next-lbl { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.18em; color:var(--ink-dim); text-transform:uppercase; margin-bottom:3px; }
+.next-title { font-size:18px; font-weight:400; color:var(--gold); }
+.next-time { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); margin-top:2px; }
+.click-hint { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-faint); letter-spacing:0.08em; text-align:center; }
 
-.next-strip { background:var(--ink-faint); border:2px solid var(--border); border-radius:3px; padding:12px 18px; width:100%; }
-.next-lbl { font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0.18em; color:var(--ink-dim); text-transform:uppercase; margin-bottom:4px; }
-.next-title { font-size:19px; font-weight:400; color:var(--gold); }
-.next-time { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-dim); margin-top:3px; }
-.click-hint { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-faint); letter-spacing:0.08em; text-align:center; }
-
-/* EVENT PICKER — zero animation */
+/* EVENT PICKER */
 #event-picker { position:fixed; z-index:500; display:none; background:var(--surface); border:2px solid var(--border); border-radius:6px; min-width:230px; max-width:320px; }
 #event-picker.open { display:block; }
-.picker-label { font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0.15em; text-transform:uppercase; color:var(--ink-dim); padding:12px 18px 6px; }
-.picker-item { display:flex; align-items:center; gap:12px; padding:14px 18px; cursor:pointer; border-top:1px solid var(--ink-faint); }
+.picker-label { font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0.15em; text-transform:uppercase; color:var(--ink-dim); padding:12px 16px 6px; }
+.picker-item { display:flex; align-items:center; gap:12px; padding:12px 16px; cursor:pointer; border-top:1px solid var(--ink-faint); }
 .picker-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
 .picker-text { flex:1; min-width:0; }
-.picker-title { font-size:19px; font-weight:400; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.picker-time { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-dim); margin-top:2px; }
+.picker-title { font-size:18px; font-weight:400; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.picker-time { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); margin-top:2px; }
 .picker-divider { height:2px; background:var(--border); }
-.picker-cancel { font-family:'JetBrains Mono',monospace; font-size:14px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-dim); padding:14px 18px; cursor:pointer; display:block; }
+.picker-cancel { font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-dim); padding:12px 16px; cursor:pointer; display:block; }
 
 /* TASKS */
 #panel-tasks { background:var(--surface); }
 .tasks-list { flex:1; overflow-y:auto; padding:4px 0; scrollbar-width:none; }
 .tasks-list::-webkit-scrollbar { display:none; }
-.task-group-lbl { font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0.18em; color:var(--gold-dim); text-transform:uppercase; padding:10px 18px 5px; }
-.task-item { display:flex; align-items:flex-start; gap:10px; padding:9px 18px; border-bottom:1.5px solid var(--ink-faint); cursor:pointer; }
+.task-group-lbl { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.18em; color:var(--gold-dim); text-transform:uppercase; padding:8px 16px 4px; }
+.task-item { display:flex; align-items:flex-start; gap:10px; padding:8px 16px; border-bottom:1.5px solid var(--ink-faint); cursor:pointer; }
 .task-item.done { opacity:0.35; }
 .task-check { width:20px; height:20px; border:2px solid var(--border); border-radius:3px; flex-shrink:0; margin-top:1px; display:flex; align-items:center; justify-content:center; }
 .task-item.done .task-check { background:var(--gold-dim); border-color:var(--gold-dim); }
 .task-item.done .task-check::after { content:'✓'; font-size:12px; color:var(--gold); }
 .task-body { flex:1; min-width:0; }
-.task-title { font-size:17px; line-height:1.4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.task-title { font-size:16px; line-height:1.4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .task-item.done .task-title { text-decoration:line-through; }
-.task-meta { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-dim); margin-top:2px; }
-.task-meta.overdue { color:var(--red); font-weight:400; }
+.task-meta { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); margin-top:2px; }
+.task-meta.overdue { color:var(--red); }
 .task-meta.today-due { color:var(--amber); }
 .task-pri { width:5px; align-self:stretch; border-radius:2px; flex-shrink:0; }
-.pri-high { background:var(--red); } .pri-med { background:var(--amber); } .pri-low { background:var(--border); }
-.tasks-footer { padding:10px 18px; border-top:2px solid var(--border); display:flex; justify-content:space-between; flex-shrink:0; }
-.tasks-count { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-dim); }
+.pri-high{background:var(--red);} .pri-med{background:var(--amber);} .pri-low{background:var(--border);}
+.tasks-footer { padding:8px 16px; border-top:2px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-shrink:0; }
+.tasks-count { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); }
 
-/* POMODORO SIDEBAR */
+/* POMODORO */
 #panel-pomo { background:var(--pomo-bg); border-left:2px solid var(--border); border-right:none; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
-.pomo-header { padding:14px 18px; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:10px; flex-shrink:0; }
-.pomo-header-title { font-family:'JetBrains Mono',monospace; font-size:15px; letter-spacing:0.20em; text-transform:uppercase; color:var(--ink-dim); }
-.pomo-close-btn { margin-left:auto; background:none; border:2px solid var(--border); border-radius:5px; color:var(--ink-dim); cursor:pointer; font-size:18px; padding:6px 12px; min-height:48px; min-width:48px; display:flex; align-items:center; justify-content:center; }
+.pomo-header { padding:12px 16px; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:10px; flex-shrink:0; }
+.pomo-header-title { font-family:'JetBrains Mono',monospace; font-size:14px; letter-spacing:0.20em; text-transform:uppercase; color:var(--ink-dim); }
+.pomo-close-btn { margin-left:auto; background:none; border:2px solid var(--border); border-radius:5px; color:var(--ink-dim); cursor:pointer; font-size:16px; padding:5px 10px; min-height:44px; min-width:44px; display:flex; align-items:center; justify-content:center; }
 .pomo-close-btn:active { background:var(--ink-faint); }
-.pomo-body { flex:1; display:flex; flex-direction:column; align-items:center; padding:16px 18px 18px; gap:14px; overflow-y:auto; scrollbar-width:none; }
+.pomo-body { flex:1; display:flex; flex-direction:column; align-items:center; padding:14px 16px 16px; gap:12px; overflow-y:auto; scrollbar-width:none; }
 .pomo-body::-webkit-scrollbar { display:none; }
-.pomo-ev-label { font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-dim); text-align:center; }
-.pomo-ev-title { font-size:22px; font-weight:300; color:var(--gold); text-align:center; line-height:1.3; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.pomo-ring-wrap { position:relative; width:160px; height:160px; flex-shrink:0; }
+.pomo-ev-label { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-dim); text-align:center; }
+.pomo-ev-title { font-size:20px; font-weight:300; color:var(--gold); text-align:center; line-height:1.3; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pomo-ring-wrap { position:relative; width:150px; height:150px; flex-shrink:0; }
 #pomo-ring { position:absolute; inset:0; }
 .pomo-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
-.pomo-time { font-size:36px; font-weight:300; font-variant-numeric:tabular-nums; letter-spacing:-0.02em; line-height:1; }
-.pomo-phase { font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0.15em; color:var(--ink-dim); text-transform:uppercase; margin-top:4px; }
+.pomo-time { font-size:34px; font-weight:300; font-variant-numeric:tabular-nums; letter-spacing:-0.02em; line-height:1; }
+.pomo-phase { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.15em; color:var(--ink-dim); text-transform:uppercase; margin-top:4px; }
 .swipe-section { width:100%; }
-.swipe-lbl { font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0.12em; color:var(--ink-dim); text-transform:uppercase; text-align:center; margin-bottom:9px; }
+.swipe-lbl { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.12em; color:var(--ink-dim); text-transform:uppercase; text-align:center; margin-bottom:8px; }
 .swipe-control { display:flex; align-items:center; background:var(--ink-faint); border:2px solid var(--border); border-radius:5px; overflow:hidden; user-select:none; }
-.swipe-minus, .swipe-plus { background:none; border:none; color:var(--ink-dim); cursor:pointer; padding:0 16px; height:56px; font-size:26px; line-height:1; display:flex; align-items:center; flex-shrink:0; min-width:52px; justify-content:center; }
-.swipe-minus:active, .swipe-plus:active { background:var(--border); }
-.swipe-track { flex:1; height:56px; position:relative; overflow:hidden; cursor:ew-resize; touch-action:none; }
+.swipe-minus,.swipe-plus { background:none; border:none; color:var(--ink-dim); cursor:pointer; padding:0 14px; height:52px; font-size:24px; display:flex; align-items:center; flex-shrink:0; min-width:48px; justify-content:center; }
+.swipe-minus:active,.swipe-plus:active { background:var(--border); }
+.swipe-track { flex:1; height:52px; position:relative; overflow:hidden; cursor:ew-resize; touch-action:none; }
 .swipe-track-inner { width:100%; height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column; position:relative; }
-.swipe-val { font-family:'JetBrains Mono',monospace; font-size:24px; color:var(--gold); line-height:1; pointer-events:none; }
-.swipe-unit { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); letter-spacing:0.08em; pointer-events:none; margin-top:2px; }
-.swipe-ticks { position:absolute; bottom:5px; left:0; right:0; display:flex; align-items:flex-end; justify-content:center; gap:2px; pointer-events:none; }
+.swipe-val { font-family:'JetBrains Mono',monospace; font-size:22px; color:var(--gold); line-height:1; pointer-events:none; }
+.swipe-unit { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-dim); pointer-events:none; margin-top:2px; }
+.swipe-ticks { position:absolute; bottom:4px; left:0; right:0; display:flex; align-items:flex-end; justify-content:center; gap:2px; pointer-events:none; }
 .tick { width:2px; border-radius:1px; background:var(--border); }
 .tick.major { background:var(--gold-dim); }
 .tick.current { background:var(--gold); width:3px; }
-.pomo-btns { display:flex; gap:10px; width:100%; }
-.pomo-btn { flex:1; padding:14px 0; font-family:'JetBrains Mono',monospace; font-size:14px; letter-spacing:0.10em; text-transform:uppercase; border:2px solid var(--border); background:none; color:var(--ink-dim); cursor:pointer; border-radius:4px; min-height:52px; }
+.pomo-btns { display:flex; gap:8px; width:100%; }
+.pomo-btn { flex:1; padding:12px 0; font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0.10em; text-transform:uppercase; border:2px solid var(--border); background:none; color:var(--ink-dim); cursor:pointer; border-radius:4px; min-height:48px; }
 .pomo-btn.primary { background:var(--gold-dim); border-color:var(--gold); color:var(--gold); }
 .pomo-btn.primary:active { background:var(--gold); color:var(--bg); }
 .pomo-btn.danger { border-color:var(--red); color:var(--red); }
 .pomo-btn.danger:active { background:rgba(196,75,58,0.15); }
-.pomo-sess { display:flex; gap:10px; }
-.sess-dot { width:14px; height:14px; border-radius:50%; border:2px solid var(--gold-dim); }
+.pomo-sess { display:flex; gap:8px; }
+.sess-dot { width:13px; height:13px; border-radius:50%; border:2px solid var(--gold-dim); }
 .sess-dot.done { background:var(--gold); border-color:var(--gold); }
-.pomo-tip { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-faint); letter-spacing:0.06em; text-align:center; line-height:1.7; }
+.pomo-tip { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-faint); text-align:center; line-height:1.7; }
 
-/* Light mode surfaces */
+/* Light mode */
 [data-theme="light"] #panel-left   { background:#ffffff; }
 [data-theme="light"] #panel-chrono { background:#f0eeeb; }
 [data-theme="light"] #panel-tasks  { background:#f7f6f3; }
@@ -196,35 +203,51 @@ body.pomo-open { grid-template-columns:1fr 1.6fr 1fr 310px; }
 [data-theme="light"] .swipe-control { background:#dedad4; }
 [data-theme="light"] .task-group-lbl { color:#8a6a28; }
 
-
 /* ══ SIGN-IN OVERLAY ══ */
-#signin-overlay {
-  position:fixed; inset:0; z-index:2000; background:var(--bg);
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px;
-}
+#signin-overlay { position:fixed; inset:0; z-index:2000; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px; }
 #signin-overlay.hidden { display:none; }
 .signin-logo { font-size:54px; opacity:0.6; }
 .signin-title { font-family:'JetBrains Mono',monospace; font-size:22px; letter-spacing:0.22em; text-transform:uppercase; color:var(--ink); text-align:center; }
-.signin-sub { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-dim); letter-spacing:0.06em; text-align:center; line-height:1.8; }
+.signin-sub { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-dim); text-align:center; line-height:1.8; }
 .signin-btn { font-family:'JetBrains Mono',monospace; font-size:15px; letter-spacing:0.12em; text-transform:uppercase; padding:16px 36px; border-radius:6px; cursor:pointer; background:var(--gold-dim); border:2px solid var(--gold); color:var(--gold); min-height:56px; }
 .signin-btn:active { background:var(--gold); color:var(--bg); }
 .signin-note { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-faint); text-align:center; max-width:340px; line-height:1.8; }
+
 /* ══ SYNC BAR ══ */
-#sync-bar {
-  position:fixed; bottom:0; left:0; right:0; z-index:1000;
-  background:var(--surface); border-top:2px solid var(--border);
-  padding:8px 18px; display:flex; align-items:center; gap:12px;
-  font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim);
-  transform:translateY(100%); transition:transform 0.2s ease;
-}
+#sync-bar { position:fixed; bottom:0; left:0; right:0; z-index:1000; background:var(--surface); border-top:2px solid var(--border); padding:7px 16px; display:flex; align-items:center; gap:10px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-dim); transform:translateY(100%); transition:transform 0.2s ease; }
 #sync-bar.visible { transform:translateY(0); }
-.sync-dot { width:8px; height:8px; border-radius:50%; background:var(--gold); animation:pulse 1.5s ease-in-out infinite; }
-.sync-dot.ok  { background:var(--green); animation:none; }
-.sync-dot.err { background:var(--red);   animation:none; }
-#sync-user { margin-left:auto; color:var(--ink-faint); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px; }
-.signout-btn { background:none; border:1px solid var(--border); border-radius:3px; color:var(--ink-dim); font-family:'JetBrains Mono',monospace; font-size:12px; padding:5px 12px; cursor:pointer; min-height:34px; }
+.sync-dot { width:7px; height:7px; border-radius:50%; background:var(--gold); animation:pulse 1.5s ease-in-out infinite; }
+.sync-dot.ok { background:var(--green); animation:none; }
+.sync-dot.err { background:var(--red); animation:none; }
+#sync-user { margin-left:auto; color:var(--ink-faint); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px; }
+.signout-btn { background:none; border:1px solid var(--border); border-radius:3px; color:var(--ink-dim); font-family:'JetBrains Mono',monospace; font-size:11px; padding:4px 10px; cursor:pointer; min-height:30px; }
 .signout-btn:active { background:var(--ink-faint); }
-.loading-msg { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-dim); padding:24px 18px; letter-spacing:0.06em; }
+.loading-msg { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); padding:20px 16px; }
+
+/* ══ ADD ENTRY MODAL ══ */
+.modal-backdrop { position:fixed; inset:0; z-index:900; background:rgba(0,0,0,0.55); display:none; align-items:center; justify-content:center; }
+.modal-backdrop.open { display:flex; }
+.modal { background:var(--surface); border:2px solid var(--border); border-radius:8px; width:min(440px,95vw); max-height:90vh; overflow-y:auto; scrollbar-width:none; }
+.modal::-webkit-scrollbar { display:none; }
+.modal-header { padding:16px 20px 12px; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:12px; }
+.modal-title { font-family:'JetBrains Mono',monospace; font-size:14px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink); }
+.modal-close { margin-left:auto; background:none; border:none; color:var(--ink-dim); cursor:pointer; font-size:20px; line-height:1; padding:4px 6px; min-height:36px; min-width:36px; }
+.modal-body { padding:20px; display:flex; flex-direction:column; gap:16px; }
+.field { display:flex; flex-direction:column; gap:6px; }
+.field label { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-dim); }
+.field input, .field select, .field textarea {
+  background:var(--ink-faint); border:2px solid var(--border); border-radius:4px;
+  color:var(--ink); font-family:'JetBrains Mono',monospace; font-size:14px;
+  padding:10px 12px; width:100%; outline:none; appearance:none;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color:var(--gold); }
+.field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.modal-footer { padding:14px 20px 18px; border-top:2px solid var(--border); display:flex; gap:10px; justify-content:flex-end; }
+.modal-btn { font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0.10em; text-transform:uppercase; padding:12px 22px; border-radius:4px; cursor:pointer; border:2px solid var(--border); background:none; color:var(--ink-dim); min-height:46px; }
+.modal-btn.primary { background:var(--gold-dim); border-color:var(--gold); color:var(--gold); }
+.modal-btn.primary:active { background:var(--gold); color:var(--bg); }
+.modal-btn:active { background:var(--ink-faint); }
+.modal-saving { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-dim); align-self:center; }
 
 /* Paper grain */
 body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:0.25; z-index:998;
@@ -234,18 +257,23 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
 </head>
 <body>
 
+<!-- LEFT: CALENDAR -->
 <section class="panel" id="panel-left">
   <div class="panel-header">
     <span class="panel-title" id="left-title">Week View</span>
-    <div class="view-toggle">
+    <button class="add-btn" id="add-event-btn" title="Add event">+</button>
+    <div class="view-toggle" style="margin-left:8px">
       <button class="view-btn" data-view="day">Day</button>
       <button class="view-btn active" data-view="week">Week</button>
       <button class="view-btn" data-view="month">Mon</button>
     </div>
   </div>
+  <!-- Calendar tabs — populated after API load -->
+  <div class="tab-bar" id="cal-tab-bar" style="display:none"></div>
   <div id="left-content" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>
 </section>
 
+<!-- CENTER: CHRONODEX -->
 <section class="panel" id="panel-chrono">
   <div class="panel-header">
     <span class="panel-title">Chronodex</span>
@@ -262,7 +290,7 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
       <canvas id="chronodex-canvas" width="380" height="380"></canvas>
       <div class="chrono-tap-overlay" id="chrono-overlay"></div>
     </div>
-    <div class="click-hint">tap the dial to select an event</div>
+    <div class="click-hint">tap the dial · select event · start pomodoro</div>
     <div class="next-strip">
       <div class="next-lbl">Next · 30 min</div>
       <div class="next-title" id="next-title">—</div>
@@ -271,18 +299,23 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
   </div>
 </section>
 
+<!-- RIGHT: TASKS -->
 <section class="panel" id="panel-tasks">
   <div class="panel-header">
-    <span class="panel-title">Tasks &amp; Reminders</span>
-    <div class="panel-accent"></div>
+    <span class="panel-title">Tasks</span>
+    <button class="add-btn" id="add-task-btn" title="Add task">+</button>
+    <div class="panel-accent" style="margin-left:8px"></div>
   </div>
+  <!-- Task list tabs — populated after API load -->
+  <div class="tab-bar" id="task-tab-bar" style="display:none"></div>
   <div class="tasks-list" id="tasks-list"></div>
   <div class="tasks-footer">
     <span class="tasks-count" id="tasks-count"></span>
-    <span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--ink-dim);">scroll ↕</span>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink-dim);">scroll ↕</span>
   </div>
 </section>
 
+<!-- POMODORO -->
 <section class="panel" id="panel-pomo">
   <div class="pomo-header">
     <span class="pomo-header-title">Pomodoro</span>
@@ -292,14 +325,14 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
     <div class="pomo-ev-label">Focus Session</div>
     <div class="pomo-ev-title" id="pomo-ev-title">—</div>
     <div class="pomo-ring-wrap">
-      <canvas id="pomo-ring" width="160" height="160"></canvas>
+      <canvas id="pomo-ring" width="150" height="150"></canvas>
       <div class="pomo-center">
         <div class="pomo-time" id="pomo-time">25:00</div>
         <div class="pomo-phase" id="pomo-phase">Ready</div>
       </div>
     </div>
     <div class="swipe-section">
-      <div class="swipe-lbl">Duration — swipe to adjust</div>
+      <div class="swipe-lbl">Duration</div>
       <div class="swipe-control">
         <button class="swipe-minus" id="sw-minus">−</button>
         <div class="swipe-track" id="sw-track">
@@ -320,10 +353,9 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
       <div class="sess-dot"></div><div class="sess-dot"></div>
       <div class="sess-dot"></div><div class="sess-dot"></div>
     </div>
-    <div class="pomo-tip">swipe left/right · 1 min steps<br>hold +/− for fast scroll</div>
+    <div class="pomo-tip">swipe · 1 min steps · hold +/− fast</div>
   </div>
 </section>
-
 
 <!-- SIGN-IN OVERLAY -->
 <div id="signin-overlay">
@@ -331,17 +363,18 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
   <div class="signin-title">Chronodex</div>
   <div class="signin-sub">Your day, at a glance.<br>Sign in to load your calendar &amp; tasks.</div>
   <button class="signin-btn" id="signin-btn">Sign in with Google</button>
-  <div class="signin-note">Read-only access to Calendar &amp; Tasks.<br>No data is stored anywhere.</div>
+  <div class="signin-note">Calendar &amp; Tasks access (read + write).<br>No data stored anywhere.</div>
 </div>
 
-<!-- SYNC STATUS BAR -->
+<!-- SYNC BAR -->
 <div id="sync-bar">
   <div class="sync-dot" id="sync-dot"></div>
-  <span id="sync-msg">Syncing&#x2026;</span>
+  <span id="sync-msg">Syncing…</span>
   <span id="sync-user"></span>
   <button class="signout-btn" id="signout-btn">Sign out</button>
 </div>
 
+<!-- EVENT PICKER (tap dial) -->
 <div id="event-picker">
   <div class="picker-label">Start Pomodoro for</div>
   <div id="picker-items"></div>
@@ -349,62 +382,123 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
   <div class="picker-cancel" id="picker-cancel">Cancel</div>
 </div>
 
+<!-- ADD EVENT MODAL -->
+<div class="modal-backdrop" id="modal-event">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add Calendar Event</span>
+      <button class="modal-close" id="modal-event-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Title</label>
+        <input type="text" id="ev-title" placeholder="Event title" autocomplete="off">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="ev-date">
+        </div>
+        <div class="field">
+          <label>Calendar</label>
+          <select id="ev-cal"></select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Start time</label>
+          <input type="time" id="ev-start">
+        </div>
+        <div class="field">
+          <label>Duration (min)</label>
+          <input type="number" id="ev-dur" value="60" min="5" max="480" step="5">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <span class="modal-saving" id="ev-saving" style="display:none">Saving…</span>
+      <button class="modal-btn" id="ev-cancel">Cancel</button>
+      <button class="modal-btn primary" id="ev-save">Add Event</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD TASK MODAL -->
+<div class="modal-backdrop" id="modal-task">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add Task</span>
+      <button class="modal-close" id="modal-task-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Title</label>
+        <input type="text" id="tk-title" placeholder="Task title" autocomplete="off">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Due date (optional)</label>
+          <input type="date" id="tk-date">
+        </div>
+        <div class="field">
+          <label>Task list</label>
+          <select id="tk-list"></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <span class="modal-saving" id="tk-saving" style="display:none">Saving…</span>
+      <button class="modal-btn" id="tk-cancel">Cancel</button>
+      <button class="modal-btn primary" id="tk-save">Add Task</button>
+    </div>
+  </div>
+</div>
+
 <script>
-// ════════════════════════════════════════════════════════
-//  GOOGLE API INTEGRATION — Calendar + Tasks (read-only)
-//  Auth: Google Identity Services token model (no redirect)
-// ════════════════════════════════════════════════════════
-const CLIENT_ID = '663470287783-ljsv9gr282m780ue4mlbu6qoqulenk7u.apps.googleusercontent.com';
-const SCOPES    = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/tasks.readonly https://www.googleapis.com/auth/userinfo.email';
-const CAL_API   = 'https://www.googleapis.com/calendar/v3';
-const TASKS_API = 'https://www.googleapis.com/tasks/v1';
+// ══════════════════════════════════════════════════════
+//  GOOGLE API — Calendar + Tasks (read + write)
+// ══════════════════════════════════════════════════════
+const CLIENT_ID  = '663470287783-ljsv9gr282m780ue4mlbu6qoqulenk7u.apps.googleusercontent.com';
+const SCOPES     = [
+  'https://www.googleapis.com/auth/calendar.events',
+  'https://www.googleapis.com/auth/tasks',
+  'https://www.googleapis.com/auth/userinfo.email',
+].join(' ');
+const CAL_API    = 'https://www.googleapis.com/calendar/v3';
+const TASKS_API  = 'https://www.googleapis.com/tasks/v1';
 
-// Live data — populated by API
-let EVENTS = [];
-let TASKS  = [];
+// ── DATA ──────────────────────────────────────────────
+let EVENTS       = [];  // all events
+let TASKS        = [];  // all tasks
+let CAL_LIST     = [];  // [{id, name, color}]  — all writable calendars
+let TASK_LISTS   = [];  // [{id, title}]         — all task lists
 
-// Google colorId → theme palette
-const GCAL_COLORS = {
-  '1':'#4a7fa5','2':'#5a8f6a','3':'#5a8f6a','4':'#c44b3a',
-  '5':'#d4813a','6':'#d4813a','7':'#4a7fa5','8':'#7a7568',
-  '9':'#4a7fa5','10':'#5a8f6a','11':'#c9a84c',
-};
-const calColors = {}; // calendarId → hex
+// Tabs state
+let activeCalTab  = 'all';   // calendarId or 'all'
+let activeTaskTab = 'all';   // list id or 'all'
+
+// Google colorId → theme colour
+const GCAL_COLORS = {'1':'#4a7fa5','2':'#5a8f6a','3':'#5a8f6a','4':'#c44b3a','5':'#d4813a','6':'#d4813a','7':'#4a7fa5','8':'#7a7568','9':'#4a7fa5','10':'#5a8f6a','11':'#c9a84c'};
 
 // ── AUTH ──────────────────────────────────────────────
-let accessToken = null;
-let tokenExpiry  = 0;
-let tokenClient  = null;
-let currentUser  = '';
+let accessToken = null, tokenExpiry = 0, tokenClient = null, currentUser = '';
 
-// Restore from sessionStorage on load
 try {
-  const saved = JSON.parse(sessionStorage.getItem('cdx_tok') || 'null');
-  if (saved && saved.expiry > Date.now() + 90000) {
-    accessToken = saved.token;
-    tokenExpiry  = saved.expiry;
-    currentUser  = saved.user || '';
-  }
-} catch(e) {}
+  const s = JSON.parse(sessionStorage.getItem('cdx_tok') || 'null');
+  if (s && s.expiry > Date.now() + 90000) { accessToken = s.token; tokenExpiry = s.expiry; currentUser = s.user||''; }
+} catch(e){}
 
-function saveSession() {
-  try { sessionStorage.setItem('cdx_tok', JSON.stringify({token:accessToken,expiry:tokenExpiry,user:currentUser})); } catch(e){}
-}
-function clearSession() {
-  accessToken=null; tokenExpiry=0; currentUser='';
-  try { sessionStorage.removeItem('cdx_tok'); } catch(e){}
-}
+function saveSession(){ try{ sessionStorage.setItem('cdx_tok', JSON.stringify({token:accessToken,expiry:tokenExpiry,user:currentUser})); }catch(e){} }
+function clearSession(){ accessToken=null;tokenExpiry=0;currentUser=''; try{sessionStorage.removeItem('cdx_tok');}catch(e){} }
 
-function initGIS() {
+function initGIS(){
   tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: SCOPES,
+    client_id: CLIENT_ID, scope: SCOPES,
     callback: async (resp) => {
-      if (resp.error) { showSyncBar('Auth error: ' + resp.error, 'err'); return; }
+      if(resp.error){ showSyncBar('Auth error: '+resp.error,'err'); return; }
       accessToken = resp.access_token;
-      tokenExpiry  = Date.now() + (resp.expires_in - 60) * 1000;
-      await fetchUserInfo();
-      saveSession();
+      tokenExpiry  = Date.now() + (resp.expires_in - 60)*1000;
+      await fetchUserInfo(); saveSession();
       document.getElementById('signin-overlay').classList.add('hidden');
       document.getElementById('sync-user').textContent = currentUser;
       await loadAllData();
@@ -412,205 +506,212 @@ function initGIS() {
   });
 }
 
-async function fetchUserInfo() {
-  try {
-    const r = await apiFetch('https://www.googleapis.com/oauth2/v2/userinfo');
-    currentUser = r.email || '';
-  } catch(e) {}
+async function fetchUserInfo(){
+  try{ const r=await apiFetch('https://www.googleapis.com/oauth2/v2/userinfo'); currentUser=r.email||''; }catch(e){}
 }
 
-function requestToken() {
-  if (!tokenClient) { showSyncBar('Identity Services loading — please try again in a moment', 'err'); return; }
-  // prompt:'select_account' shows account picker; '' reuses existing session silently
-  tokenClient.requestAccessToken({ prompt: currentUser ? '' : 'select_account' });
-}
+function requestToken(){ if(!tokenClient){showSyncBar('GIS loading — try again shortly','err');return;} tokenClient.requestAccessToken({prompt:currentUser?'':'select_account'}); }
 
-function signOut() {
-  if (accessToken) { try { google.accounts.oauth2.revoke(accessToken, ()=>{}); } catch(e){} }
-  clearSession();
-  EVENTS=[]; TASKS=[];
-  renderLeft(); buildTasks(); updateClock(); drawChronodex();
+function signOut(){
+  if(accessToken) try{google.accounts.oauth2.revoke(accessToken,()=>{});}catch(e){}
+  clearSession(); EVENTS=[];TASKS=[];CAL_LIST=[];TASK_LISTS=[];
+  renderLeft();buildTasks();updateClock();drawChronodex();
   document.getElementById('signin-overlay').classList.remove('hidden');
-  hideSyncBar();
+  document.getElementById('sync-bar').classList.remove('visible');
 }
 
 document.getElementById('signin-btn').addEventListener('click', requestToken);
 document.getElementById('signout-btn').addEventListener('click', signOut);
 
 // ── SYNC BAR ──────────────────────────────────────────
-let _syncTimer = null;
-function showSyncBar(msg, state) {
-  document.getElementById('sync-msg').textContent = msg;
-  const dot = document.getElementById('sync-dot');
-  dot.className = 'sync-dot' + (state==='ok'?' ok':state==='err'?' err':'');
+let _st=null;
+function showSyncBar(msg,state){
+  document.getElementById('sync-msg').textContent=msg;
+  document.getElementById('sync-dot').className='sync-dot'+(state==='ok'?' ok':state==='err'?' err':'');
   document.getElementById('sync-bar').classList.add('visible');
-  clearTimeout(_syncTimer);
-  if (state === 'ok') _syncTimer = setTimeout(() => document.getElementById('sync-bar').classList.remove('visible'), 3500);
-}
-function hideSyncBar() {
-  clearTimeout(_syncTimer);
-  document.getElementById('sync-bar').classList.remove('visible');
+  clearTimeout(_st);
+  if(state==='ok') _st=setTimeout(()=>document.getElementById('sync-bar').classList.remove('visible'),3500);
 }
 
 // ── API HELPER ────────────────────────────────────────
-async function apiFetch(url, params) {
-  if (!accessToken) throw new Error('not_authenticated');
-  // Silent token refresh if expiring soon
-  if (Date.now() > tokenExpiry) {
-    clearSession();
-    throw new Error('token_expired');
-  }
-  const qs = params ? '?' + new URLSearchParams(params) : '';
-  const r = await fetch(url + qs, { headers: { Authorization: 'Bearer ' + accessToken } });
-  if (r.status === 401) { clearSession(); throw new Error('token_expired'); }
-  if (!r.ok) throw new Error('API ' + r.status + ' at ' + url.split('/').pop());
+async function apiFetch(url, params, opts){
+  if(!accessToken) throw new Error('not_authenticated');
+  if(Date.now()>tokenExpiry){ clearSession(); throw new Error('token_expired'); }
+  const qs = params ? '?'+new URLSearchParams(params) : '';
+  const r = await fetch(url+qs, { headers:{Authorization:'Bearer '+accessToken}, ...opts });
+  if(r.status===401){ clearSession(); throw new Error('token_expired'); }
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  if(r.status===204||r.headers.get('content-length')==='0') return {};
+  return r.json();
+}
+async function apiPost(url, body){
+  if(!accessToken) throw new Error('not_authenticated');
+  if(Date.now()>tokenExpiry){ clearSession(); throw new Error('token_expired'); }
+  const r = await fetch(url, { method:'POST', headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'}, body:JSON.stringify(body) });
+  if(r.status===401){ clearSession(); throw new Error('token_expired'); }
+  if(!r.ok){ const t=await r.text(); throw new Error('HTTP '+r.status+': '+t.slice(0,120)); }
   return r.json();
 }
 
-// ── CALENDAR COLORS ───────────────────────────────────
-async function fetchCalColors() {
-  try {
-    const list = await apiFetch(CAL_API + '/users/me/calendarList');
-    const palette = ['#4a7fa5','#5a8f6a','#c9a84c','#c44b3a','#d4813a'];
-    (list.items || []).forEach((cal, i) => {
-      calColors[cal.id] = cal.backgroundColor || palette[i % palette.length];
-    });
-  } catch(e) {}
+// ── FETCH CALENDAR LIST ───────────────────────────────
+async function fetchCalList(){
+  const res = await apiFetch(CAL_API+'/users/me/calendarList');
+  const palette = ['#4a7fa5','#5a8f6a','#c9a84c','#c44b3a','#d4813a'];
+  CAL_LIST = (res.items||[]).filter(c=>c.selected!==false).map((c,i)=>({
+    id:   c.id,
+    name: c.summary||'Calendar',
+    color: c.backgroundColor || palette[i%palette.length],
+  }));
 }
 
-function evColor(gcalEv, calId) {
-  if (gcalEv.colorId) return GCAL_COLORS[gcalEv.colorId] || '#c9a84c';
-  return calColors[calId] || '#4a7fa5';
+function evColor(gcalEv, calId){
+  if(gcalEv.colorId) return GCAL_COLORS[gcalEv.colorId]||'#c9a84c';
+  const cal = CAL_LIST.find(c=>c.id===calId);
+  return cal ? cal.color : '#4a7fa5';
 }
 
 // ── FETCH EVENTS ──────────────────────────────────────
-async function fetchEvents() {
-  const now = new Date();
-  const tMin = new Date(now); tMin.setDate(now.getDate() - 3);
-  const tMax = new Date(now); tMax.setDate(now.getDate() + 14);
-
-  const calList = await apiFetch(CAL_API + '/users/me/calendarList');
-  const cals = (calList.items || []).filter(c => c.selected !== false);
-
-  const all = [];
-  await Promise.all(cals.map(async cal => {
-    try {
-      const resp = await apiFetch(CAL_API + '/calendars/' + encodeURIComponent(cal.id) + '/events', {
-        timeMin: tMin.toISOString(),
-        timeMax: tMax.toISOString(),
-        singleEvents: 'true',
-        orderBy: 'startTime',
-        maxResults: '500',
-        fields: 'items(id,summary,start,end,colorId,status)',
+async function fetchEvents(){
+  const now=new Date();
+  const tMin=new Date(now); tMin.setDate(now.getDate()-3);
+  const tMax=new Date(now); tMax.setDate(now.getDate()+14);
+  const all=[];
+  await Promise.all(CAL_LIST.map(async cal=>{
+    try{
+      const resp=await apiFetch(CAL_API+'/calendars/'+encodeURIComponent(cal.id)+'/events',{
+        timeMin:tMin.toISOString(), timeMax:tMax.toISOString(),
+        singleEvents:'true', orderBy:'startTime', maxResults:'500',
+        fields:'items(id,summary,start,end,colorId,status)',
       });
-      (resp.items || []).forEach(ev => {
-        if (ev.status === 'cancelled') return;
-        const startISO = (ev.start.dateTime || ev.start.date + 'T06:00').slice(0,16);
-        const endISO   = (ev.end.dateTime   || ev.end.date   + 'T07:00').slice(0,16);
-        all.push({
-          title:    (ev.summary || '(No title)').replace(/</g,'&lt;'),
-          startISO, endISO,
-          color: evColor(ev, cal.id),
-        });
+      (resp.items||[]).forEach(ev=>{
+        if(ev.status==='cancelled') return;
+        const startISO=(ev.start.dateTime||ev.start.date+'T06:00').slice(0,16);
+        const endISO  =(ev.end.dateTime  ||ev.end.date  +'T07:00').slice(0,16);
+        all.push({ title:(ev.summary||'(No title)').replace(/</g,'&lt;'), startISO, endISO, color:evColor(ev,cal.id), calId:cal.id, calName:cal.name });
       });
-    } catch(e) {}
+    }catch(e){}
   }));
-
-  all.sort((a,b) => a.startISO.localeCompare(b.startISO));
-  EVENTS = all;
+  all.sort((a,b)=>a.startISO.localeCompare(b.startISO));
+  EVENTS=all;
 }
 
 // ── FETCH TASKS ───────────────────────────────────────
-async function fetchTasks() {
-  const tlResp = await apiFetch(TASKS_API + '/users/@me/lists', { maxResults: '20' });
-  const lists  = tlResp.items || [];
-  const today  = new Date().toISOString().slice(0,10);
-  const all    = [];
-
-  await Promise.all(lists.map(async tl => {
-    try {
-      const resp = await apiFetch(TASKS_API + '/lists/' + tl.id + '/tasks', {
-        showCompleted: 'false', showHidden: 'false', maxResults: '100',
-        fields: 'items(id,title,due,status)',
+async function fetchTasks(){
+  const res=await apiFetch(TASKS_API+'/users/@me/lists',{maxResults:'20'});
+  TASK_LISTS=(res.items||[]).map(t=>({id:t.id,title:t.title||'Tasks'}));
+  const today=new Date().toISOString().slice(0,10);
+  const all=[];
+  await Promise.all(TASK_LISTS.map(async tl=>{
+    try{
+      const r=await apiFetch(TASKS_API+'/lists/'+tl.id+'/tasks',{showCompleted:'false',showHidden:'false',maxResults:'100',fields:'items(id,title,due,status)'});
+      (r.items||[]).forEach(t=>{
+        if(!t.title||!t.title.trim()) return;
+        const due=t.due?t.due.slice(0,10):null;
+        const d=due?(new Date(due)-new Date(today))/86400000:null;
+        const priority=d===null?'low':d<=0?'high':d<=2?'high':d<=7?'med':'low';
+        all.push({title:t.title.replace(/</g,'&lt;'),due,done:false,priority,_id:t.id,_list:tl.id,_listName:tl.title});
       });
-      (resp.items || []).forEach(t => {
-        if (!t.title || t.title.trim() === '') return;
-        const due = t.due ? t.due.slice(0,10) : null;
-        const daysUntil = due ? (new Date(due) - new Date(today)) / 86400000 : null;
-        const priority = daysUntil === null ? 'low' : daysUntil <= 0 ? 'high' : daysUntil <= 2 ? 'high' : daysUntil <= 7 ? 'med' : 'low';
-        all.push({ title: t.title.replace(/</g,'&lt;'), due, done: false, priority, _id: t.id, _list: tl.id });
-      });
-    } catch(e) {}
+    }catch(e){}
   }));
-
-  all.sort((a,b) => {
-    if (!a.due && !b.due) return 0;
-    if (!a.due) return 1; if (!b.due) return -1;
-    return a.due.localeCompare(b.due);
-  });
-  TASKS = all;
+  all.sort((a,b)=>{if(!a.due&&!b.due)return 0;if(!a.due)return 1;if(!b.due)return -1;return a.due.localeCompare(b.due);});
+  TASKS=all;
 }
 
-// ── LOAD ALL DATA ─────────────────────────────────────
-async function loadAllData() {
-  showSyncBar('Syncing\u2026', 'syncing');
-  try {
-    await fetchCalColors();
-    await Promise.all([fetchEvents(), fetchTasks()]);
+// ── LOAD ALL ──────────────────────────────────────────
+async function loadAllData(){
+  showSyncBar('Syncing\u2026','syncing');
+  try{
+    await fetchCalList();
+    await Promise.all([fetchEvents(),fetchTasks()]);
+    buildCalTabs(); buildTaskTabs();
     renderLeft(); buildTasks(); updateClock(); drawChronodex();
-    const t = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
-    showSyncBar('Synced \u00b7 ' + t, 'ok');
-  } catch(err) {
-    if (err.message === 'token_expired' || err.message === 'not_authenticated') {
-      clearSession();
-      document.getElementById('signin-overlay').classList.remove('hidden');
-      hideSyncBar();
-      return;
+    const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+    showSyncBar('Synced \u00b7 '+t,'ok');
+  }catch(err){
+    if(err.message==='token_expired'||err.message==='not_authenticated'){
+      clearSession(); document.getElementById('signin-overlay').classList.remove('hidden');
+      document.getElementById('sync-bar').classList.remove('visible'); return;
     }
-    showSyncBar('\u26a0 ' + err.message, 'err');
+    showSyncBar('\u26a0 '+err.message,'err');
     renderLeft(); buildTasks(); updateClock(); drawChronodex();
   }
 }
 
+// ── TABS ──────────────────────────────────────────────
+function buildCalTabs(){
+  const bar=document.getElementById('cal-tab-bar');
+  if(CAL_LIST.length<=1){bar.style.display='none';activeCalTab='all';return;}
+  bar.style.display='flex';
+  bar.innerHTML='';
+  const all=document.createElement('button'); all.className='tab'+(activeCalTab==='all'?' active':''); all.textContent='All'; all.onclick=()=>{activeCalTab='all';buildCalTabs();renderLeft();};
+  bar.appendChild(all);
+  CAL_LIST.forEach(cal=>{
+    const t=document.createElement('button'); t.className='tab'+(activeCalTab===cal.id?' active':'');
+    t.innerHTML='<span class="tab-dot" style="background:'+cal.color+'"></span>'+cal.name;
+    t.onclick=()=>{activeCalTab=cal.id;buildCalTabs();renderLeft();};
+    bar.appendChild(t);
+  });
+}
+
+function buildTaskTabs(){
+  const bar=document.getElementById('task-tab-bar');
+  if(TASK_LISTS.length<=1){bar.style.display='none';activeTaskTab='all';return;}
+  bar.style.display='flex';
+  bar.innerHTML='';
+  const all=document.createElement('button'); all.className='tab'+(activeTaskTab==='all'?' active':''); all.textContent='All'; all.onclick=()=>{activeTaskTab='all';buildTaskTabs();buildTasks();};
+  bar.appendChild(all);
+  TASK_LISTS.forEach(tl=>{
+    const t=document.createElement('button'); t.className='tab'+(activeTaskTab===tl.id?' active':'');
+    t.textContent=tl.title;
+    t.onclick=()=>{activeTaskTab=tl.id;buildTaskTabs();buildTasks();};
+    bar.appendChild(t);
+  });
+}
+
+function filteredEvents(){
+  return activeCalTab==='all' ? EVENTS : EVENTS.filter(e=>e.calId===activeCalTab);
+}
+
+function filteredTasks(){
+  return activeTaskTab==='all' ? TASKS : TASKS.filter(t=>t._list===activeTaskTab);
+}
+
 // ── THEME ─────────────────────────────────────────────
-let isDark = true;
-document.getElementById('theme-btn').addEventListener('click', () => {
-  isDark = !isDark;
-  document.documentElement.setAttribute('data-theme', isDark?'dark':'light');
-  document.getElementById('theme-icon').textContent  = isDark?'☀':'☾';
-  document.getElementById('theme-label').textContent = isDark?'Light':'Dark';
+let isDark=true;
+document.getElementById('theme-btn').addEventListener('click',()=>{
+  isDark=!isDark;
+  document.documentElement.setAttribute('data-theme',isDark?'dark':'light');
+  document.getElementById('theme-icon').textContent=isDark?'☀':'☾';
+  document.getElementById('theme-label').textContent=isDark?'Light':'Dark';
   drawChronodex(); drawPomoRing();
 });
 
 // ── VIEW STATE ────────────────────────────────────────
-let currentView='week', dayOff=0, weekOff=0, monthOff=0;
-document.querySelectorAll('.view-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
+let currentView='week',dayOff=0,weekOff=0,monthOff=0;
+document.querySelectorAll('.view-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
     document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    currentView=btn.dataset.view; dayOff=weekOff=monthOff=0; renderLeft();
+    btn.classList.add('active'); currentView=btn.dataset.view; dayOff=weekOff=monthOff=0; renderLeft();
   });
 });
-function renderLeft() {
-  document.getElementById('left-title').textContent = {day:'Day View',week:'Week View',month:'Month View'}[currentView];
+function renderLeft(){
+  document.getElementById('left-title').textContent={day:'Day View',week:'Week View',month:'Month View'}[currentView];
   ({day:buildDay,week:buildWeek,month:buildMonth})[currentView]();
 }
 
 // ── DAY VIEW ──────────────────────────────────────────
-function buildDay() {
-  const now=new Date(), d=new Date(now); d.setDate(now.getDate()+dayOff);
-  const ds=d.toISOString().slice(0,10), isToday=ds===now.toISOString().slice(0,10);
+function buildDay(){
+  const now=new Date(),d=new Date(now); d.setDate(now.getDate()+dayOff);
+  const ds=d.toISOString().slice(0,10),isToday=ds===now.toISOString().slice(0,10);
   const DN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const evts=EVENTS.filter(e=>e.startISO.startsWith(ds)), nowH=now.getHours();
-  document.getElementById('left-content').innerHTML=`
-    <div class="daily-view">
-      <div class="daily-top">
-        <button class="nav-arrow" id="d-prev">&#8249;</button>
-        <div style="text-align:center"><div class="daily-title-num">${d.getDate()}</div>
-          <div class="daily-title-sub">${DN[d.getDay()].toUpperCase()} &middot; ${MN[d.getMonth()].toUpperCase()} ${d.getFullYear()}</div></div>
-        <button class="nav-arrow" id="d-next">&#8250;</button>
-      </div><div class="daily-timeline" id="d-tl"></div></div>`;
+  const evts=filteredEvents().filter(e=>e.startISO.startsWith(ds)), nowH=now.getHours();
+  document.getElementById('left-content').innerHTML=
+    '<div class="daily-view"><div class="daily-top">'+
+    '<button class="nav-arrow" id="d-prev">&#8249;</button>'+
+    '<div style="text-align:center"><div class="daily-title-num">'+d.getDate()+'</div>'+
+    '<div class="daily-title-sub">'+DN[d.getDay()].toUpperCase()+' &middot; '+MN[d.getMonth()].toUpperCase()+' '+d.getFullYear()+'</div></div>'+
+    '<button class="nav-arrow" id="d-next">&#8250;</button></div><div class="daily-timeline" id="d-tl"></div></div>';
   document.getElementById('d-prev').onclick=()=>{dayOff--;buildDay();};
   document.getElementById('d-next').onclick=()=>{dayOff++;buildDay();};
   const tl=document.getElementById('d-tl');
@@ -623,7 +724,7 @@ function buildDay() {
     evts.filter(e=>new Date(e.startISO).getHours()===h).forEach(ev=>{
       const dur=Math.round((new Date(ev.endISO)-new Date(ev.startISO))/60000);
       const el=document.createElement('div'); el.className='hour-event';
-      el.style.cssText='border-color:'+ev.color+';background:'+ev.color+'30;color:var(--ink);';
+      el.style.cssText='border-color:'+ev.color+';background:'+ev.color+'28;';
       el.textContent=dur>0?ev.title+' \u00b7 '+dur+'m':ev.title;
       el.addEventListener('click',()=>openPomo(ev)); evDiv.appendChild(el);
     });
@@ -633,13 +734,13 @@ function buildDay() {
 }
 
 // ── WEEK VIEW ─────────────────────────────────────────
-function buildWeek() {
-  const now=new Date(), base=new Date(now); base.setDate(now.getDate()+weekOff*7);
-  const dow=base.getDay(), mon=new Date(base); mon.setDate(base.getDate()-((dow+6)%7));
+function buildWeek(){
+  const now=new Date(),base=new Date(now); base.setDate(now.getDate()+weekOff*7);
+  const dow=base.getDay(),mon=new Date(base); mon.setDate(base.getDate()-((dow+6)%7));
   const sun=new Date(mon); sun.setDate(mon.getDate()+6);
   const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const fmt=d=>d.getDate()+' '+M[d.getMonth()];
-  const DN=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], todayStr=now.toISOString().slice(0,10);
+  const DN=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],todayStr=now.toISOString().slice(0,10);
   document.getElementById('left-content').innerHTML=
     '<div class="week-view"><div class="week-nav">'+
     '<button class="nav-arrow" id="w-prev">&#8249;</button>'+
@@ -651,30 +752,30 @@ function buildWeek() {
   const grid=document.getElementById('w-grid');
   for(let i=0;i<7;i++){
     const d=new Date(mon); d.setDate(mon.getDate()+i);
-    const ds=d.toISOString().slice(0,10), isToday=ds===todayStr;
-    const dayEvts=EVENTS.filter(e=>e.startISO.startsWith(ds)).sort((a,b)=>a.startISO.localeCompare(b.startISO));
+    const ds=d.toISOString().slice(0,10),isToday=ds===todayStr;
+    const dayEvts=filteredEvents().filter(e=>e.startISO.startsWith(ds)).sort((a,b)=>a.startISO.localeCompare(b.startISO));
     const row=document.createElement('div'); row.className='week-day'+(isToday?' today':'');
     row.innerHTML='<div class="day-label"><span class="day-name">'+DN[i]+'</span><span class="day-num">'+d.getDate()+'</span></div><div class="day-events" id="de'+i+'"></div>';
     grid.appendChild(row);
     const evDiv=row.querySelector('#de'+i);
-    if(!dayEvts.length){evDiv.innerHTML='<span style="font-size:15px;color:var(--ink-faint);font-style:italic">clear</span>';}
+    if(!dayEvts.length){evDiv.innerHTML='<span style="font-size:14px;color:var(--ink-faint);font-style:italic">clear</span>';}
     dayEvts.slice(0,3).forEach(e=>{
       const t=new Date(e.startISO).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
       const el=document.createElement('div'); el.className='cal-event';
       el.innerHTML='<span class="cal-event-dot" style="background:'+e.color+'"></span><span class="cal-event-time">'+t+'</span><span style="overflow:hidden;text-overflow:ellipsis">'+e.title+'</span>';
       evDiv.appendChild(el);
     });
-    if(dayEvts.length>3){const m=document.createElement('div');m.style.cssText='font-family:JetBrains Mono,monospace;font-size:13px;color:var(--ink-dim);padding-left:15px;';m.textContent='+'+( dayEvts.length-3)+' more';evDiv.appendChild(m);}
+    if(dayEvts.length>3){const m=document.createElement('div');m.style.cssText='font-family:JetBrains Mono,monospace;font-size:12px;color:var(--ink-dim);padding-left:13px;';m.textContent='+'+(dayEvts.length-3)+' more';evDiv.appendChild(m);}
   }
 }
 
 // ── MONTH VIEW ────────────────────────────────────────
-function buildMonth() {
-  const now=new Date(), ref=new Date(now.getFullYear(),now.getMonth()+monthOff,1);
+function buildMonth(){
+  const now=new Date(),ref=new Date(now.getFullYear(),now.getMonth()+monthOff,1);
   const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
   const dim=new Date(ref.getFullYear(),ref.getMonth()+1,0).getDate();
   let fd=ref.getDay(); fd=fd===0?6:fd-1;
-  const prevDim=new Date(ref.getFullYear(),ref.getMonth(),0).getDate(), todayStr=now.toISOString().slice(0,10);
+  const prevDim=new Date(ref.getFullYear(),ref.getMonth(),0).getDate(),todayStr=now.toISOString().slice(0,10);
   document.getElementById('left-content').innerHTML=
     '<div class="month-view"><div class="month-nav">'+
     '<button class="nav-arrow" id="m-prev">&#8249;</button>'+
@@ -688,25 +789,18 @@ function buildMonth() {
   for(let i=fd-1;i>=0;i--){const c=document.createElement('div');c.className='month-cell other-month';c.innerHTML='<div class="month-day-num">'+(prevDim-i)+'</div>';grid.appendChild(c);}
   for(let d=1;d<=dim;d++){
     const ds=ref.getFullYear()+'-'+String(ref.getMonth()+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-    const isToday=ds===todayStr, de=EVENTS.filter(e=>e.startISO.startsWith(ds));
+    const isToday=ds===todayStr, de=filteredEvents().filter(e=>e.startISO.startsWith(ds));
     const c=document.createElement('div'); c.className='month-cell'+(isToday?' today':'');
     c.innerHTML='<div class="month-day-num">'+d+'</div><div class="month-dots">'+de.slice(0,5).map(e=>'<div class="month-dot" style="background:'+e.color+'"></div>').join('')+'</div>';
     grid.appendChild(c);
   }
-  const total=fd+dim, rem=total%7===0?0:7-(total%7);
+  const total=fd+dim,rem=total%7===0?0:7-(total%7);
   for(let d=1;d<=rem;d++){const c=document.createElement('div');c.className='month-cell other-month';c.innerHTML='<div class="month-day-num">'+d+'</div>';grid.appendChild(c);}
 }
 
 // ── CHRONODEX ─────────────────────────────────────────
-const DS=6*60, DE=24*60, DSPAN=DE-DS;
-const BANDS=[
-  {from:360,to:480,ri:28,ro:68},
-  {from:480,to:600,ri:68,ro:108},
-  {from:600,to:720,ri:108,ro:142},
-  {from:720,to:840,ri:142,ro:168},
-  {from:840,to:960,ri:168,ro:186},
-  {from:960,to:1080,ri:186,ro:194},
-];
+const DS=6*60,DE=24*60,DSPAN=DE-DS;
+const BANDS=[{from:360,to:480,ri:28,ro:68},{from:480,to:600,ri:68,ro:108},{from:600,to:720,ri:108,ro:142},{from:720,to:840,ri:142,ro:168},{from:840,to:960,ri:168,ro:186},{from:960,to:1080,ri:186,ro:194}];
 function mta(min){return((Math.min(Math.max(min,DS),DE)-DS)/DSPAN)*Math.PI*2-Math.PI/2;}
 let todayEventsForPicker=[];
 
@@ -721,9 +815,10 @@ function drawChronodex(){
   const sepH=dark?'rgba(255,255,255,0.22)':'rgba(28,31,38,0.26)';
   const sepL=dark?'rgba(255,255,255,0.07)':'rgba(28,31,38,0.07)';
   const lblC=dark?'rgba(232,228,216,1.0)':'rgba(28,31,38,0.95)';
-  const needle=dark?'#c44b3a':'#b83228', hub=dark?'#c9a84c':'#8a6a28';
-  const now=new Date(), tm=now.getHours()*60+now.getMinutes();
+  const needle=dark?'#c44b3a':'#b83228',hub=dark?'#c9a84c':'#8a6a28';
+  const now=new Date(),tm=now.getHours()*60+now.getMinutes();
   const today=now.toISOString().slice(0,10);
+  // Use all events (not filtered) on the Chronodex so it always shows your full day
   const te=EVENTS.filter(e=>e.startISO.startsWith(today));
   todayEventsForPicker=te;
   BANDS.forEach(b=>{
@@ -731,8 +826,7 @@ function drawChronodex(){
     ctx.fillStyle=bgRing;ctx.fill();
   });
   BANDS.forEach(b=>[b.ri,b.ro].forEach(r=>{
-    ctx.beginPath();ctx.arc(cx,cy,r,-Math.PI/2,Math.PI*1.5);
-    ctx.strokeStyle=ringC;ctx.lineWidth=1.5;ctx.stroke();
+    ctx.beginPath();ctx.arc(cx,cy,r,-Math.PI/2,Math.PI*1.5);ctx.strokeStyle=ringC;ctx.lineWidth=1.5;ctx.stroke();
   }));
   for(let h=6;h<=24;h++){
     const a=mta(h*60);
@@ -770,8 +864,7 @@ function drawChronodex(){
   ctx.strokeStyle=needle;ctx.lineWidth=4;ctx.stroke();
   ctx.beginPath();ctx.arc(cx+198*Math.cos(na),cy+198*Math.sin(na),7,0,Math.PI*2);ctx.fillStyle=needle;ctx.fill();
   ctx.beginPath();ctx.arc(cx,cy,11,0,Math.PI*2);ctx.fillStyle=hub;ctx.fill();
-  ctx.beginPath();ctx.arc(cx,cy,11,0,Math.PI*2);
-  ctx.strokeStyle=dark?'rgba(201,168,76,0.7)':'rgba(138,106,40,0.7)';ctx.lineWidth=2.5;ctx.stroke();
+  ctx.beginPath();ctx.arc(cx,cy,11,0,Math.PI*2);ctx.strokeStyle=dark?'rgba(201,168,76,0.7)':'rgba(138,106,40,0.7)';ctx.lineWidth=2.5;ctx.stroke();
 }
 
 // ── SMART TAP ────────────────────────────────────────
@@ -785,8 +878,7 @@ overlay.addEventListener('click',e=>{
   const my=(e.clientY-rect.top)*(canvas.height/rect.height);
   const cx=canvas.width/2,cy=canvas.height/2,dx=mx-cx,dy=my-cy,dist=Math.sqrt(dx*dx+dy*dy);
   if(dist<20||dist>210){closePicker();return;}
-  let frac=(Math.atan2(dy,dx)+Math.PI/2)/(Math.PI*2);
-  if(frac<0)frac+=1;
+  let frac=(Math.atan2(dy,dx)+Math.PI/2)/(Math.PI*2); if(frac<0)frac+=1;
   const tapMin=DS+frac*DSPAN;
   const near=todayEventsForPicker.filter(ev=>{
     const sm=new Date(ev.startISO).getHours()*60+new Date(ev.startISO).getMinutes();
@@ -803,9 +895,7 @@ function showPicker(events,px,py){
   events.forEach(ev=>{
     const fmt=d=>d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
     const div=document.createElement('div');div.className='picker-item';
-    div.innerHTML='<div class="picker-dot" style="background:'+ev.color+'"></div>'+
-      '<div class="picker-text"><div class="picker-title">'+ev.title+'</div>'+
-      '<div class="picker-time">'+fmt(new Date(ev.startISO))+' \u2013 '+fmt(new Date(ev.endISO))+'</div></div>';
+    div.innerHTML='<div class="picker-dot" style="background:'+ev.color+'"></div><div class="picker-text"><div class="picker-title">'+ev.title+'</div><div class="picker-time">'+fmt(new Date(ev.startISO))+' \u2013 '+fmt(new Date(ev.endISO))+'</div></div>';
     div.addEventListener('click',()=>{closePicker();openPomo(ev);});
     items.appendChild(div);
   });
@@ -813,17 +903,14 @@ function showPicker(events,px,py){
   const pw=320,ph=picker.offsetHeight||200;
   let left=px+12,top=py-ph/2;
   if(left+pw>window.innerWidth-10)left=px-pw-12;
-  if(top<10)top=10;
-  if(top+ph>window.innerHeight-10)top=window.innerHeight-ph-10;
+  if(top<10)top=10; if(top+ph>window.innerHeight-10)top=window.innerHeight-ph-10;
   picker.style.left=left+'px';picker.style.top=top+'px';
 }
 function closePicker(){picker.classList.remove('open');}
 document.getElementById('picker-cancel').addEventListener('click',closePicker);
-document.addEventListener('click',e=>{
-  if(picker.classList.contains('open')&&!picker.contains(e.target)&&e.target!==overlay)closePicker();
-},{capture:true});
+document.addEventListener('click',e=>{if(picker.classList.contains('open')&&!picker.contains(e.target)&&e.target!==overlay)closePicker();},{capture:true});
 
-// ── CLOCK ─────────────────────────────────────────────
+// ── CLOCK + NEXT EVENT ────────────────────────────────
 function updateClock(){
   const now=new Date();
   document.getElementById('time-big').textContent=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
@@ -837,7 +924,7 @@ function updateClock(){
     document.getElementById('next-title').textContent=nx.title;
     document.getElementById('next-title').style.color=nx.color;
     document.getElementById('next-time').textContent=st.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false})+' \u00b7 in '+mu+' min';
-  } else {
+  }else{
     document.getElementById('next-title').textContent='Nothing in next 30 min';
     document.getElementById('next-title').style.color='var(--ink-dim)';
     document.getElementById('next-time').textContent='';
@@ -848,33 +935,138 @@ function updateClock(){
 function buildTasks(){
   const list=document.getElementById('tasks-list'),today=new Date().toISOString().slice(0,10);
   list.innerHTML='';
-  if(!TASKS.length){
-    list.innerHTML='<div class="loading-msg">'+(accessToken?'Loading tasks\u2026':'Sign in to see your tasks')+'</div>';
-    document.getElementById('tasks-count').textContent='';return;
-  }
-  const ov=TASKS.filter(t=>!t.done&&t.due&&t.due<today);
-  const dt=TASKS.filter(t=>!t.done&&t.due===today);
-  const up=TASKS.filter(t=>!t.done&&(!t.due||t.due>today));
-  const dn=TASKS.filter(t=>t.done);
+  const tasks=filteredTasks();
+  if(!tasks.length){ list.innerHTML='<div class="loading-msg">'+(accessToken?'No tasks':'Sign in to see tasks')+'</div>'; document.getElementById('tasks-count').textContent=''; return; }
+  const ov=tasks.filter(t=>!t.done&&t.due&&t.due<today);
+  const dt=tasks.filter(t=>!t.done&&t.due===today);
+  const up=tasks.filter(t=>!t.done&&(!t.due||t.due>today));
+  const dn=tasks.filter(t=>t.done);
   function grp(lbl,items,mc){
     if(!items.length)return;
     const gl=document.createElement('div');gl.className='task-group-lbl';gl.textContent=lbl;list.appendChild(gl);
     items.forEach(task=>{
       const item=document.createElement('div');item.className='task-item'+(task.done?' done':'');
-      item.innerHTML='<div class="task-pri pri-'+task.priority+'"></div><div class="task-check"></div>'+
-        '<div class="task-body"><div class="task-title">'+task.title+'</div>'+
-        (task.due?'<div class="task-meta '+(mc||'')+'">'+fmtDue(task.due,today)+'</div>':'')+'</div>';
-      item.querySelector('.task-check').addEventListener('click',ev=>{ev.stopPropagation();task.done=!task.done;buildTasks();});
+      item.innerHTML='<div class="task-pri pri-'+task.priority+'"></div><div class="task-check"></div><div class="task-body"><div class="task-title">'+task.title+'</div>'+(task.due?'<div class="task-meta '+(mc||'')+'">'+fmtDue(task.due,today)+(activeTaskTab==='all'?'  \u00b7 '+task._listName:'')+'</div>':'')+'</div>';
+      item.querySelector('.task-check').addEventListener('click',ev=>{ev.stopPropagation();completeTask(task);});
       list.appendChild(item);
     });
   }
-  grp('\u26a0 Overdue',ov,'overdue');grp('\u00b7 Today',dt,'today-due');grp('\u00b7 Upcoming',up,'');grp('\u00b7 Completed',dn,'');
-  document.getElementById('tasks-count').textContent=TASKS.filter(t=>!t.done).length+' remaining';
+  grp('\u26a0 Overdue',ov,'overdue');grp('\u00b7 Today',dt,'today-due');grp('\u00b7 Upcoming',up,'');grp('\u00b7 Done',dn,'');
+  document.getElementById('tasks-count').textContent=tasks.filter(t=>!t.done).length+' remaining';
 }
-function fmtDue(due,today){
-  if(due===today)return'Today';
-  return new Date(due+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+function fmtDue(due,today){ if(due===today)return'Today'; return new Date(due+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+
+async function completeTask(task){
+  task.done=true; buildTasks();
+  try{
+    await fetch(TASKS_API+'/lists/'+task._list+'/tasks/'+task._id,{
+      method:'PATCH', headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+      body:JSON.stringify({status:'completed'}),
+    });
+  }catch(e){ task.done=false; buildTasks(); }
 }
+
+// ── ADD EVENT MODAL ───────────────────────────────────
+function openAddEvent(){
+  if(!accessToken){showSyncBar('Sign in first','err');return;}
+  // Pre-fill today's date and current time rounded to next 30 min
+  const now=new Date();
+  const mins=now.getMinutes(); const roundMin=mins<30?30:0;
+  const h=roundMin===0?now.getHours()+1:now.getHours();
+  document.getElementById('ev-date').value=now.toISOString().slice(0,10);
+  document.getElementById('ev-start').value=String(h%24).padStart(2,'0')+':'+String(roundMin).padStart(2,'0');
+  document.getElementById('ev-title').value='';
+  document.getElementById('ev-dur').value='60';
+  // Populate calendar selector
+  const sel=document.getElementById('ev-cal'); sel.innerHTML='';
+  CAL_LIST.forEach(cal=>{
+    const o=document.createElement('option'); o.value=cal.id; o.textContent=cal.name;
+    // Pre-select currently active tab calendar if not 'all'
+    if(activeCalTab!=='all'&&activeCalTab===cal.id) o.selected=true;
+    sel.appendChild(o);
+  });
+  document.getElementById('modal-event').classList.add('open');
+  setTimeout(()=>document.getElementById('ev-title').focus(),50);
+}
+function closeAddEvent(){ document.getElementById('modal-event').classList.remove('open'); }
+
+document.getElementById('add-event-btn').addEventListener('click',openAddEvent);
+document.getElementById('modal-event-close').addEventListener('click',closeAddEvent);
+document.getElementById('ev-cancel').addEventListener('click',closeAddEvent);
+document.getElementById('modal-event').addEventListener('click',e=>{ if(e.target===document.getElementById('modal-event'))closeAddEvent(); });
+
+document.getElementById('ev-save').addEventListener('click',async()=>{
+  const title=document.getElementById('ev-title').value.trim();
+  const date=document.getElementById('ev-date').value;
+  const start=document.getElementById('ev-start').value;
+  const dur=parseInt(document.getElementById('ev-dur').value)||60;
+  const calId=document.getElementById('ev-cal').value;
+  if(!title){document.getElementById('ev-title').focus();return;}
+  if(!date||!start){showSyncBar('Please fill in date and time','err');return;}
+  const startDT=new Date(date+'T'+start);
+  const endDT=new Date(startDT.getTime()+dur*60000);
+  const toISO=d=>d.toISOString().replace('.000Z','Z');
+  document.getElementById('ev-saving').style.display='';
+  document.getElementById('ev-save').disabled=true;
+  try{
+    await apiPost(CAL_API+'/calendars/'+encodeURIComponent(calId)+'/events',{
+      summary:title, start:{dateTime:toISO(startDT)}, end:{dateTime:toISO(endDT)},
+    });
+    closeAddEvent();
+    await loadAllData();
+    showSyncBar('Event added \u2713','ok');
+  }catch(err){
+    showSyncBar('\u26a0 '+err.message,'err');
+  }finally{
+    document.getElementById('ev-saving').style.display='none';
+    document.getElementById('ev-save').disabled=false;
+  }
+});
+
+// ── ADD TASK MODAL ────────────────────────────────────
+function openAddTask(){
+  if(!accessToken){showSyncBar('Sign in first','err');return;}
+  document.getElementById('tk-title').value='';
+  document.getElementById('tk-date').value='';
+  const sel=document.getElementById('tk-list'); sel.innerHTML='';
+  TASK_LISTS.forEach(tl=>{
+    const o=document.createElement('option'); o.value=tl.id; o.textContent=tl.title;
+    if(activeTaskTab!=='all'&&activeTaskTab===tl.id) o.selected=true;
+    sel.appendChild(o);
+  });
+  document.getElementById('modal-task').classList.add('open');
+  setTimeout(()=>document.getElementById('tk-title').focus(),50);
+}
+function closeAddTask(){ document.getElementById('modal-task').classList.remove('open'); }
+
+document.getElementById('add-task-btn').addEventListener('click',openAddTask);
+document.getElementById('modal-task-close').addEventListener('click',closeAddTask);
+document.getElementById('tk-cancel').addEventListener('click',closeAddTask);
+document.getElementById('modal-task').addEventListener('click',e=>{ if(e.target===document.getElementById('modal-task'))closeAddTask(); });
+
+document.getElementById('tk-save').addEventListener('click',async()=>{
+  const title=document.getElementById('tk-title').value.trim();
+  const due=document.getElementById('tk-date').value;
+  const listId=document.getElementById('tk-list').value;
+  if(!title){document.getElementById('tk-title').focus();return;}
+  if(!listId){showSyncBar('No task lists found','err');return;}
+  const body={title};
+  // Tasks API expects RFC 3339 with time for due field
+  if(due) body.due=new Date(due+'T00:00:00').toISOString();
+  document.getElementById('tk-saving').style.display='';
+  document.getElementById('tk-save').disabled=true;
+  try{
+    await apiPost(TASKS_API+'/lists/'+listId+'/tasks',body);
+    closeAddTask();
+    await loadAllData();
+    showSyncBar('Task added \u2713','ok');
+  }catch(err){
+    showSyncBar('\u26a0 '+err.message,'err');
+  }finally{
+    document.getElementById('tk-saving').style.display='none';
+    document.getElementById('tk-save').disabled=false;
+  }
+});
 
 // ── POMODORO ──────────────────────────────────────────
 const PMIN=1,PMAX=80;let pomoDuration=25;
@@ -919,17 +1111,13 @@ swTrack.addEventListener('wheel',e=>{e.preventDefault();setDuration(pomoDuration
 
 function drawPomoRing(){
   const cv=document.getElementById('pomo-ring');if(!cv)return;
-  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height,cx=W/2,cy=H/2,R=64;
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height,cx=W/2,cy=H/2,R=58;
   ctx.clearRect(0,0,W,H);
   const frac=pomo.remainSecs/pomo.totalSecs,sa=-Math.PI/2,ea=sa+(1-frac)*Math.PI*2;
   const dark=isDark,gRGB=dark?'201,168,76':'138,106,40';
-  ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);
-  ctx.strokeStyle=dark?'rgba(255,255,255,0.10)':'rgba(28,31,38,0.12)';ctx.lineWidth=13;ctx.stroke();
+  ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.strokeStyle=dark?'rgba(255,255,255,0.10)':'rgba(28,31,38,0.12)';ctx.lineWidth=13;ctx.stroke();
   if(frac>0){ctx.beginPath();ctx.arc(cx,cy,R,ea,sa+Math.PI*2);ctx.strokeStyle='rgba('+gRGB+',0.15)';ctx.lineWidth=13;ctx.lineCap='butt';ctx.stroke();}
-  if(frac<1){
-    const col=pomo.running?(dark?'#c44b3a':'#b83228'):pomo.remainSecs<pomo.totalSecs?(dark?'#4a7fa5':'#2e5c8a'):'rgba('+gRGB+',0.7)';
-    ctx.beginPath();ctx.arc(cx,cy,R,sa,ea);ctx.strokeStyle=col;ctx.lineWidth=13;ctx.lineCap='round';ctx.stroke();
-  }
+  if(frac<1){const col=pomo.running?(dark?'#c44b3a':'#b83228'):pomo.remainSecs<pomo.totalSecs?(dark?'#4a7fa5':'#2e5c8a'):'rgba('+gRGB+',0.7)';ctx.beginPath();ctx.arc(cx,cy,R,sa,ea);ctx.strokeStyle=col;ctx.lineWidth=13;ctx.lineCap='round';ctx.stroke();}
 }
 function renderPomo(){
   const m=Math.floor(pomo.remainSecs/60),s=pomo.remainSecs%60;
@@ -964,22 +1152,18 @@ document.getElementById('pomo-reset').addEventListener('click',()=>{
 // ── INIT ──────────────────────────────────────────────
 renderLeft(); buildTasks(); updateClock(); drawChronodex(); buildTicks(); renderPomo();
 setInterval(()=>{updateClock();drawChronodex();}, 30000);
-setInterval(()=>{if(accessToken)loadAllData();}, 15*60*1000);
+setInterval(()=>{if(accessToken)loadAllData();}, 10*60*1000);  // 10 min refresh
 
-// Wait for GIS library, then either auto-load (stored token) or show sign-in overlay
-const _gisWait = setInterval(()=>{
-  if(window.google && window.google.accounts){
-    clearInterval(_gisWait);
-    initGIS();
+const _gisWait=setInterval(()=>{
+  if(window.google&&window.google.accounts){
+    clearInterval(_gisWait); initGIS();
     if(accessToken){
       document.getElementById('signin-overlay').classList.add('hidden');
-      document.getElementById('sync-user').textContent = currentUser;
+      document.getElementById('sync-user').textContent=currentUser;
       loadAllData();
     }
-    // If no token, overlay stays visible — user taps "Sign in with Google"
   }
-}, 150);
+},150);
 </script>
-
 </body>
 </html>
