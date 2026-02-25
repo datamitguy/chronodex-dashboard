@@ -109,7 +109,7 @@ body.pomo-open { grid-template-columns:1fr 1.6fr 1fr 310px; }
 
 /* CHRONODEX */
 #panel-chrono { background:var(--bg); }
-.chrono-wrapper { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:10px 16px 14px; width:100%; }
+.chrono-wrapper { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:space-evenly; gap:0; padding:16px 20px 20px; width:100%; }
 .time-display { text-align:center; }
 .time-big { font-size:52px; font-weight:300; letter-spacing:-0.02em; line-height:1; font-variant-numeric:tabular-nums; }
 .time-date { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-dim); letter-spacing:0.10em; margin-top:2px; text-transform:uppercase; }
@@ -120,7 +120,6 @@ body.pomo-open { grid-template-columns:1fr 1.6fr 1fr 310px; }
 .next-lbl { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.18em; color:var(--ink-dim); text-transform:uppercase; margin-bottom:3px; }
 .next-title { font-size:18px; font-weight:400; color:var(--gold); }
 .next-time { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); margin-top:2px; }
-.click-hint { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-faint); letter-spacing:0.08em; text-align:center; }
 
 /* EVENT PICKER */
 #event-picker { position:fixed; z-index:500; display:none; background:var(--surface); border:2px solid var(--border); border-radius:6px; min-width:230px; max-width:320px; }
@@ -290,7 +289,6 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
       <canvas id="chronodex-canvas" width="380" height="380"></canvas>
       <div class="chrono-tap-overlay" id="chrono-overlay"></div>
     </div>
-    <div class="click-hint">tap the dial · select event · start pomodoro</div>
     <div class="next-strip">
       <div class="next-lbl">Next · 30 min</div>
       <div class="next-title" id="next-title">—</div>
@@ -581,9 +579,10 @@ async function fetchCalList(){
   const res = await apiFetch(CAL_API+'/users/me/calendarList');
   const palette = ['#4a7fa5','#5a8f6a','#c9a84c','#c44b3a','#d4813a'];
   CAL_LIST = (res.items||[]).filter(c=>c.selected!==false).map((c,i)=>({
-    id:   c.id,
-    name: c.summary||'Calendar',
-    color: c.backgroundColor || palette[i%palette.length],
+    id:       c.id,
+    name:     c.summary||'Calendar',
+    color:    c.backgroundColor || palette[i%palette.length],
+    isPrimary: c.primary === true,
   }));
 }
 
@@ -869,35 +868,51 @@ function drawChronodex(){
     const sm=new Date(ev.startISO).getHours()*60+new Date(ev.startISO).getMinutes();
     const em=new Date(ev.endISO).getHours()*60+new Date(ev.endISO).getMinutes();
     if(em<DS||sm>DE)return;
+    const isPast=em<=tm;       // fully in the past
+    const isCurrent=sm<=tm&&em>tm;  // happening now
+    // Past: heavily dimmed overlay; Current: full + glow; Future: full
+    const fillAlpha=isPast?'44':isCurrent?'ee':'cc';
+    const strokeAlpha=isPast?0.18:isCurrent?1.0:0.7;
     BANDS.forEach(b=>{
       const os=Math.max(sm,b.from),oe=Math.min(em,b.to);
       if(oe<=os)return;
       ctx.beginPath();ctx.arc(cx,cy,b.ro-2,mta(os),mta(oe));ctx.arc(cx,cy,b.ri+2,mta(oe),mta(os),true);ctx.closePath();
-      ctx.fillStyle=ev.color+'dd';ctx.fill();
+      ctx.fillStyle=ev.color+fillAlpha;ctx.fill();
       ctx.beginPath();ctx.arc(cx,cy,b.ro-2,mta(os),mta(oe));ctx.arc(cx,cy,b.ri+2,mta(oe),mta(os),true);ctx.closePath();
-      ctx.strokeStyle=ev.color;ctx.lineWidth=2;ctx.stroke();
+      ctx.strokeStyle=ev.color;ctx.globalAlpha=strokeAlpha;ctx.lineWidth=isCurrent?2.5:1.5;ctx.stroke();
+      ctx.globalAlpha=1;
     });
-    // Draw event label at midpoint of the outermost band it occupies
+    // Draw event label — short text inside the widest band the event occupies
     const dur=em-sm;
-    if(dur>=15){
+    if(dur>=20){
       const midMin=(Math.max(sm,DS)+Math.min(em,DE))/2;
       const midA=mta(midMin);
-      // Find outermost band this event occupies
-      let labelR=0;
-      BANDS.forEach(b=>{const os=Math.max(sm,b.from),oe=Math.min(em,b.to);if(oe>os)labelR=Math.max(labelR,(b.ri+b.ro)/2);});
-      if(labelR>0){
+      // Use the widest (largest ro-ri) band this event occupies for the label
+      let bestBand=null;
+      BANDS.forEach(b=>{
+        const os=Math.max(sm,b.from),oe=Math.min(em,b.to);
+        if(oe>os){if(!bestBand||((b.ro-b.ri)>(bestBand.ro-bestBand.ri)))bestBand=b;}
+      });
+      if(bestBand){
+        const labelR=(bestBand.ri+bestBand.ro)/2;
         const lx=cx+labelR*Math.cos(midA), ly=cy+labelR*Math.sin(midA);
-        // Short label — clip to ~12 chars to fit wedge
         const short=ev.title.replace(/&lt;/g,'<').replace(/&amp;/g,'&');
-        const label=short.length>13?short.slice(0,12)+'…':short;
-        // Rotate text to follow arc
+        // Clip label to width available (roughly 1 char per 8px of arc)
+        const arcPx=labelR*Math.min((em-sm)/DSPAN*Math.PI*2, Math.PI/2);
+        const maxChars=Math.max(3,Math.floor(arcPx/7));
+        const label=short.length>maxChars?short.slice(0,maxChars-1)+'…':short;
         ctx.save();
         ctx.translate(lx,ly);
-        ctx.rotate(midA+Math.PI/2);
-        ctx.font='bold 10px "JetBrains Mono",monospace';
-        ctx.textAlign='center';ctx.textBaseline='middle';
-        ctx.fillStyle='rgba(255,255,255,0.92)';
-        ctx.shadowColor='rgba(0,0,0,0.8)';ctx.shadowBlur=3;
+        // Rotate so text reads outward from centre — upright in top half, inverted in bottom
+        let rot=midA+Math.PI/2;
+        // Keep text right-side-up: if we're in bottom half, flip 180
+        if(midA>0&&midA<Math.PI) rot+=Math.PI;
+        ctx.rotate(rot);
+        ctx.font='bold 9px "JetBrains Mono",monospace';
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        // Shadow for contrast
+        ctx.shadowColor='rgba(0,0,0,0.9)'; ctx.shadowBlur=4;
+        ctx.fillStyle='rgba(255,255,255,0.95)';
         ctx.fillText(label,0,0);
         ctx.shadowBlur=0;
         ctx.restore();
@@ -1028,10 +1043,12 @@ function openAddEvent(){
   document.getElementById('ev-dur').value='60';
   // Populate calendar selector
   const sel=document.getElementById('ev-cal'); sel.innerHTML='';
+  const primaryCal = CAL_LIST.find(c=>c.isPrimary);
   CAL_LIST.forEach(cal=>{
     const o=document.createElement('option'); o.value=cal.id; o.textContent=cal.name;
-    // Pre-select currently active tab calendar if not 'all'
-    if(activeCalTab!=='all'&&activeCalTab===cal.id) o.selected=true;
+    // Priority: active tab > primary calendar > first
+    if(activeCalTab!=='all' && activeCalTab===cal.id) o.selected=true;
+    else if(activeCalTab==='all' && cal.isPrimary) o.selected=true;
     sel.appendChild(o);
   });
   document.getElementById('modal-event').classList.add('open');
