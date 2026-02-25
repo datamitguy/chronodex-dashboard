@@ -465,6 +465,17 @@ const SCOPES     = [
   'https://www.googleapis.com/auth/userinfo.email',
 ].join(' ');
 const SCOPE_VER  = 'v2-rw';  // bump this whenever scopes change to force re-auth
+
+// Local date helper — fixes UTC vs local timezone mismatch (critical for SGT UTC+8)
+function localDate(d){
+  const dt = d || new Date();
+  return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+}
+function localDatetime(d){
+  // Returns YYYY-MM-DDTHH:MM in local time (for input[type=date/time] prefill)
+  const dt = d || new Date();
+  return localDate(dt)+'T'+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');
+}
 const CAL_API    = 'https://www.googleapis.com/calendar/v3';
 const TASKS_API  = 'https://www.googleapis.com/tasks/v1';
 
@@ -605,7 +616,7 @@ async function fetchEvents(){
 async function fetchTasks(){
   const res=await apiFetch(TASKS_API+'/users/@me/lists',{maxResults:'20'});
   TASK_LISTS=(res.items||[]).map(t=>({id:t.id,title:t.title||'Tasks'}));
-  const today=new Date().toISOString().slice(0,10);
+  const today=localDate();
   const all=[];
   await Promise.all(TASK_LISTS.map(async tl=>{
     try{
@@ -708,7 +719,7 @@ function renderLeft(){
 // ── DAY VIEW ──────────────────────────────────────────
 function buildDay(){
   const now=new Date(),d=new Date(now); d.setDate(now.getDate()+dayOff);
-  const ds=d.toISOString().slice(0,10),isToday=ds===now.toISOString().slice(0,10);
+  const ds=localDate(d),isToday=ds===localDate(now);
   const DN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const evts=filteredEvents().filter(e=>e.startISO.startsWith(ds)), nowH=now.getHours();
@@ -746,7 +757,7 @@ function buildWeek(){
   const sun=new Date(mon); sun.setDate(mon.getDate()+6);
   const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const fmt=d=>d.getDate()+' '+M[d.getMonth()];
-  const DN=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],todayStr=now.toISOString().slice(0,10);
+  const DN=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],todayStr=localDate(now);
   document.getElementById('left-content').innerHTML=
     '<div class="week-view"><div class="week-nav">'+
     '<button class="nav-arrow" id="w-prev">&#8249;</button>'+
@@ -758,7 +769,7 @@ function buildWeek(){
   const grid=document.getElementById('w-grid');
   for(let i=0;i<7;i++){
     const d=new Date(mon); d.setDate(mon.getDate()+i);
-    const ds=d.toISOString().slice(0,10),isToday=ds===todayStr;
+    const ds=localDate(d),isToday=ds===todayStr;
     const dayEvts=filteredEvents().filter(e=>e.startISO.startsWith(ds)).sort((a,b)=>a.startISO.localeCompare(b.startISO));
     const row=document.createElement('div'); row.className='week-day'+(isToday?' today':'');
     row.innerHTML='<div class="day-label"><span class="day-name">'+DN[i]+'</span><span class="day-num">'+d.getDate()+'</span></div><div class="day-events" id="de'+i+'"></div>';
@@ -781,7 +792,7 @@ function buildMonth(){
   const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
   const dim=new Date(ref.getFullYear(),ref.getMonth()+1,0).getDate();
   let fd=ref.getDay(); fd=fd===0?6:fd-1;
-  const prevDim=new Date(ref.getFullYear(),ref.getMonth(),0).getDate(),todayStr=now.toISOString().slice(0,10);
+  const prevDim=new Date(ref.getFullYear(),ref.getMonth(),0).getDate(),todayStr=localDate(now);
   document.getElementById('left-content').innerHTML=
     '<div class="month-view"><div class="month-nav">'+
     '<button class="nav-arrow" id="m-prev">&#8249;</button>'+
@@ -823,7 +834,7 @@ function drawChronodex(){
   const lblC=dark?'rgba(232,228,216,1.0)':'rgba(28,31,38,0.95)';
   const needle=dark?'#c44b3a':'#b83228',hub=dark?'#c9a84c':'#8a6a28';
   const now=new Date(),tm=now.getHours()*60+now.getMinutes();
-  const today=now.toISOString().slice(0,10);
+  const today=localDate(now);
   // Use all events (not filtered) on the Chronodex so it always shows your full day
   const te=EVENTS.filter(e=>e.startISO.startsWith(today));
   todayEventsForPicker=te;
@@ -939,7 +950,7 @@ function updateClock(){
 
 // ── TASKS ─────────────────────────────────────────────
 function buildTasks(){
-  const list=document.getElementById('tasks-list'),today=new Date().toISOString().slice(0,10);
+  const list=document.getElementById('tasks-list'),today=localDate();
   list.innerHTML='';
   const tasks=filteredTasks();
   if(!tasks.length){ list.innerHTML='<div class="loading-msg">'+(accessToken?'No tasks':'Sign in to see tasks')+'</div>'; document.getElementById('tasks-count').textContent=''; return; }
@@ -979,7 +990,7 @@ function openAddEvent(){
   const now=new Date();
   const mins=now.getMinutes(); const roundMin=mins<30?30:0;
   const h=roundMin===0?now.getHours()+1:now.getHours();
-  document.getElementById('ev-date').value=now.toISOString().slice(0,10);
+  document.getElementById('ev-date').value=localDate(now);
   document.getElementById('ev-start').value=String(h%24).padStart(2,'0')+':'+String(roundMin).padStart(2,'0');
   document.getElementById('ev-title').value='';
   document.getElementById('ev-dur').value='60';
