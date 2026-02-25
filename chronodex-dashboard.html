@@ -109,14 +109,14 @@ body.pomo-open { grid-template-columns:1fr 1.6fr 1fr 310px; }
 
 /* CHRONODEX */
 #panel-chrono { background:var(--bg); }
-.chrono-wrapper { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:7px; padding:6px 12px 10px; width:100%; }
+.chrono-wrapper { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:10px 16px 14px; width:100%; }
 .time-display { text-align:center; }
 .time-big { font-size:52px; font-weight:300; letter-spacing:-0.02em; line-height:1; font-variant-numeric:tabular-nums; }
 .time-date { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-dim); letter-spacing:0.10em; margin-top:2px; text-transform:uppercase; }
-#chronodex-canvas { max-width:100%; display:block; pointer-events:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
+#chronodex-canvas { max-width:90%; display:block; pointer-events:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
 .chrono-canvas-wrap { position:relative; display:inline-block; max-width:100%; }
 .chrono-tap-overlay { position:absolute; inset:0; cursor:pointer; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
-.next-strip { background:var(--ink-faint); border:2px solid var(--border); border-radius:3px; padding:10px 16px; width:100%; }
+.next-strip { background:var(--ink-faint); border:2px solid var(--border); border-radius:3px; padding:12px 18px; width:100%; }
 .next-lbl { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.18em; color:var(--ink-dim); text-transform:uppercase; margin-bottom:3px; }
 .next-title { font-size:18px; font-weight:400; color:var(--gold); }
 .next-time { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); margin-top:2px; }
@@ -476,6 +476,12 @@ function localDatetime(d){
   const dt = d || new Date();
   return localDate(dt)+'T'+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');
 }
+function dtToLocal(apiStr){
+  // Convert Google Calendar API datetime string to local YYYY-MM-DDTHH:MM
+  // Handles both "2026-02-26T02:00:00Z" (UTC) and "2026-02-26T10:00:00+08:00" (offset)
+  const d = new Date(apiStr);
+  return localDate(d)+'T'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
 const CAL_API    = 'https://www.googleapis.com/calendar/v3';
 const TASKS_API  = 'https://www.googleapis.com/tasks/v1';
 
@@ -602,8 +608,8 @@ async function fetchEvents(){
       });
       (resp.items||[]).forEach(ev=>{
         if(ev.status==='cancelled') return;
-        const startISO=(ev.start.dateTime||ev.start.date+'T06:00').slice(0,16);
-        const endISO  =(ev.end.dateTime  ||ev.end.date  +'T07:00').slice(0,16);
+        const startISO=dtToLocal(ev.start.dateTime||ev.start.date+'T00:00:00');
+        const endISO  =dtToLocal(ev.end.dateTime  ||ev.end.date  +'T00:00:00');
         all.push({ title:(ev.summary||'(No title)').replace(/</g,'&lt;'), startISO, endISO, color:evColor(ev,cal.id), calId:cal.id, calName:cal.name });
       });
     }catch(e){}
@@ -871,6 +877,32 @@ function drawChronodex(){
       ctx.beginPath();ctx.arc(cx,cy,b.ro-2,mta(os),mta(oe));ctx.arc(cx,cy,b.ri+2,mta(oe),mta(os),true);ctx.closePath();
       ctx.strokeStyle=ev.color;ctx.lineWidth=2;ctx.stroke();
     });
+    // Draw event label at midpoint of the outermost band it occupies
+    const dur=em-sm;
+    if(dur>=15){
+      const midMin=(Math.max(sm,DS)+Math.min(em,DE))/2;
+      const midA=mta(midMin);
+      // Find outermost band this event occupies
+      let labelR=0;
+      BANDS.forEach(b=>{const os=Math.max(sm,b.from),oe=Math.min(em,b.to);if(oe>os)labelR=Math.max(labelR,(b.ri+b.ro)/2);});
+      if(labelR>0){
+        const lx=cx+labelR*Math.cos(midA), ly=cy+labelR*Math.sin(midA);
+        // Short label — clip to ~12 chars to fit wedge
+        const short=ev.title.replace(/&lt;/g,'<').replace(/&amp;/g,'&');
+        const label=short.length>13?short.slice(0,12)+'…':short;
+        // Rotate text to follow arc
+        ctx.save();
+        ctx.translate(lx,ly);
+        ctx.rotate(midA+Math.PI/2);
+        ctx.font='bold 10px "JetBrains Mono",monospace';
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillStyle='rgba(255,255,255,0.92)';
+        ctx.shadowColor='rgba(0,0,0,0.8)';ctx.shadowBlur=3;
+        ctx.fillText(label,0,0);
+        ctx.shadowBlur=0;
+        ctx.restore();
+      }
+    }
   });
   ctx.font='bold 13px "JetBrains Mono",monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=lblC;
   for(let h=6;h<=24;h+=2){const a=mta(h*60)+0.07;ctx.fillText(h===24?'0':String(h),cx+205*Math.cos(a),cy+205*Math.sin(a));}
