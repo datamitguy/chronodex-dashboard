@@ -464,6 +464,7 @@ const SCOPES     = [
   'https://www.googleapis.com/auth/tasks',
   'https://www.googleapis.com/auth/userinfo.email',
 ].join(' ');
+const SCOPE_VER  = 'v2-rw';  // bump this whenever scopes change to force re-auth
 const CAL_API    = 'https://www.googleapis.com/calendar/v3';
 const TASKS_API  = 'https://www.googleapis.com/tasks/v1';
 
@@ -485,10 +486,15 @@ let accessToken = null, tokenExpiry = 0, tokenClient = null, currentUser = '';
 
 try {
   const s = JSON.parse(sessionStorage.getItem('cdx_tok') || 'null');
-  if (s && s.expiry > Date.now() + 90000) { accessToken = s.token; tokenExpiry = s.expiry; currentUser = s.user||''; }
+  if (s && s.expiry > Date.now() + 90000 && s.sv === SCOPE_VER) {
+    accessToken = s.token; tokenExpiry = s.expiry; currentUser = s.user||'';
+  } else if (s) {
+    // Stale or wrong-scope token — wipe it so user gets prompted with new scopes
+    sessionStorage.removeItem('cdx_tok');
+  }
 } catch(e){}
 
-function saveSession(){ try{ sessionStorage.setItem('cdx_tok', JSON.stringify({token:accessToken,expiry:tokenExpiry,user:currentUser})); }catch(e){} }
+function saveSession(){ try{ sessionStorage.setItem('cdx_tok', JSON.stringify({token:accessToken,expiry:tokenExpiry,user:currentUser,sv:SCOPE_VER})); }catch(e){} }
 function clearSession(){ accessToken=null;tokenExpiry=0;currentUser=''; try{sessionStorage.removeItem('cdx_tok');}catch(e){} }
 
 function initGIS(){
@@ -510,7 +516,7 @@ async function fetchUserInfo(){
   try{ const r=await apiFetch('https://www.googleapis.com/oauth2/v2/userinfo'); currentUser=r.email||''; }catch(e){}
 }
 
-function requestToken(){ if(!tokenClient){showSyncBar('GIS loading — try again shortly','err');return;} tokenClient.requestAccessToken({prompt:currentUser?'':'select_account'}); }
+function requestToken(){ if(!tokenClient){showSyncBar('GIS loading — try again shortly','err');return;} tokenClient.requestAccessToken({prompt:'consent'}); }
 
 function signOut(){
   if(accessToken) try{google.accounts.oauth2.revoke(accessToken,()=>{});}catch(e){}
