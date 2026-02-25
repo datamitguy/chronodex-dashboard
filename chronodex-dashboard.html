@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chronodex Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+
+/* ══ THEME VARIABLES ══ */
+[data-theme="dark"] {
+  --bg:       #0a0a08;
+  --surface:  #111110;
+  --surface2: #161614;
+  --border:   #2a2a26;
+  --ink:      #e8e4d8;
+  --ink-dim:  #7a7568;
+  --ink-faint:#2e2d28;
+  --gold:     #c9a84c;
+  --gold-dim: #6b5a2a;
+  --red:      #c44b3a;
+  --blue:     #4a7fa5;
+  --green:    #5a8f6a;
+  --amber:    #d4813a;
+  --shadow:   rgba(0,0,0,0.5);
+  --pomo-bg:  #0f0f0d;
+  --elapsed:  rgba(201,168,76,VAL);
+  --needle:   #c44b3a;
+}
+[data-theme="light"] {
+  --bg:       #f0eeeb;
+  --surface:  #ffffff;
+  --surface2: #e8e6e2;
+  --border:   #c8c4bc;
+  --ink:      #1c1f26;
+  --ink-dim:  #7a808c;
+  --ink-faint:#e2e0dc;
+  --gold:     #8a6a28;
+  --gold-dim: #b89848;
+  --red:      #b83228;
+  --blue:     #2e5c8a;
+  --green:    #2e6644;
+  --amber:    #c06820;
+  --shadow:   rgba(28,31,38,0.10);
+  --pomo-bg:  #e8e6e2;
+  --needle:   #b83228;
+}
+
+html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--ink); font-family:'Cormorant Garamond',serif; transition:background 0.3s, color 0.3s; }
+
+/* ══ LAYOUT ══ */
+/* Normal: 3 columns. Pomodoro open: 4 columns (sidebar slides in from right) */
+body {
+  display:grid;
+  grid-template-columns: 1fr 1.5fr 1fr 0px;
+  grid-template-rows: 1fr;
+  height:100vh;
+  transition: grid-template-columns 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+body.pomo-open {
+  grid-template-columns: 1fr 1.5fr 1fr 320px;
+}
+
+.panel { border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; transition:border-color 0.3s; }
+.panel:last-child { border-right:none; }
+
+/* ══ PANEL HEADER ══ */
+.panel-header { padding:11px 15px 9px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.panel-title { font-size:9px; letter-spacing:0.25em; text-transform:uppercase; color:var(--ink-dim); font-family:'JetBrains Mono',monospace; font-weight:300; }
+.panel-accent { width:4px; height:4px; border-radius:50%; background:var(--gold); animation:pulse 3s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* Theme toggle */
+.theme-btn {
+  margin-left:auto; background:none; border:1px solid var(--border); border-radius:20px;
+  padding:3px 10px; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:8px;
+  letter-spacing:0.1em; color:var(--ink-dim); transition:all 0.2s; display:flex; align-items:center; gap:5px;
+}
+.theme-btn:hover { border-color:var(--gold); color:var(--gold); }
+.theme-icon { font-size:10px; }
+
+/* View toggle */
+.view-toggle { display:flex; gap:1px; background:var(--ink-faint); border-radius:3px; padding:2px; }
+.view-btn { font-family:'JetBrains Mono',monospace; font-size:8px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-dim); background:none; border:none; padding:3px 8px; border-radius:2px; cursor:pointer; transition:all 0.15s; }
+.view-btn.active { background:var(--border); color:var(--gold); }
+
+/* Nav arrows */
+.nav-arrow { background:none; border:none; color:var(--ink-dim); cursor:pointer; font-size:16px; padding:2px 6px; transition:color 0.15s; line-height:1; }
+.nav-arrow:hover { color:var(--gold); }
+
+/* ══ DAY VIEW ══ */
+.daily-view { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.daily-top { display:flex; align-items:center; justify-content:space-between; padding:8px 15px 6px; border-bottom:1px solid var(--ink-faint); flex-shrink:0; }
+.daily-title-num { font-size:26px; font-weight:300; line-height:1; }
+.daily-title-sub { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--ink-dim); letter-spacing:0.1em; margin-top:2px; }
+.daily-timeline { flex:1; overflow-y:auto; scrollbar-width:none; }
+.daily-timeline::-webkit-scrollbar { display:none; }
+.hour-row { display:flex; min-height:32px; border-bottom:1px solid var(--ink-faint); }
+.hour-row.hour-now { background:rgba(160,120,48,0.05); }
+.hour-label { width:40px; flex-shrink:0; font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--ink-dim); padding:5px 6px 0; text-align:right; }
+.hour-label.now-lbl { color:var(--gold); }
+.hour-events { flex:1; padding:3px 8px; display:flex; flex-direction:column; gap:2px; }
+.hour-event { font-size:11px; padding:3px 7px; border-radius:2px; cursor:pointer; border-left:2px solid; transition:opacity 0.15s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.hour-event:hover { opacity:0.7; }
+
+/* ══ WEEK VIEW ══ */
+.week-view { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.week-nav { display:flex; align-items:center; justify-content:space-between; padding:5px 15px; flex-shrink:0; }
+.week-range { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--ink-dim); }
+.week-grid { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.week-day { flex:1; display:flex; align-items:stretch; border-bottom:1px solid var(--ink-faint); }
+.week-day:last-child { border-bottom:none; }
+.week-day.today { background:rgba(160,120,48,0.04); }
+.day-label { width:46px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:center; border-right:1px solid var(--ink-faint); }
+.day-name { font-family:'JetBrains Mono',monospace; font-size:7px; letter-spacing:0.1em; color:var(--ink-dim); text-transform:uppercase; }
+.day-num { font-size:16px; font-weight:300; line-height:1; margin-top:1px; }
+.week-day.today .day-num { color:var(--gold); }
+.day-events { flex:1; padding:3px 7px; display:flex; flex-direction:column; gap:2px; justify-content:center; overflow:hidden; }
+.cal-event { display:flex; align-items:center; gap:5px; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cal-event-dot { width:4px; height:4px; border-radius:50%; flex-shrink:0; }
+.cal-event-time { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--ink-dim); flex-shrink:0; }
+
+/* ══ MONTH VIEW ══ */
+.month-view { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.month-nav { display:flex; align-items:center; justify-content:space-between; padding:6px 15px 3px; flex-shrink:0; }
+.month-title { font-size:17px; font-weight:300; }
+.month-dow-row { display:grid; grid-template-columns:repeat(7,1fr); padding:0 7px; flex-shrink:0; }
+.month-dow { font-family:'JetBrains Mono',monospace; font-size:7px; color:var(--ink-dim); text-align:center; padding:3px 0; text-transform:uppercase; }
+.month-grid { flex:1; display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:1fr; padding:0 7px 7px; gap:1px; overflow:hidden; }
+.month-cell { display:flex; flex-direction:column; padding:3px 4px; border:1px solid transparent; border-radius:2px; cursor:pointer; transition:background 0.15s; min-height:0; }
+.month-cell:hover { background:var(--ink-faint); }
+.month-cell.today { border-color:var(--gold-dim); background:rgba(160,120,48,0.05); }
+.month-cell.other-month { opacity:0.22; }
+.month-day-num { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--ink-dim); line-height:1.3; }
+.month-cell.today .month-day-num { color:var(--gold); }
+.month-dots { display:flex; flex-wrap:wrap; gap:2px; margin-top:2px; }
+.month-dot { width:4px; height:4px; border-radius:50%; }
+
+/* ══ CENTER CHRONODEX ══ */
+#panel-chrono { background:var(--bg); }
+.chrono-wrapper { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:14px; width:100%; }
+#chronodex-canvas { cursor:pointer; max-width:100%; }
+.time-display { text-align:center; }
+.time-big { font-size:44px; font-weight:300; letter-spacing:-0.02em; line-height:1; font-variant-numeric:tabular-nums; }
+.time-date { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--ink-dim); letter-spacing:0.12em; margin-top:3px; text-transform:uppercase; }
+.next-strip { background:var(--ink-faint); border:1px solid var(--border); border-radius:2px; padding:8px 13px; width:100%; max-width:300px; }
+.next-lbl { font-family:'JetBrains Mono',monospace; font-size:7px; letter-spacing:0.2em; color:var(--ink-dim); text-transform:uppercase; margin-bottom:2px; }
+.next-title { font-size:13px; font-weight:400; color:var(--gold); }
+.next-time { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--ink-dim); margin-top:1px; }
+.click-hint { font-family:'JetBrains Mono',monospace; font-size:7px; color:var(--ink-faint); letter-spacing:0.15em; }
+
+/* ══ TASKS PANEL ══ */
+#panel-tasks { background:var(--surface); }
+.tasks-list { flex:1; overflow-y:auto; padding:6px 0; scrollbar-width:none; }
+.tasks-list::-webkit-scrollbar { display:none; }
+.task-group-lbl { font-family:'JetBrains Mono',monospace; font-size:7px; letter-spacing:0.2em; color:var(--gold-dim); text-transform:uppercase; padding:7px 15px 4px; }
+.task-item { display:flex; align-items:flex-start; gap:8px; padding:6px 15px; border-bottom:1px solid var(--ink-faint); cursor:pointer; transition:background 0.15s; }
+.task-item:hover { background:var(--ink-faint); }
+.task-item.done { opacity:0.35; }
+.task-check { width:12px; height:12px; border:1px solid var(--border); border-radius:2px; flex-shrink:0; margin-top:2px; display:flex; align-items:center; justify-content:center; }
+.task-item.done .task-check { background:var(--gold-dim); border-color:var(--gold-dim); }
+.task-item.done .task-check::after { content:'✓'; font-size:7px; color:var(--gold); }
+.task-body { flex:1; min-width:0; }
+.task-title { font-size:11px; line-height:1.35; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.task-item.done .task-title { text-decoration:line-through; }
+.task-meta { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--ink-dim); margin-top:1px; }
+.task-meta.overdue { color:var(--red); }
+.task-meta.today-due { color:var(--amber); }
+.task-pri { width:3px; align-self:stretch; border-radius:2px; flex-shrink:0; }
+.pri-high { background:var(--red); } .pri-med { background:var(--amber); } .pri-low { background:var(--border); }
+.tasks-footer { padding:7px 15px; border-top:1px solid var(--border); display:flex; justify-content:space-between; flex-shrink:0; }
+.tasks-count { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--ink-dim); }
+
+/* ══ POMODORO SIDEBAR ══ */
+#panel-pomo {
+  background:var(--pomo-bg);
+  border-left:1px solid var(--border);
+  border-right:none;
+  display:flex; flex-direction:column; overflow:hidden;
+  width:320px; min-width:0;
+  transition:background 0.3s;
+}
+
+.pomo-header {
+  padding:11px 15px 9px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:8px; flex-shrink:0;
+}
+.pomo-header-title { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.25em; text-transform:uppercase; color:var(--ink-dim); }
+.pomo-close-btn { margin-left:auto; background:none; border:none; color:var(--ink-dim); cursor:pointer; font-size:14px; line-height:1; transition:color 0.15s; padding:2px 4px; }
+.pomo-close-btn:hover { color:var(--red); }
+
+.pomo-body { flex:1; display:flex; flex-direction:column; align-items:center; padding:16px 20px 20px; gap:14px; overflow-y:auto; scrollbar-width:none; }
+.pomo-body::-webkit-scrollbar { display:none; }
+
+.pomo-ev-label { font-family:'JetBrains Mono',monospace; font-size:7px; letter-spacing:0.2em; text-transform:uppercase; color:var(--ink-dim); text-align:center; }
+.pomo-ev-title { font-size:16px; font-weight:300; color:var(--gold); text-align:center; line-height:1.3; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* Pomo ring */
+.pomo-ring-wrap { position:relative; width:150px; height:150px; flex-shrink:0; }
+#pomo-ring { position:absolute; inset:0; }
+.pomo-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
+.pomo-time { font-size:30px; font-weight:300; font-variant-numeric:tabular-nums; letter-spacing:-0.02em; line-height:1; }
+.pomo-phase { font-family:'JetBrains Mono',monospace; font-size:7px; letter-spacing:0.2em; color:var(--ink-dim); text-transform:uppercase; margin-top:3px; }
+
+/* ── SWIPE DURATION CONTROL ── */
+.swipe-section { width:100%; }
+.swipe-lbl { font-family:'JetBrains Mono',monospace; font-size:7px; letter-spacing:0.18em; color:var(--ink-dim); text-transform:uppercase; text-align:center; margin-bottom:8px; }
+
+.swipe-control {
+  display:flex; align-items:center; gap:0;
+  background:var(--ink-faint); border:1px solid var(--border); border-radius:3px;
+  overflow:hidden; user-select:none;
+}
+.swipe-minus, .swipe-plus {
+  background:none; border:none; color:var(--ink-dim); cursor:pointer;
+  padding:0 14px; height:44px; font-size:18px; line-height:1;
+  display:flex; align-items:center; justify-content:center;
+  transition:color 0.15s; flex-shrink:0;
+}
+.swipe-minus:hover, .swipe-plus:hover { color:var(--gold); }
+.swipe-minus:active, .swipe-plus:active { background:var(--border); }
+
+.swipe-track {
+  flex:1; height:44px; position:relative; overflow:hidden;
+  cursor:ew-resize; touch-action:none;
+}
+.swipe-track-inner {
+  width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+  flex-direction:column; position:relative;
+}
+.swipe-val {
+  font-family:'JetBrains Mono',monospace; font-size:20px; color:var(--gold); line-height:1;
+  transition:transform 0.08s ease, opacity 0.08s ease;
+  pointer-events:none;
+}
+.swipe-unit { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--ink-dim); letter-spacing:0.1em; pointer-events:none; margin-top:1px; }
+
+/* Tick marks under track */
+.swipe-ticks {
+  position:absolute; bottom:4px; left:0; right:0; display:flex;
+  align-items:flex-end; justify-content:center; gap:2px; pointer-events:none;
+}
+.tick { width:1px; border-radius:1px; background:var(--border); transition:height 0.15s, background 0.15s; }
+.tick.major { background:var(--gold-dim); }
+.tick.current { background:var(--gold); }
+
+/* Pomo controls */
+.pomo-btns { display:flex; gap:8px; width:100%; }
+.pomo-btn { flex:1; padding:10px 0; font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.12em; text-transform:uppercase; border:1px solid var(--border); background:none; color:var(--ink-dim); cursor:pointer; border-radius:2px; transition:all 0.15s; }
+.pomo-btn:hover { border-color:var(--gold-dim); color:var(--gold); }
+.pomo-btn.primary { background:var(--gold-dim); border-color:var(--gold); color:var(--gold); }
+.pomo-btn.primary:hover { background:var(--gold); color:var(--bg); }
+.pomo-btn.danger { border-color:rgba(180,58,42,0.3); color:var(--red); }
+.pomo-btn.danger:hover { background:rgba(180,58,42,0.12); }
+
+/* Session dots */
+.pomo-sess { display:flex; gap:7px; }
+.sess-dot { width:8px; height:8px; border-radius:50%; border:1px solid var(--gold-dim); transition:background 0.2s; }
+.sess-dot.done { background:var(--gold); border-color:var(--gold); }
+
+/* Pomo tip */
+.pomo-tip { font-family:'JetBrains Mono',monospace; font-size:7px; color:var(--ink-faint); letter-spacing:0.1em; text-align:center; line-height:1.6; }
+
+/* Light mode panel distinction */
+[data-theme="light"] #panel-left   { background: #ffffff; }
+[data-theme="light"] #panel-chrono { background: #f0eeeb; }
+[data-theme="light"] #panel-tasks  { background: #f7f6f3; }
+[data-theme="light"] #panel-pomo   { background: #e8e6e2; }
+[data-theme="light"] .panel-header { background: rgba(255,255,255,0.7); }
+[data-theme="light"] .hour-row.hour-now { background: rgba(138,106,40,0.06); }
+[data-theme="light"] .week-day.today   { background: rgba(138,106,40,0.06); }
+[data-theme="light"] .month-cell.today { background: rgba(138,106,40,0.07); border-color: #8a6a28; }
+[data-theme="light"] .task-group-lbl  { color: #8a6a28; }
+[data-theme="light"] .next-strip       { background: #e8e6e2; border-color: #c8c4bc; }
+[data-theme="light"] .swipe-control    { background: #dedad4; border-color: #c8c4bc; }
+
+/* grain */
+body::after {
+  content:''; position:fixed; inset:0; pointer-events:none; opacity:0.3; z-index:999;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
+[data-theme="light"] body::after { opacity:0.15; }
+</style>
+</head>
+<body>
+
+<!-- LEFT: CALENDAR -->
+<section class="panel" id="panel-left">
+  <div class="panel-header">
+    <span class="panel-title" id="left-title">Week View</span>
+    <div class="view-toggle">
+      <button class="view-btn" data-view="day">Day</button>
+      <button class="view-btn active" data-view="week">Week</button>
+      <button class="view-btn" data-view="month">Month</button>
+    </div>
+  </div>
+  <div id="left-content" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>
+</section>
+
+<!-- CENTER: CHRONODEX -->
+<section class="panel" id="panel-chrono">
+  <div class="panel-header">
+    <span class="panel-title">Chronodex</span>
+    <button class="theme-btn" id="theme-btn">
+      <span class="theme-icon" id="theme-icon">☀</span>
+      <span id="theme-label">Light</span>
+    </button>
+  </div>
+  <div class="chrono-wrapper">
+    <div class="time-display">
+      <div class="time-big" id="time-big">00:00</div>
+      <div class="time-date" id="time-date"></div>
+    </div>
+    <canvas id="chronodex-canvas" width="280" height="280"></canvas>
+    <div class="click-hint">tap an event arc · open pomodoro</div>
+    <div class="next-strip">
+      <div class="next-lbl">Next · 30 min</div>
+      <div class="next-title" id="next-title">—</div>
+      <div class="next-time" id="next-time"></div>
+    </div>
+  </div>
+</section>
+
+<!-- RIGHT: TASKS -->
+<section class="panel" id="panel-tasks">
+  <div class="panel-header">
+    <span class="panel-title">Tasks &amp; Reminders</span>
+    <div class="panel-accent"></div>
+  </div>
+  <div class="tasks-list" id="tasks-list"></div>
+  <div class="tasks-footer">
+    <span class="tasks-count" id="tasks-count"></span>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--ink-dim);">scroll ↕</span>
+  </div>
+</section>
+
+<!-- POMODORO SIDEBAR (4th column, slides in) -->
+<section class="panel" id="panel-pomo">
+  <div class="pomo-header">
+    <span class="pomo-header-title">Pomodoro</span>
+    <button class="pomo-close-btn" id="pomo-close">✕</button>
+  </div>
+  <div class="pomo-body">
+    <div class="pomo-ev-label">Focus Session</div>
+    <div class="pomo-ev-title" id="pomo-ev-title">—</div>
+
+    <div class="pomo-ring-wrap">
+      <canvas id="pomo-ring" width="150" height="150"></canvas>
+      <div class="pomo-center">
+        <div class="pomo-time" id="pomo-time">25:00</div>
+        <div class="pomo-phase" id="pomo-phase">Ready</div>
+      </div>
+    </div>
+
+    <!-- SWIPE DURATION CONTROL -->
+    <div class="swipe-section">
+      <div class="swipe-lbl">Duration — swipe or tap ± to adjust</div>
+      <div class="swipe-control">
+        <button class="swipe-minus" id="sw-minus">−</button>
+        <div class="swipe-track" id="sw-track">
+          <div class="swipe-track-inner">
+            <div class="swipe-val" id="sw-val">25</div>
+            <div class="swipe-unit">minutes</div>
+            <div class="swipe-ticks" id="sw-ticks"></div>
+          </div>
+        </div>
+        <button class="swipe-plus" id="sw-plus">+</button>
+      </div>
+    </div>
+
+    <div class="pomo-btns">
+      <button class="pomo-btn danger" id="pomo-reset">Reset</button>
+      <button class="pomo-btn primary" id="pomo-start">Start</button>
+    </div>
+
+    <div class="pomo-sess" id="pomo-sess">
+      <div class="sess-dot"></div><div class="sess-dot"></div>
+      <div class="sess-dot"></div><div class="sess-dot"></div>
+    </div>
+
+    <div class="pomo-tip">← swipe left/right on the bar<br>to change duration · 1 min steps</div>
+  </div>
+</section>
+
+<script>
+// ═══════════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════════
+const EVENTS = [
+  { title:"Morning Pages",    startISO:"2026-02-23T07:00", endISO:"2026-02-23T07:30", color:"#5a8f6a" },
+  { title:"Team Standup",     startISO:"2026-02-23T09:00", endISO:"2026-02-23T09:30", color:"#4a7fa5" },
+  { title:"Design Review",    startISO:"2026-02-24T11:00", endISO:"2026-02-24T12:00", color:"#c9a84c" },
+  { title:"Lunch with Aisha", startISO:"2026-02-24T13:00", endISO:"2026-02-24T14:00", color:"#c44b3a" },
+  { title:"Focus Block",      startISO:"2026-02-25T10:00", endISO:"2026-02-25T12:00", color:"#4a7fa5" },
+  { title:"Quarterly Review", startISO:"2026-02-25T14:00", endISO:"2026-02-25T15:30", color:"#c9a84c" },
+  { title:"1:1 with Manager", startISO:"2026-02-25T16:00", endISO:"2026-02-25T16:30", color:"#5a8f6a" },
+  { title:"Dentist",          startISO:"2026-02-26T09:00", endISO:"2026-02-26T10:00", color:"#c44b3a" },
+  { title:"Product Sync",     startISO:"2026-02-26T15:00", endISO:"2026-02-26T15:45", color:"#4a7fa5" },
+  { title:"Yoga",             startISO:"2026-02-27T07:00", endISO:"2026-02-27T08:00", color:"#5a8f6a" },
+  { title:"Workshop Prep",    startISO:"2026-02-27T14:00", endISO:"2026-02-27T17:00", color:"#c9a84c" },
+  { title:"Date Night",       startISO:"2026-02-28T19:00", endISO:"2026-02-28T22:00", color:"#c44b3a" },
+  { title:"Market Visit",     startISO:"2026-03-01T10:00", endISO:"2026-03-01T11:30", color:"#5a8f6a" },
+];
+
+const TASKS = [
+  { title:"Review Q1 OKRs deck",           due:"2026-02-25", done:false, priority:"high" },
+  { title:"Send invoice to client",         due:"2026-02-25", done:false, priority:"high" },
+  { title:"Book flights to Tokyo",          due:"2026-02-26", done:false, priority:"med"  },
+  { title:"Read Thinking Fast & Slow ch.4", due:null,         done:false, priority:"low"  },
+  { title:"Fix login bug in dashboard",     due:"2026-02-24", done:false, priority:"high" },
+  { title:"Call Mum",                       due:"2026-02-25", done:false, priority:"med"  },
+  { title:"Update portfolio site",          due:"2026-03-01", done:false, priority:"low"  },
+  { title:"Submit expense report",          due:"2026-02-24", done:true,  priority:"high" },
+  { title:"Water the plants",               due:null,         done:false, priority:"low"  },
+  { title:"Write weekly newsletter",        due:"2026-02-27", done:false, priority:"med"  },
+  { title:"Organise Notion workspace",      due:null,         done:false, priority:"low"  },
+  { title:"Buy birthday gift for Priya",    due:"2026-02-28", done:false, priority:"high" },
+  { title:"Schedule car service",           due:"2026-03-05", done:false, priority:"low"  },
+  { title:"Draft blog post",                due:"2026-02-28", done:false, priority:"med"  },
+];
+
+// ═══════════════════════════════════════════════
+//  THEME TOGGLE
+// ═══════════════════════════════════════════════
+let isDark = true;
+document.getElementById('theme-btn').addEventListener('click', () => {
+  isDark = !isDark;
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  document.getElementById('theme-icon').textContent = isDark ? '☀' : '☾';
+  document.getElementById('theme-label').textContent = isDark ? 'Light' : 'Dark';
+  drawChronodex();
+  drawPomoRing();
+});
+
+function getCSSVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+// ═══════════════════════════════════════════════
+//  VIEW STATE
+// ═══════════════════════════════════════════════
+let currentView = 'week', dayOff = 0, weekOff = 0, monthOff = 0;
+
+document.querySelectorAll('.view-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentView = btn.dataset.view;
+    dayOff = weekOff = monthOff = 0;
+    renderLeft();
+  });
+});
+
+function renderLeft() {
+  const titles = { day:'Day View', week:'Week View', month:'Month View' };
+  document.getElementById('left-title').textContent = titles[currentView];
+  ({ day:buildDay, week:buildWeek, month:buildMonth })[currentView]();
+}
+
+// ═══════════════════════════════════════════════
+//  DAY VIEW
+// ═══════════════════════════════════════════════
+function buildDay() {
+  const now = new Date();
+  const d = new Date(now); d.setDate(now.getDate() + dayOff);
+  const ds = d.toISOString().slice(0,10);
+  const isToday = ds === now.toISOString().slice(0,10);
+  const DN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const evts = EVENTS.filter(e => e.startISO.startsWith(ds));
+  const nowH = now.getHours();
+
+  document.getElementById('left-content').innerHTML = `
+    <div class="daily-view">
+      <div class="daily-top">
+        <button class="nav-arrow" id="d-prev">‹</button>
+        <div style="text-align:center">
+          <div class="daily-title-num">${d.getDate()}</div>
+          <div class="daily-title-sub">${DN[d.getDay()].toUpperCase()} · ${MN[d.getMonth()].toUpperCase()} ${d.getFullYear()}</div>
+        </div>
+        <button class="nav-arrow" id="d-next">›</button>
+      </div>
+      <div class="daily-timeline" id="d-tl"></div>
+    </div>`;
+
+  document.getElementById('d-prev').onclick = () => { dayOff--; buildDay(); };
+  document.getElementById('d-next').onclick = () => { dayOff++; buildDay(); };
+
+  const tl = document.getElementById('d-tl');
+  for (let h = 6; h < 24; h++) {
+    const isNow = isToday && h === nowH;
+    const row = document.createElement('div');
+    row.className = 'hour-row' + (isNow ? ' hour-now' : '');
+    const lbl = document.createElement('div');
+    lbl.className = 'hour-label' + (isNow ? ' now-lbl' : '');
+    lbl.textContent = `${String(h).padStart(2,'0')}:00`;
+    const evDiv = document.createElement('div');
+    evDiv.className = 'hour-events';
+    evts.filter(e => new Date(e.startISO).getHours() === h).forEach(ev => {
+      const dur = Math.round((new Date(ev.endISO) - new Date(ev.startISO)) / 60000);
+      const el = document.createElement('div');
+      el.className = 'hour-event';
+      el.style.cssText = `border-color:${ev.color};background:${ev.color}18;color:var(--ink);`;
+      el.textContent = `${ev.title} · ${dur}m`;
+      el.addEventListener('click', () => openPomo(ev));
+      evDiv.appendChild(el);
+    });
+    row.appendChild(lbl); row.appendChild(evDiv); tl.appendChild(row);
+  }
+  if (isToday) {
+    const rows = tl.querySelectorAll('.hour-row');
+    const idx = Math.max(0, nowH - 6 - 1);
+    if (rows[idx]) rows[idx].scrollIntoView({ block:'start' });
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  WEEK VIEW
+// ═══════════════════════════════════════════════
+function buildWeek() {
+  const now = new Date();
+  const base = new Date(now); base.setDate(now.getDate() + weekOff * 7);
+  const dow = base.getDay();
+  const mon = new Date(base); mon.setDate(base.getDate() - ((dow + 6) % 7));
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const fmt = d => `${d.getDate()} ${M[d.getMonth()]}`;
+  const DN = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const todayStr = now.toISOString().slice(0,10);
+
+  document.getElementById('left-content').innerHTML = `
+    <div class="week-view">
+      <div class="week-nav">
+        <button class="nav-arrow" id="w-prev">‹</button>
+        <span class="week-range">${fmt(mon)} – ${fmt(sun)}</span>
+        <button class="nav-arrow" id="w-next">›</button>
+      </div>
+      <div class="week-grid" id="w-grid"></div>
+    </div>`;
+
+  document.getElementById('w-prev').onclick = () => { weekOff--; buildWeek(); };
+  document.getElementById('w-next').onclick = () => { weekOff++; buildWeek(); };
+
+  const grid = document.getElementById('w-grid');
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(mon); d.setDate(mon.getDate() + i);
+    const ds = d.toISOString().slice(0,10);
+    const isToday = ds === todayStr;
+    const dayEvts = EVENTS.filter(e => e.startISO.startsWith(ds)).sort((a,b) => a.startISO.localeCompare(b.startISO));
+    const row = document.createElement('div');
+    row.className = 'week-day' + (isToday ? ' today' : '');
+    row.innerHTML = `<div class="day-label"><span class="day-name">${DN[i]}</span><span class="day-num">${d.getDate()}</span></div><div class="day-events" id="de${i}"></div>`;
+    grid.appendChild(row);
+    const ev = row.querySelector(`#de${i}`);
+    if (!dayEvts.length) { ev.innerHTML = `<span style="font-size:9px;color:var(--ink-faint);font-style:italic">clear</span>`; }
+    dayEvts.slice(0, 3).forEach(e => {
+      const t = new Date(e.startISO).toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',hour12:false});
+      const el = document.createElement('div');
+      el.className = 'cal-event';
+      el.innerHTML = `<span class="cal-event-dot" style="background:${e.color}"></span><span class="cal-event-time">${t}</span><span style="overflow:hidden;text-overflow:ellipsis">${e.title}</span>`;
+      ev.appendChild(el);
+    });
+    if (dayEvts.length > 3) {
+      const m = document.createElement('div');
+      m.style.cssText = 'font-family:JetBrains Mono,monospace;font-size:8px;color:var(--ink-dim);padding-left:9px;';
+      m.textContent = `+${dayEvts.length - 3} more`; ev.appendChild(m);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  MONTH VIEW
+// ═══════════════════════════════════════════════
+function buildMonth() {
+  const now = new Date();
+  const ref = new Date(now.getFullYear(), now.getMonth() + monthOff, 1);
+  const MN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const dim = new Date(ref.getFullYear(), ref.getMonth() + 1, 0).getDate();
+  let fd = ref.getDay(); fd = fd === 0 ? 6 : fd - 1;
+  const prevDim = new Date(ref.getFullYear(), ref.getMonth(), 0).getDate();
+  const todayStr = now.toISOString().slice(0,10);
+
+  document.getElementById('left-content').innerHTML = `
+    <div class="month-view">
+      <div class="month-nav">
+        <button class="nav-arrow" id="m-prev">‹</button>
+        <span class="month-title">${MN[ref.getMonth()]} ${ref.getFullYear()}</span>
+        <button class="nav-arrow" id="m-next">›</button>
+      </div>
+      <div class="month-dow-row">${['M','T','W','T','F','S','S'].map(x => `<div class="month-dow">${x}</div>`).join('')}</div>
+      <div class="month-grid" id="m-grid"></div>
+    </div>`;
+
+  document.getElementById('m-prev').onclick = () => { monthOff--; buildMonth(); };
+  document.getElementById('m-next').onclick = () => { monthOff++; buildMonth(); };
+
+  const grid = document.getElementById('m-grid');
+  for (let i = fd - 1; i >= 0; i--) {
+    const c = document.createElement('div'); c.className = 'month-cell other-month';
+    c.innerHTML = `<div class="month-day-num">${prevDim - i}</div>`; grid.appendChild(c);
+  }
+  for (let d = 1; d <= dim; d++) {
+    const ds = `${ref.getFullYear()}-${String(ref.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = ds === todayStr;
+    const de = EVENTS.filter(e => e.startISO.startsWith(ds));
+    const c = document.createElement('div'); c.className = 'month-cell' + (isToday ? ' today' : '');
+    c.innerHTML = `<div class="month-day-num">${d}</div><div class="month-dots">${de.slice(0,5).map(e => `<div class="month-dot" style="background:${e.color}"></div>`).join('')}</div>`;
+    grid.appendChild(c);
+  }
+  const total = fd + dim; const rem = total % 7 === 0 ? 0 : 7 - (total % 7);
+  for (let d = 1; d <= rem; d++) {
+    const c = document.createElement('div'); c.className = 'month-cell other-month';
+    c.innerHTML = `<div class="month-day-num">${d}</div>`; grid.appendChild(c);
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  CHRONODEX
+// ═══════════════════════════════════════════════
+const DS = 6*60, DE = 24*60, DSPAN = DE - DS;
+const BANDS = [
+  {from:360,to:480,ri:26,ro:50},
+  {from:480,to:600,ri:50,ro:74},
+  {from:600,to:720,ri:74,ro:96},
+  {from:720,to:840,ri:96,ro:114},
+  {from:840,to:960,ri:114,ro:130},
+  {from:960,to:1080,ri:130,ro:138},
+];
+
+function mta(min) {
+  return ((Math.min(Math.max(min, DS), DE) - DS) / DSPAN) * Math.PI * 2 - Math.PI / 2;
+}
+
+let hitArcs = [];
+
+function drawChronodex() {
+  const cv = document.getElementById('chronodex-canvas');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height, cx = W/2, cy = H/2;
+  ctx.clearRect(0, 0, W, H);
+  hitArcs = [];
+
+  const dark = isDark;
+  const goldRGB = dark ? '201,168,76' : '138,106,40';
+  const sepColor = dark ? 'rgba(255,255,255,0.06)' : 'rgba(28,31,38,0.09)';
+  const ringColor = dark ? 'rgba(255,255,255,0.08)' : 'rgba(28,31,38,0.13)';
+  const labelColor = dark ? 'rgba(200,190,160,0.32)' : 'rgba(28,31,38,0.42)';
+  const needleColor = dark ? 'rgba(196,75,58,0.92)' : 'rgba(184,50,40,0.95)';
+  const needleDot = dark ? '#c44b3a' : '#b83228';
+  const centerDot = dark ? '#c9a84c' : '#8a6a28';
+
+  const now = new Date();
+  const tm = now.getHours() * 60 + now.getMinutes();
+  const today = now.toISOString().slice(0,10);
+  const te = EVENTS.filter(e => e.startISO.startsWith(today));
+
+  // Hour separator lines
+  for (let h = 6; h <= 24; h++) {
+    const a = mta(h * 60);
+    ctx.beginPath();
+    ctx.moveTo(cx + 18*Math.cos(a), cy + 18*Math.sin(a));
+    ctx.lineTo(cx + 140*Math.cos(a), cy + 140*Math.sin(a));
+    ctx.strokeStyle = sepColor; ctx.lineWidth = 0.5; ctx.stroke();
+  }
+
+  // Elapsed fill arcs
+  BANDS.forEach(b => {
+    if (tm <= b.from) return;
+    const fe = Math.min(tm, b.to);
+    const prog = (fe - b.from) / (b.to - b.from);
+    ctx.beginPath();
+    ctx.arc(cx, cy, (b.ri + b.ro) / 2, mta(b.from), mta(fe));
+    ctx.lineWidth = b.ro - b.ri - 2;
+    ctx.strokeStyle = `rgba(${goldRGB},${0.15 + prog * 0.5})`;
+    ctx.lineCap = 'butt'; ctx.stroke();
+  });
+
+  // Event arcs (coloured, clickable)
+  te.forEach(ev => {
+    const sm = new Date(ev.startISO).getHours()*60 + new Date(ev.startISO).getMinutes();
+    const em = new Date(ev.endISO).getHours()*60 + new Date(ev.endISO).getMinutes();
+    if (em < DS || sm > DE) return;
+    BANDS.forEach(b => {
+      const os = Math.max(sm, b.from), oe = Math.min(em, b.to);
+      if (oe <= os) return;
+      const r = (b.ri + b.ro) / 2 + 2, sa = mta(os), ea = mta(oe);
+      ctx.beginPath(); ctx.arc(cx, cy, r, sa, ea);
+      ctx.lineWidth = 5; ctx.strokeStyle = ev.color + 'dd'; ctx.lineCap = 'round'; ctx.stroke();
+      hitArcs.push({ ev, r, sa, ea, ri: b.ri, ro: b.ro });
+    });
+  });
+
+  // Ring outlines
+  BANDS.forEach(b => {
+    [b.ri, b.ro].forEach(r => {
+      ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI/2, Math.PI*1.5);
+      ctx.strokeStyle = ringColor; ctx.lineWidth = 0.5; ctx.stroke();
+    });
+  });
+
+  // Hour labels
+  ctx.fillStyle = labelColor;
+  ctx.font = '300 8px JetBrains Mono, monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let h = 6; h <= 24; h += 2) {
+    const a = mta(h * 60) + 0.09;
+    ctx.fillText(h === 24 ? '0' : String(h), cx + 146*Math.cos(a), cy + 146*Math.sin(a));
+  }
+
+  // Current time needle — always RED
+  const na = mta(tm);
+  ctx.beginPath(); ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + 142*Math.cos(na), cy + 142*Math.sin(na));
+  ctx.strokeStyle = needleColor; ctx.lineWidth = 1.5; ctx.lineCap = 'round'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx + 142*Math.cos(na), cy + 142*Math.sin(na), 3, 0, Math.PI*2);
+  ctx.fillStyle = needleDot; ctx.fill();
+
+  // Center
+  ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI*2); ctx.fillStyle = centerDot; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, 16, -Math.PI/2, Math.PI*1.5);
+  ctx.fillStyle = `rgba(${goldRGB},0.07)`; ctx.fill();
+  ctx.strokeStyle = `rgba(${goldRGB},0.2)`; ctx.lineWidth = 0.5; ctx.stroke();
+}
+
+// Click detection on canvas
+document.getElementById('chronodex-canvas').addEventListener('click', e => {
+  const cv = e.currentTarget, rect = cv.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (cv.width / rect.width);
+  const my = (e.clientY - rect.top) * (cv.height / rect.height);
+  const cx = cv.width/2, cy = cv.height/2;
+  const dx = mx - cx, dy = my - cy, dist = Math.sqrt(dx*dx + dy*dy);
+  const ca = Math.atan2(dy, dx), TAU = Math.PI * 2;
+  for (const arc of hitArcs) {
+    if (dist < arc.ri - 3 || dist > arc.ro + 3) continue;
+    let a = ca, s = arc.sa, end = arc.ea;
+    while (a < s - 0.01) a += TAU;
+    while (a > end + TAU) a -= TAU;
+    if (a >= s - 0.06 && a <= end + 0.06) { openPomo(arc.ev); return; }
+  }
+});
+
+// ═══════════════════════════════════════════════
+//  CLOCK + NEXT EVENT
+// ═══════════════════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  document.getElementById('time-big').textContent =
+    `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const DN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('time-date').textContent =
+    `${DN[now.getDay()]} · ${now.getDate()} ${MN[now.getMonth()]} ${now.getFullYear()}`;
+
+  const nm = now.getTime(), in30 = nm + 30*60*1000;
+  const up = EVENTS.map(e => ({...e, sm: new Date(e.startISO).getTime()}))
+    .filter(e => e.sm >= nm && e.sm <= in30).sort((a,b) => a.sm - b.sm);
+  if (up.length) {
+    const nx = up[0], st = new Date(nx.startISO);
+    const mu = Math.round((nx.sm - nm) / 60000);
+    document.getElementById('next-title').textContent = nx.title;
+    document.getElementById('next-title').style.color = nx.color;
+    document.getElementById('next-time').textContent =
+      `${st.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',hour12:false})} · in ${mu} min`;
+  } else {
+    document.getElementById('next-title').textContent = 'Nothing in next 30 min';
+    document.getElementById('next-title').style.color = 'var(--ink-dim)';
+    document.getElementById('next-time').textContent = '';
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  TASKS
+// ═══════════════════════════════════════════════
+function buildTasks() {
+  const list = document.getElementById('tasks-list');
+  const today = new Date().toISOString().slice(0,10);
+  list.innerHTML = '';
+  const ov = TASKS.filter(t => !t.done && t.due && t.due < today);
+  const dt = TASKS.filter(t => !t.done && t.due === today);
+  const up = TASKS.filter(t => !t.done && (!t.due || t.due > today));
+  const dn = TASKS.filter(t => t.done);
+  function addGrp(lbl, items, mc) {
+    if (!items.length) return;
+    const gl = document.createElement('div'); gl.className = 'task-group-lbl'; gl.textContent = lbl; list.appendChild(gl);
+    items.forEach(task => {
+      const item = document.createElement('div');
+      item.className = 'task-item' + (task.done ? ' done' : '');
+      item.innerHTML = `<div class="task-pri pri-${task.priority}"></div><div class="task-check"></div>
+        <div class="task-body"><div class="task-title">${task.title}</div>
+        ${task.due ? `<div class="task-meta ${mc||''}">${fmtDue(task.due, today)}</div>` : ''}</div>`;
+      item.querySelector('.task-check').addEventListener('click', ev => { ev.stopPropagation(); task.done = !task.done; buildTasks(); });
+      list.appendChild(item);
+    });
+  }
+  addGrp('⚠ Overdue', ov, 'overdue');
+  addGrp('· Today', dt, 'today-due');
+  addGrp('· Upcoming', up, '');
+  addGrp('· Completed', dn, '');
+  document.getElementById('tasks-count').textContent = `${TASKS.filter(t => !t.done).length} remaining`;
+}
+function fmtDue(due, today) {
+  if (due === today) return 'Today';
+  const d = new Date(due + 'T00:00:00');
+  return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+}
+
+// ═══════════════════════════════════════════════
+//  POMODORO (SIDEBAR)
+// ═══════════════════════════════════════════════
+const POMO_MIN = 1, POMO_MAX = 80;
+let pomoDuration = 25; // minutes
+const pomo = { running:false, totalSecs:25*60, remainSecs:25*60, interval:null, sessions:0, eventTitle:'' };
+
+function openPomo(ev) {
+  if (!pomo.running) {
+    pomo.eventTitle = ev ? ev.title : 'Focus Session';
+    document.getElementById('pomo-ev-title').textContent = pomo.eventTitle;
+  }
+  document.body.classList.add('pomo-open');
+  drawPomoRing(); renderPomo(); buildTicks();
+}
+
+document.getElementById('pomo-close').addEventListener('click', () => {
+  document.body.classList.remove('pomo-open');
+});
+
+// ── SWIPE DURATION CONTROL ──
+function clampDur(v) { return Math.max(POMO_MIN, Math.min(POMO_MAX, v)); }
+
+function setDuration(v, animate) {
+  const prev = pomoDuration;
+  pomoDuration = clampDur(Math.round(v));
+  if (!pomo.running) {
+    pomo.totalSecs = pomoDuration * 60;
+    pomo.remainSecs = pomoDuration * 60;
+  }
+  const valEl = document.getElementById('sw-val');
+  if (valEl) {
+    if (animate && prev !== pomoDuration) {
+      const dir = pomoDuration > prev ? 1 : -1;
+      valEl.style.transform = `translateY(${-dir * 8}px)`;
+      valEl.style.opacity = '0.4';
+      requestAnimationFrame(() => {
+        valEl.textContent = String(pomoDuration);
+        valEl.style.transform = `translateY(${dir * 6}px)`;
+        requestAnimationFrame(() => {
+          valEl.style.transform = 'translateY(0)';
+          valEl.style.opacity = '1';
+        });
+      });
+    } else {
+      valEl.textContent = String(pomoDuration);
+    }
+  }
+  buildTicks();
+  renderPomo();
+}
+
+// Build tick marks — shows a window of ±15 around current value
+function buildTicks() {
+  const container = document.getElementById('sw-ticks');
+  if (!container) return;
+  container.innerHTML = '';
+  const window = 15; // show 31 ticks total (±15)
+  for (let i = -window; i <= window; i++) {
+    const val = pomoDuration + i;
+    if (val < POMO_MIN || val > POMO_MAX) { const sp = document.createElement('div'); sp.style.width='4px'; container.appendChild(sp); continue; }
+    const tick = document.createElement('div');
+    tick.className = 'tick' + (i === 0 ? ' current' : (val % 5 === 0 ? ' major' : ''));
+    const isCurrent = i === 0;
+    const isMajor = val % 5 === 0;
+    tick.style.width = isCurrent ? '2px' : '1px';
+    tick.style.height = isCurrent ? '14px' : isMajor ? '10px' : '5px';
+    container.appendChild(tick);
+  }
+}
+
+// Swipe gesture on the track
+let swipeStartX = null, swipeStartDur = null, swipeAccum = 0;
+const track = document.getElementById('sw-track');
+const PX_PER_MIN = 14; // pixels per 1 minute change
+
+track.addEventListener('pointerdown', e => {
+  swipeStartX = e.clientX;
+  swipeStartDur = pomoDuration;
+  swipeAccum = 0;
+  track.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+
+track.addEventListener('pointermove', e => {
+  if (swipeStartX === null) return;
+  const dx = e.clientX - swipeStartX;
+  const delta = Math.round(dx / PX_PER_MIN);
+  const newDur = clampDur(swipeStartDur + delta);
+  if (newDur !== pomoDuration) setDuration(newDur, true);
+});
+
+track.addEventListener('pointerup', () => { swipeStartX = null; swipeStartDur = null; });
+track.addEventListener('pointercancel', () => { swipeStartX = null; swipeStartDur = null; });
+
+// Mouse wheel on track
+track.addEventListener('wheel', e => {
+  e.preventDefault();
+  setDuration(pomoDuration + (e.deltaY > 0 ? -1 : 1), true);
+}, { passive:false });
+
+// +/− buttons
+document.getElementById('sw-minus').addEventListener('click', () => setDuration(pomoDuration - 1, true));
+document.getElementById('sw-plus').addEventListener('click', () => setDuration(pomoDuration + 1, true));
+document.getElementById('sw-minus').addEventListener('mousedown', () => {
+  let id = setInterval(() => setDuration(pomoDuration - 1, false), 120);
+  const stop = () => clearInterval(id);
+  document.addEventListener('mouseup', stop, {once:true});
+  document.addEventListener('mouseleave', stop, {once:true});
+});
+document.getElementById('sw-plus').addEventListener('mousedown', () => {
+  let id = setInterval(() => setDuration(pomoDuration + 1, false), 120);
+  const stop = () => clearInterval(id);
+  document.addEventListener('mouseup', stop, {once:true});
+  document.addEventListener('mouseleave', stop, {once:true});
+});
+
+// ── POMO RING ──
+function drawPomoRing() {
+  const cv = document.getElementById('pomo-ring'); if (!cv) return;
+  const ctx = cv.getContext('2d'), W = cv.width, H = cv.height, cx = W/2, cy = H/2, R = 58;
+  ctx.clearRect(0, 0, W, H);
+  const frac = pomo.remainSecs / pomo.totalSecs;
+  const sa = -Math.PI/2, ea = sa + (1 - frac) * Math.PI * 2;
+  const dark = isDark;
+  const goldRGB = dark ? '201,168,76' : '138,106,40';
+
+  // BG ring
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2);
+  ctx.strokeStyle = dark ? 'rgba(255,255,255,0.07)' : 'rgba(28,31,38,0.10)';
+  ctx.lineWidth = 9; ctx.stroke();
+
+  // Remaining (empty)
+  if (frac > 0) {
+    ctx.beginPath(); ctx.arc(cx, cy, R, ea, sa + Math.PI*2);
+    ctx.strokeStyle = `rgba(${goldRGB},0.12)`;
+    ctx.lineWidth = 9; ctx.lineCap = 'butt'; ctx.stroke();
+  }
+
+  // Elapsed (progress) — red when running, blue when paused, gold when ready
+  if (frac < 1) {
+    const color = pomo.running
+      ? (dark ? '#c44b3a' : '#b83228')
+      : (pomo.remainSecs < pomo.totalSecs ? (dark ? '#4a7fa5' : '#2e5c8a') : `rgba(${goldRGB},0.5)`);
+    ctx.beginPath(); ctx.arc(cx, cy, R, sa, ea);
+    ctx.strokeStyle = color; ctx.lineWidth = 9; ctx.lineCap = 'round'; ctx.stroke();
+  }
+
+  // Center glow when running
+  if (pomo.running) {
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 40);
+    grad.addColorStop(0, dark ? 'rgba(196,75,58,0.08)' : 'rgba(184,50,40,0.06)');
+    grad.addColorStop(1, 'transparent');
+    ctx.beginPath(); ctx.arc(cx, cy, 40, 0, Math.PI*2);
+    ctx.fillStyle = grad; ctx.fill();
+  }
+}
+
+function renderPomo() {
+  const m = Math.floor(pomo.remainSecs / 60), s = pomo.remainSecs % 60;
+  document.getElementById('pomo-time').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const phase = pomo.running ? 'Focusing' : (pomo.remainSecs < pomo.totalSecs && pomo.remainSecs > 0 ? 'Paused' : pomo.remainSecs === 0 ? 'Complete ✓' : 'Ready');
+  document.getElementById('pomo-phase').textContent = phase;
+  const sb = document.getElementById('pomo-start');
+  sb.textContent = pomo.running ? 'Pause' : (pomo.remainSecs < pomo.totalSecs && pomo.remainSecs > 0 ? 'Resume' : 'Start');
+  document.querySelectorAll('.sess-dot').forEach((d, i) => d.classList.toggle('done', i < pomo.sessions));
+  // Dim swipe control while running
+  const sw = document.querySelector('.swipe-section');
+  if (sw) { sw.style.opacity = pomo.running ? '0.4' : '1'; sw.style.pointerEvents = pomo.running ? 'none' : 'auto'; }
+  drawPomoRing();
+}
+
+document.getElementById('pomo-start').addEventListener('click', () => {
+  if (pomo.running) {
+    clearInterval(pomo.interval); pomo.running = false;
+  } else {
+    if (pomo.remainSecs === 0) {
+      pomo.totalSecs = pomoDuration * 60; pomo.remainSecs = pomoDuration * 60;
+    }
+    pomo.running = true;
+    pomo.interval = setInterval(() => {
+      pomo.remainSecs--;
+      if (pomo.remainSecs <= 0) {
+        clearInterval(pomo.interval); pomo.running = false;
+        pomo.remainSecs = 0; pomo.sessions = Math.min(4, pomo.sessions + 1);
+        // Audio chime
+        try {
+          const ac = new (window.AudioContext || window.webkitAudioContext)();
+          [0, 0.35, 0.7].forEach((t, i) => {
+            const osc = ac.createOscillator(), gain = ac.createGain();
+            osc.connect(gain); gain.connect(ac.destination);
+            osc.frequency.value = [528, 660, 792][i]; gain.gain.value = 0.22;
+            osc.start(ac.currentTime + t);
+            gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + t + 0.8);
+            osc.stop(ac.currentTime + t + 0.8);
+          });
+        } catch(e) {}
+      }
+      renderPomo();
+    }, 1000);
+  }
+  renderPomo();
+});
+
+document.getElementById('pomo-reset').addEventListener('click', () => {
+  clearInterval(pomo.interval); pomo.running = false;
+  pomo.totalSecs = pomoDuration * 60; pomo.remainSecs = pomoDuration * 60;
+  renderPomo();
+});
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+renderLeft();
+buildTasks();
+updateClock();
+drawChronodex();
+buildTicks();
+renderPomo();
+
+setInterval(() => { updateClock(); drawChronodex(); }, 30000);
+</script>
+</body>
+</html>
