@@ -112,7 +112,7 @@ body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100vh; }
 .time-display { text-align:center; }
 .time-big { font-size:52px; font-weight:300; letter-spacing:-0.02em; line-height:1; font-variant-numeric:tabular-nums; }
 .time-date { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-dim); letter-spacing:0.10em; margin-top:2px; text-transform:uppercase; }
-#chronodex-canvas { max-width:90%; display:block; pointer-events:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
+#chronodex-canvas { max-width:100%; display:block; pointer-events:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
 .chrono-canvas-wrap { position:relative; display:inline-block; max-width:100%; }
 .chrono-tap-overlay { position:absolute; inset:0; cursor:pointer; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 .next-strip { background:var(--ink-faint); border:2px solid var(--border); border-radius:3px; padding:12px 18px; width:100%; }
@@ -317,11 +317,13 @@ body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100vh; }
   cursor:pointer; flex-shrink:0;
 }
 .scribble-swatch.active { border-color:var(--gold); }
-.stroke-size {
-  display:flex; align-items:center; gap:6px;
-  font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim);
+.pen-size-btn {
+  background:none; border:1.5px solid var(--border); border-radius:50%;
+  width:30px; height:30px; cursor:pointer; color:var(--ink-dim);
+  display:flex; align-items:center; justify-content:center; padding:0; flex-shrink:0;
 }
-.stroke-size input { width:60px; accent-color:var(--gold); }
+.pen-size-btn.active { border-color:var(--gold); color:var(--gold); }
+.pen-size-btn:hover  { border-color:var(--ink-dim); }
 
 /* Locked overlay when pomo running */
 #pomo-lock-msg {
@@ -406,7 +408,7 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
       <div class="time-date" id="time-date"></div>
     </div>
     <div class="chrono-canvas-wrap">
-      <canvas id="chronodex-canvas" width="680" height="460"></canvas>
+      <canvas id="chronodex-canvas" width="760" height="500"></canvas>
       <div class="chrono-tap-overlay" id="chrono-overlay"></div>
     </div>
     <div class="next-strip">
@@ -466,10 +468,7 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
       <div class="scribble-header">
         <span class="scribble-title">&#9998; Notes</span>
         <div class="scribble-tools">
-          <div class="stroke-size">
-            <span>size</span>
-            <input type="range" id="stroke-size" min="1" max="24" value="3">
-          </div>
+          <div id="pen-size-bar" style="display:flex;gap:4px;align-items:center"></div>
           <div id="color-swatches" style="display:flex;gap:6px;align-items:center"></div>
           <button class="scribble-btn" id="scribble-eraser">Erase</button>
           <button class="scribble-btn" id="scribble-clear">Clear</button>
@@ -1138,7 +1137,7 @@ const PETAL_DEG = 360 / CHOURS;
 const PETAL_RAD = PETAL_DEG * Math.PI / 180;
 const RI_BASE  = 30;
 const RO_MIN   = 56;
-const RO_MAX   = 220;
+const RO_MAX   = 195;  // slightly smaller to leave room for labels
 
 function petalRI()  { return RI_BASE; }
 function petalRO(i) { return RO_MIN + i * (RO_MAX - RO_MIN) / (CHOURS - 1); }
@@ -1174,8 +1173,8 @@ function drawChronodex() {
     cv._cdxInit = true;
   }
   const ctx = cv.getContext('2d');
-  const LW = parseInt(cv.style.width)  || 680;
-  const LH = parseInt(cv.style.height) || 460;
+  const LW = parseInt(cv.style.width)  || 760;
+  const LH = parseInt(cv.style.height) || 500;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, LW, LH);
   todayEventsForPicker = [];
@@ -1187,7 +1186,7 @@ function drawChronodex() {
   const tickC   = dark ? 'rgba(255,255,255,0.18)' : 'rgba(28,31,38,0.18)';
   const elapsedC= dark ? 'rgba(201,168,76,0.70)'  : 'rgba(138,106,40,0.65)';
   const lblC    = dark ? 'rgba(232,228,216,0.82)'  : 'rgba(28,31,38,0.88)';
-  const cx = LW*0.42, cy = LH/2;  // slight left bias so right-side petals fit
+  const cx = LW*0.50, cy = LH/2;  // centred for equal label room on both sides
   const GAP = 0.020;
 
   const now   = new Date();
@@ -1275,7 +1274,7 @@ function drawChronodex() {
   });
   labelItems.sort((a,b) => a.bestI - b.bestI);
 
-  // Assign label slots — stack outward, text along petal direction
+  // Assign label slots — stack outward, text always reads away from centre
   const petalLabelCount = {};
   labelItems.forEach(item => {
     const i     = item.bestI;
@@ -1284,39 +1283,40 @@ function drawChronodex() {
 
     const ro    = petalRO(i);
     const angle = petalMid(i);
-
-    // Each slot offsets further from the petal tip
-    const startR = ro + 10 + slot * 32;
+    // Gap between slots: name(11px) + time(9px) + padding = ~28px per slot
+    const startR = ro + 14 + slot * 30;
+    // Correct flip: flip when petal points into LEFT half (cos < 0)
+    // This makes text always read outward from the hub, never upside-down
+    const shouldFlip = Math.cos(angle) < 0;
 
     ctx.save();
-    // Move to petal tip then rotate so x-axis points outward along petal
     ctx.translate(cx, cy);
     ctx.rotate(angle);
-    // Now we're in a coord system where +x = outward along petal
-    // Flip text if this petal is in the lower half (so it reads correctly from outside)
-    const inLower = (angle > 0 && angle < Math.PI);
-    if (inLower) {
-      // For lower petals: start further out, draw text leftward (inward)
-      ctx.translate(startR + 80, 0);
-      ctx.rotate(Math.PI);  // flip
+    // x-axis now points outward along petal direction
+    if (shouldFlip) {
+      // Petal points left: text would be upside-down, so flip 180° and start from far end
+      // Measure text width to know where to start so text ends at startR (not starts)
+      ctx.scale(-1, -1);  // flip both axes = rotate 180
+      ctx.translate(-startR - 75, 0);  // position so text runs inward (toward petal tip)
     } else {
       ctx.translate(startR, 0);
     }
 
-    ctx.font = 'bold 11px "JetBrains Mono",monospace';
-    ctx.textAlign    = 'left';
-    ctx.textBaseline = 'alphabetic';
-    ctx.shadowColor  = dark ? 'rgba(0,0,0,1)' : 'rgba(255,255,255,0.9)';
-    ctx.shadowBlur   = 5;
+    ctx.shadowColor = dark ? 'rgba(0,0,0,1)' : 'rgba(255,255,255,0.95)';
+    ctx.shadowBlur  = 5;
+    ctx.textAlign   = 'left';
 
-    // Name — offset up by ~6px so time sits below
-    ctx.fillStyle = item.isPast ? 'rgba(160,160,160,0.45)' : item.color;
-    ctx.fillText(item.name, 0, -3);
-
-    // Time
+    // Time first (smaller, dimmer)
     ctx.font = '9px "JetBrains Mono",monospace';
-    ctx.fillStyle = item.isPast ? 'rgba(120,120,120,0.35)' : (dark?'rgba(200,200,200,0.80)':'rgba(50,50,50,0.80)');
-    ctx.fillText(item.times, 0, 10);
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = item.isPast ? 'rgba(120,120,120,0.40)' : (dark?'rgba(200,200,200,0.75)':'rgba(60,60,60,0.80)');
+    ctx.fillText(item.times, 0, -2);
+
+    // Event name below time
+    ctx.font = 'bold 11px "JetBrains Mono",monospace';
+    ctx.fillStyle = item.isPast ? 'rgba(160,160,160,0.40)' : item.color;
+    ctx.fillText(item.name, 0, 11);
+
     ctx.shadowBlur = 0;
     ctx.restore();
   });
@@ -1693,42 +1693,46 @@ document.getElementById('pomo-reset').addEventListener('click',()=>{
 
 // ── SCRIBBLE BOARD ────────────────────────────────────
 let _scribbleInited = false;
-const SCRIBBLE_COLORS = ['#e8e4d8','#c9a84c','#4a7fa5','#5a8f6a','#c44b3a','#d4813a','#000000'];
+const SCRIBBLE_COLORS = ['#e8e4d8','#c9a84c','#4a7fa5','#5a8f6a','#c44b3a','#d4813a','#222222'];
+const PEN_SIZES = [1, 2, 4, 8, 16];
 
 function initScribble() {
-  if (_scribbleInited) return;
-  _scribbleInited = true;
-  const cv  = document.getElementById('scribble-canvas');
-  const col = cv.parentElement;
+  // Always re-init: tear down old canvas and replace with fresh clone
+  // This removes all stale event listeners cleanly
+  const oldCv = document.getElementById('scribble-canvas');
+  const col   = oldCv.parentElement;
+  const newCv = oldCv.cloneNode(false);
+  newCv.id = 'scribble-canvas';
+  col.replaceChild(newCv, oldCv);
+  const cv = newCv;
 
-  function resize() {
-    const dpr = window.devicePixelRatio || 1;
-    const w   = col.clientWidth;
-    const h   = col.clientHeight;
-    // Preserve existing drawing
-    const tmp = document.createElement('canvas');
-    tmp.width = cv.width; tmp.height = cv.height;
-    tmp.getContext('2d').drawImage(cv, 0, 0);
-    cv.width  = w * dpr; cv.height = h * dpr;
-    cv.style.width = w + 'px'; cv.style.height = h + 'px';
-    const ctx = cv.getContext('2d');
-    ctx.scale(dpr, dpr);
-    ctx.drawImage(tmp, 0, 0, w, h);
-  }
-  resize();
-  new ResizeObserver(resize).observe(col);
+  // Size canvas to fill container
+  const dpr = window.devicePixelRatio || 1;
+  const w = col.clientWidth  || 600;
+  const h = col.clientHeight || 400;
+  cv.width  = Math.round(w * dpr);
+  cv.height = Math.round(h * dpr);
+  cv.style.width  = w + 'px';
+  cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d');
+  ctx.scale(dpr, dpr);
 
-  // Build color swatches
+  // State
+  let activeColor = SCRIBBLE_COLORS[0];
+  let penSize     = 3;
+  let isEraser    = false;
+  let drawing     = false;
+  let lastX = 0, lastY = 0;
+
+  // ── Color swatches ──
   const swatchBar = document.getElementById('color-swatches');
   swatchBar.innerHTML = '';
-  let activeColor = SCRIBBLE_COLORS[0];
   SCRIBBLE_COLORS.forEach(c => {
     const s = document.createElement('div');
     s.className = 'scribble-swatch' + (c === activeColor ? ' active' : '');
     s.style.background = c;
     s.addEventListener('click', () => {
-      activeColor = c;
-      isEraser = false;
+      activeColor = c; isEraser = false;
       document.querySelectorAll('.scribble-swatch').forEach(x => x.classList.remove('active'));
       s.classList.add('active');
       document.getElementById('scribble-eraser').classList.remove('active');
@@ -1736,15 +1740,40 @@ function initScribble() {
     swatchBar.appendChild(s);
   });
 
-  let isEraser = false;
-  document.getElementById('scribble-eraser').addEventListener('click', function() {
+  // ── Pen size buttons (replace slider with preset dots) ──
+  const sizeBar = document.getElementById('pen-size-bar');
+  sizeBar.innerHTML = '';
+  PEN_SIZES.forEach(sz => {
+    const btn = document.createElement('button');
+    btn.className = 'pen-size-btn' + (sz === penSize ? ' active' : '');
+    btn.title = sz + 'px';
+    // Show a dot whose size represents the pen width
+    const dotPx = Math.min(sz + 4, 20);
+    btn.innerHTML = `<span style="display:inline-block;width:${dotPx}px;height:${dotPx}px;border-radius:50%;background:currentColor;vertical-align:middle;"></span>`;
+    btn.addEventListener('click', () => {
+      penSize = sz; isEraser = false;
+      document.querySelectorAll('.pen-size-btn').forEach(x => x.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('scribble-eraser').classList.remove('active');
+    });
+    sizeBar.appendChild(btn);
+  });
+
+  // ── Tool buttons ──
+  const eraserBtn = document.getElementById('scribble-eraser');
+  eraserBtn.onclick = function() {
     isEraser = !isEraser;
     this.classList.toggle('active', isEraser);
-  });
-  document.getElementById('scribble-download').addEventListener('click', () => {
+  };
+  eraserBtn.classList.remove('active');
+
+  document.getElementById('scribble-clear').onclick = () => {
+    ctx.clearRect(0, 0, cv.width, cv.height);
+  };
+
+  document.getElementById('scribble-download').onclick = () => {
     const link = document.createElement('a');
     link.download = 'chronodex-notes-' + localDate() + '.png';
-    // Composite onto a solid background for visibility
     const tmp = document.createElement('canvas');
     tmp.width = cv.width; tmp.height = cv.height;
     const tc = tmp.getContext('2d');
@@ -1753,61 +1782,63 @@ function initScribble() {
     tc.drawImage(cv, 0, 0);
     link.href = tmp.toDataURL('image/png');
     link.click();
-  });
-  document.getElementById('scribble-clear').addEventListener('click', () => {
-    const dpr = window.devicePixelRatio || 1;
-    cv.getContext('2d').clearRect(0, 0, cv.width / dpr * dpr, cv.height / dpr * dpr);
-  });
+  };
 
-  // Drawing logic — works for both mouse and Apple Pencil (pointer events)
-  let drawing = false, lastX = 0, lastY = 0;
-
+  // ── Drawing ──
   function getPos(e) {
     const rect = cv.getBoundingClientRect();
-    const dpr  = window.devicePixelRatio || 1;
-    const src  = e.touches ? e.touches[0] : e;
-    return [(src.clientX - rect.left), (src.clientY - rect.top)];
+    return [e.clientX - rect.left, e.clientY - rect.top];
   }
 
   function startDraw(e) {
     e.preventDefault();
     drawing = true;
     [lastX, lastY] = getPos(e);
-    const ctx = cv.getContext('2d');
-    const sz  = parseInt(document.getElementById('stroke-size').value) || 3;
-    ctx.beginPath();
-    ctx.arc(lastX, lastY, sz / 2, 0, Math.PI * 2);
-    ctx.fillStyle = isEraser ? 'rgba(0,0,0,1)' : activeColor;
-    if (isEraser) { ctx.save(); ctx.globalCompositeOperation = 'destination-out'; ctx.fill(); ctx.restore(); }
-    else ctx.fill();
-  }
-
-  function draw(e) {
-    if (!drawing) return;
-    e.preventDefault();
-    const ctx = cv.getContext('2d');
-    const [x, y] = getPos(e);
-    const sz = parseInt(document.getElementById('stroke-size').value) || 3;
+    // Draw a dot at start point
     ctx.save();
     if (isEraser) ctx.globalCompositeOperation = 'destination-out';
     ctx.beginPath();
-    ctx.moveTo(lastX, lastY);
-    ctx.lineTo(x, y);
-    ctx.strokeStyle = isEraser ? 'rgba(0,0,0,1)' : activeColor;
-    ctx.lineWidth   = sz;
-    ctx.lineCap     = 'round';
-    ctx.lineJoin    = 'round';
-    ctx.stroke();
+    ctx.arc(lastX, lastY, (isEraser ? penSize * 3 : penSize) / 2, 0, Math.PI * 2);
+    ctx.fillStyle = activeColor;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function moveDraw(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const [x, y] = getPos(e);
+    ctx.save();
+    if (isEraser) {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath();
+      ctx.arc(x, y, penSize * 3, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,0,0,1)';
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(x, y);
+      ctx.strokeStyle = activeColor;
+      ctx.lineWidth   = penSize;
+      ctx.lineCap     = 'round';
+      ctx.lineJoin    = 'round';
+      ctx.stroke();
+    }
     ctx.restore();
     lastX = x; lastY = y;
   }
 
   function endDraw() { drawing = false; }
 
-  cv.addEventListener('pointerdown', startDraw, { passive: false });
-  cv.addEventListener('pointermove', draw,      { passive: false });
-  cv.addEventListener('pointerup',   endDraw);
-  cv.addEventListener('pointercancel', endDraw);
+  // Use pointer events — works for mouse, touch, and Apple Pencil
+  cv.addEventListener('pointerdown',  startDraw, { passive: false });
+  cv.addEventListener('pointermove',  moveDraw,  { passive: false });
+  cv.addEventListener('pointerup',    endDraw,   { passive: false });
+  cv.addEventListener('pointercancel',endDraw,   { passive: false });
+  cv.style.touchAction = 'none';
+
+  _scribbleInited = true;
 }
 
 // ── INIT ──────────────────────────────────────────────
