@@ -7,8 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Cosmodex">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#0a0a08">
-<link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Cosmodex%22,%22short_name%22:%22Cosmodex%22,%22display%22:%22fullscreen%22,%22background_color%22:%22%230a0a08%22,%22theme_color%22:%22%230a0a08%22,%22orientation%22:%22any%22}">
+<meta name="theme-color" content="#030508">
+<link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Cosmodex%22,%22short_name%22:%22Cosmodex%22,%22display%22:%22fullscreen%22,%22background_color%22:%22%23030508%22,%22theme_color%22:%22%23030508%22,%22orientation%22:%22any%22}">
 <title>Cosmodex</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -624,7 +624,7 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
 </div>
 
 <!-- QUICK NOTES SCRIBBLE OVERLAY -->
-<div id="notes-overlay" style="display:none;position:fixed;inset:0;z-index:810;background:rgba(10,10,8,0.96);backdrop-filter:blur(6px);flex-direction:column;">
+<div id="notes-overlay" style="display:none;position:fixed;inset:0;z-index:810;background:rgba(3,5,8,0.97);backdrop-filter:blur(6px);flex-direction:column;">
   <div style="display:flex;align-items:center;padding:10px 16px;border-bottom:2px solid var(--border);flex-shrink:0;gap:8px;background:var(--surface);">
     <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:var(--blue)">&#9998; Notes</span>
     <div id="notes-pen-bar" style="display:flex;gap:4px;align-items:center;margin-left:12px"></div>
@@ -776,7 +776,7 @@ let activeCalTab  = 'all';   // calendarId or 'all'
 let activeTaskTab = 'all';   // list id or 'all'
 
 // Google colorId → theme colour
-const GCAL_COLORS = {'1':'#4a7fa5','2':'#5a8f6a','3':'#5a8f6a','4':'#c44b3a','5':'#d4813a','6':'#d4813a','7':'#4a7fa5','8':'#7a7568','9':'#4a7fa5','10':'#5a8f6a','11':'#c9a84c'};
+const GCAL_COLORS = {'1':'#58a8f0','2':'#46d4a0','3':'#8ccc60','4':'#f05858','5':'#f0a030','6':'#e058c0','7':'#7078f0','8':'#a890d8','9':'#38c8d8','10':'#68d448','11':'#e0cc38'};
 
 // ── AUTH ──────────────────────────────────────────────
 let accessToken = null, tokenExpiry = 0, tokenClient = null, currentUser = '';
@@ -915,7 +915,7 @@ async function loadAllDataSilent(){
 // ── FETCH CALENDAR LIST ───────────────────────────────
 async function fetchCalList(){
   const res = await apiFetch(CAL_API+'/users/me/calendarList');
-  const palette = ['#4a7fa5','#5a8f6a','#c9a84c','#c44b3a','#d4813a'];
+  const palette = ['#58a8f0','#46d4a0','#a860e8','#f05858','#f0a030'];
   CAL_LIST = (res.items||[]).filter(c=>c.selected!==false).map((c,i)=>({
     id:       c.id,
     name:     c.summary||'Calendar',
@@ -1395,7 +1395,7 @@ function buildMonth(){
       const isToday=n.ds===todayStr;
       const row=document.createElement('div');
       row.style.cssText='padding:5px 4px;border-bottom:1px solid var(--ink-faint);cursor:pointer;';
-      if(isToday) row.style.background='rgba(201,168,76,0.06)';
+      if(isToday) row.style.background='rgba(61,184,255,0.06)';
       let inner='<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:2px">';
       const _isWknd=(new Date(n.ds).getDay()===0||new Date(n.ds).getDay()===6);
       inner+='<span style="font-family:JetBrains Mono,monospace;font-size:10px;letter-spacing:0.10em;color:'+(isToday?'var(--gold)':_isWknd||n.hols.length?'var(--amber)':'var(--ink-dim)')+'">'+n.dow.toUpperCase()+' '+String(n.d).padStart(2,'0')+'</span>';
@@ -1527,7 +1527,7 @@ function drawCosmodex() {
     if (em <= H_START * 60 || sm >= H_END * 60) return;
     const isPast    = em <= tm;
     const isCurrent = sm <= tm && em > tm;
-    const alpha = isPast ? 0.20 : isCurrent ? 0.92 : 0.75;
+    const alpha = isPast ? 0.10 : isCurrent ? 0.60 : 0.36;
 
     for (let i = 0; i < CHOURS; i++) {
       const hAbs = H_START + i;
@@ -1545,7 +1545,7 @@ function drawCosmodex() {
       ctx.closePath();
       ctx.fillStyle = ev.color;
       ctx.fill();
-      ctx.globalAlpha = isPast ? 0.15 : 0.80;
+      ctx.globalAlpha = isPast ? 0.10 : 0.72;
       ctx.strokeStyle = ev.color;
       ctx.lineWidth = isCurrent ? 2.5 : 1.5;
       ctx.stroke();
@@ -1959,10 +1959,10 @@ function drawPomoRing(){
   const ctx=cv.getContext('2d'),W=cv.width,H=cv.height,cx=W/2,cy=H/2,R=58;
   ctx.clearRect(0,0,W,H);
   const frac=pomo.remainSecs/pomo.totalSecs,sa=-Math.PI/2,ea=sa+(1-frac)*Math.PI*2;
-  const dark=isDark,gRGB=dark?'201,168,76':'138,106,40';
-  ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.strokeStyle=dark?'rgba(255,255,255,0.10)':'rgba(28,31,38,0.12)';ctx.lineWidth=13;ctx.stroke();
-  if(frac>0){ctx.beginPath();ctx.arc(cx,cy,R,ea,sa+Math.PI*2);ctx.strokeStyle='rgba('+gRGB+',0.15)';ctx.lineWidth=13;ctx.lineCap='butt';ctx.stroke();}
-  if(frac<1){const col=pomo.running?(dark?'#c44b3a':'#b83228'):pomo.remainSecs<pomo.totalSecs?(dark?'#4a7fa5':'#2e5c8a'):'rgba('+gRGB+',0.7)';ctx.beginPath();ctx.arc(cx,cy,R,sa,ea);ctx.strokeStyle=col;ctx.lineWidth=13;ctx.lineCap='round';ctx.stroke();}
+  const dark=isDark,gRGB=dark?'61,184,255':'11,98,196';
+  ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.strokeStyle=dark?'rgba(61,184,255,0.10)':'rgba(11,98,196,0.12)';ctx.lineWidth=13;ctx.stroke();
+  if(frac>0){ctx.beginPath();ctx.arc(cx,cy,R,ea,sa+Math.PI*2);ctx.strokeStyle='rgba('+gRGB+',0.12)';ctx.lineWidth=13;ctx.lineCap='butt';ctx.stroke();}
+  if(frac<1){const col=pomo.running?(dark?'#e05555':'#c42b2b'):pomo.remainSecs<pomo.totalSecs?(dark?'#3db8ff':'#0b62c4'):'rgba('+gRGB+',0.55)';ctx.beginPath();ctx.arc(cx,cy,R,sa,ea);ctx.strokeStyle=col;ctx.lineWidth=13;ctx.lineCap='round';ctx.stroke();}
 }
 function renderPomo(){
   const m=Math.floor(pomo.remainSecs/60),s=pomo.remainSecs%60;
@@ -2084,7 +2084,7 @@ function initScribble() {
     const tmp = document.createElement('canvas');
     tmp.width = cv.width; tmp.height = cv.height;
     const tc = tmp.getContext('2d');
-    tc.fillStyle = isDark ? '#0a0a08' : '#f0eeeb';
+    tc.fillStyle = isDark ? '#030508' : '#f0f4f8';
     tc.fillRect(0, 0, tmp.width, tmp.height);
     tc.drawImage(cv, 0, 0);
     link.href = tmp.toDataURL('image/png');
@@ -2235,7 +2235,7 @@ function initScribble() {
       const tmp=document.createElement('canvas');
       tmp.width=cv.width; tmp.height=cv.height;
       const tc=tmp.getContext('2d');
-      tc.fillStyle=isDark?'#0a0a08':'#f0eeeb';
+      tc.fillStyle=isDark?'#030508':'#f0f4f8';
       tc.fillRect(0,0,tmp.width,tmp.height);
       tc.drawImage(cv,0,0);
       link.href=tmp.toDataURL('image/png'); link.click();
