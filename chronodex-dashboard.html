@@ -2,7 +2,13 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cosmodex">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a08">
+<link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Cosmodex%22,%22short_name%22:%22Cosmodex%22,%22display%22:%22fullscreen%22,%22background_color%22:%22%230a0a08%22,%22theme_color%22:%22%230a0a08%22,%22orientation%22:%22any%22}">
 <title>Cosmodex</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -10,28 +16,43 @@
 *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
 
 [data-theme="dark"] {
-  --bg:#0a0a08; --surface:#111110; --border:#2a2a26;
-  --ink:#e8e4d8; --ink-dim:#7a7568; --ink-faint:#2e2d28;
-  --gold:#c9a84c; --gold-dim:#6b5a2a;
-  --red:#c44b3a; --blue:#4a7fa5; --green:#5a8f6a; --amber:#d4813a; --lotus:#b07ba8;
-  --pomo-bg:#0f0f0d;
+  --bg:#080807; --surface:#101010; --border:#222220;
+  --ink:#ddd8cc; --ink-dim:#5a5650; --ink-faint:#1a1a18;
+  --accent:#c8a96e;       /* single warm gold accent */
+  --accent-dim:#5a4a28;
+  --accent-glow:rgba(200,169,110,0.12);
+  --gold:#c8a96e; --gold-dim:#5a4a28;  /* alias for compat */
+  --red:#a03828;           /* only for errors/overdue */
+  --blue:#c8a96e;          /* remap blue→accent */
+  --green:#c8a96e;         /* remap green→accent */
+  --amber:#c8a96e;         /* remap amber→accent */
+  --lotus:#c8a96e;         /* remap lotus→accent */
+  --pomo-bg:#0c0c0a;
 }
 [data-theme="light"] {
-  --bg:#f0eeeb; --surface:#ffffff; --border:#c8c4bc;
-  --ink:#1c1f26; --ink-dim:#7a808c; --ink-faint:#e2e0dc;
-  --gold:#8a6a28; --gold-dim:#b89848;
-  --red:#b83228; --blue:#2e5c8a; --green:#2e6644; --amber:#c06820; --lotus:#9a6090;
-  --pomo-bg:#e8e6e2;
+  --bg:#f4f1ec; --surface:#faf8f4; --border:#d8d4cc;
+  --ink:#1a1814; --ink-dim:#888078; --ink-faint:#ede9e2;
+  --accent:#7a5c28;
+  --accent-dim:#c8b080;
+  --accent-glow:rgba(122,92,40,0.08);
+  --gold:#7a5c28; --gold-dim:#c8b080;
+  --red:#8a2820;
+  --blue:#7a5c28;
+  --green:#7a5c28;
+  --amber:#7a5c28;
+  --lotus:#7a5c28;
+  --pomo-bg:#edeae4;
 }
 
 html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--ink); font-family:'Cormorant Garamond',serif; }
-body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100vh; }
+html { height: 100dvh; }
+body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100dvh; }
 
-.panel { border-right:2px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+.panel { border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
 .panel:last-child { border-right:none; }
 
 /* HEADERS */
-.panel-header { padding:9px 12px; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:5px; flex-shrink:0; }
+.panel-header { padding:9px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:5px; flex-shrink:0; }
 .panel-title { font-size:15px; letter-spacing:0.20em; text-transform:uppercase; color:var(--ink-dim); font-family:'JetBrains Mono',monospace; }
 .panel-accent { width:6px; height:6px; border-radius:50%; background:var(--gold); animation:pulse 3s ease-in-out infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
@@ -109,6 +130,7 @@ body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100vh; }
 
 /* CHRONODEX */
 #panel-chrono { background:var(--bg); }
+#panel-left, #panel-tasks { background:var(--surface); }
 .chrono-wrapper { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:space-evenly; gap:0; padding:16px 20px 20px; width:100%; }
 .time-display { text-align:center; }
 .time-big { font-size:56px; font-weight:300; letter-spacing:0.04em; line-height:1; font-variant-numeric:tabular-nums; display:block; }
@@ -194,13 +216,81 @@ body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100vh; }
 .pomo-tip { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-faint); text-align:center; line-height:1.7; }
 
 /* Light mode */
-[data-theme="light"] #panel-left   { background:#ffffff; }
-[data-theme="light"] #panel-chrono { background:#f0eeeb; }
-[data-theme="light"] #panel-tasks  { background:#f7f6f3; }
-[data-theme="light"] #panel-pomo   { background:#e8e6e2; }
-[data-theme="light"] .next-strip   { background:#e2e0dc; }
-[data-theme="light"] .swipe-control { background:#dedad4; }
-[data-theme="light"] .task-group-lbl { color:#8a6a28; }
+[data-theme="light"] .task-group-lbl { color:var(--accent); }
+
+
+/* ══ RESPONSIVE / MOBILE ══ */
+@media (max-width: 720px) {
+  body {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 1fr;
+    position: relative;
+  }
+  /* All panels stack, only active one shows */
+  .panel {
+    position: absolute !important;
+    inset: 0 !important;
+    bottom: 56px !important; /* leave room for bottom nav */
+    border-right: none !important;
+    display: none !important;
+  }
+  .panel.mobile-active { display: flex !important; }
+
+  /* Bottom nav bar */
+  #mobile-nav {
+    display: flex !important;
+  }
+
+  /* Cosmodex: make canvas fill width */
+  .chrono-wrapper { padding: 8px 10px 10px; }
+  #cosmodex-canvas { width: 100% !important; height: auto !important; }
+
+  /* Time display smaller */
+  .time-big { font-size: 40px; }
+
+  /* Overlays: full screen */
+  #pomo-overlay, #notes-overlay { inset: 0; }
+
+  /* Day view: tighter */
+  .hour-label { width: 40px; font-size: 11px; }
+
+  /* Pomo col: full width */
+  .pomo-col { width: 100%; border-right: none; }
+  .scribble-col { display: none; } /* hide scribble on narrow screens */
+  .pomo-overlay-inner { flex-direction: column; }
+}
+
+/* Mobile bottom navigation */
+#mobile-nav {
+  display: none; /* hidden on desktop */
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 56px;
+  background: var(--surface);
+  border-top: 2px solid var(--border);
+  z-index: 600;
+  justify-content: space-around;
+  align-items: center;
+}
+.mob-nav-btn {
+  flex: 1;
+  height: 100%;
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  color: var(--ink-dim);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+.mob-nav-btn.active { color: var(--accent); }
+.mob-nav-icon { font-size: 18px; line-height: 1; }
 
 /* ══ SIGN-IN OVERLAY ══ */
 #signin-overlay { position:fixed; inset:0; z-index:2000; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px; }
@@ -399,8 +489,8 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
   <div class="panel-header">
     <span class="panel-title">Cosmodex</span>
     <div style="margin-left:auto;display:flex;gap:5px;align-items:center">
-      <button class="add-btn" id="notes-btn" title="Quick note" style="border-color:var(--blue);color:var(--blue);font-size:13px;padding:4px 10px">&#9998; Notes</button>
-      <button class="add-btn" id="pomo-open-btn" title="Focus timer" style="border-color:var(--lotus);color:var(--lotus);font-size:13px;padding:4px 10px">&#9650; Focus</button>
+      <button class="add-btn" id="notes-btn" title="Quick note" style="border-color:var(--accent);color:var(--accent);font-size:13px;padding:4px 10px">&#9998; Notes</button>
+      <button class="add-btn" id="pomo-open-btn" title="Focus timer" style="border-color:var(--accent);color:var(--accent);font-size:13px;padding:4px 10px">&#9650; Focus</button>
     </div>
     <button class="theme-btn" id="theme-btn" style="margin-left:8px">
       <span id="theme-icon">☀</span><span id="theme-label">Light</span>
@@ -692,17 +782,17 @@ const GCAL_COLORS = {'1':'#4a7fa5','2':'#5a8f6a','3':'#5a8f6a','4':'#c44b3a','5'
 let accessToken = null, tokenExpiry = 0, tokenClient = null, currentUser = '';
 
 try {
-  const s = JSON.parse(sessionStorage.getItem('cdx_tok') || 'null');
+  const s = JSON.parse(localStorage.getItem('cdx_tok') || 'null');
   if (s && s.expiry > Date.now() + 90000 && s.sv === SCOPE_VER) {
     accessToken = s.token; tokenExpiry = s.expiry; currentUser = s.user||'';
   } else if (s) {
     // Stale or wrong-scope token — wipe it so user gets prompted with new scopes
-    sessionStorage.removeItem('cdx_tok');
+    localStorage.removeItem('cdx_tok');
   }
 } catch(e){}
 
-function saveSession(){ try{ sessionStorage.setItem('cdx_tok', JSON.stringify({token:accessToken,expiry:tokenExpiry,user:currentUser,sv:SCOPE_VER})); }catch(e){} }
-function clearSession(){ accessToken=null;tokenExpiry=0;currentUser=''; try{sessionStorage.removeItem('cdx_tok');}catch(e){} }
+function saveSession(){ try{ localStorage.setItem('cdx_tok', JSON.stringify({token:accessToken,expiry:tokenExpiry,user:currentUser,sv:SCOPE_VER})); }catch(e){} }
+function clearSession(){ accessToken=null;tokenExpiry=0;currentUser=''; try{localStorage.removeItem('cdx_tok');}catch(e){} }
 
 function initGIS(){
   tokenClient = google.accounts.oauth2.initTokenClient({
@@ -2189,8 +2279,33 @@ function initScribble() {
 })();
 
 
+
+// ── MOBILE NAV ───────────────────────────────────────
+function isMobile(){ return window.innerWidth <= 720; }
+function mobileSwitchPanel(id, btn){
+  if(!isMobile()) return;
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('mobile-active'));
+  document.getElementById(id).classList.add('mobile-active');
+  document.querySelectorAll('.mob-nav-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  // Redraw cosmodex if switching to it
+  if(id==='panel-chrono') setTimeout(drawCosmodex, 80);
+}
+function initMobileLayout(){
+  if(!isMobile()) return;
+  // Default: show calendar panel
+  document.getElementById('panel-left').classList.add('mobile-active');
+}
+window.addEventListener('resize', ()=>{
+  if(!isMobile()){
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('mobile-active'));
+  } else {
+    initMobileLayout();
+  }
+});
+
 // ── INIT ──────────────────────────────────────────────
-renderLeft(); buildTasks(); updateClock(); drawCosmodex(); buildTicks(); renderPomo();
+renderLeft(); buildTasks(); updateClock(); drawCosmodex(); buildTicks(); renderPomo(); initMobileLayout();
 setInterval(()=>{updateClock();drawCosmodex();}, 30000);
 setInterval(async ()=>{
   if(!accessToken) return;
@@ -2209,5 +2324,22 @@ const _gisWait=setInterval(()=>{
   }
 },150);
 </script>
+
+<!-- MOBILE BOTTOM NAV -->
+<div id="mobile-nav">
+  <button class="mob-nav-btn active" data-panel="panel-left" onclick="mobileSwitchPanel('panel-left',this)">
+    <span class="mob-nav-icon">&#128197;</span>
+    <span>Calendar</span>
+  </button>
+  <button class="mob-nav-btn" data-panel="panel-tasks" onclick="mobileSwitchPanel('panel-tasks',this)">
+    <span class="mob-nav-icon">&#9745;</span>
+    <span>Tasks</span>
+  </button>
+  <button class="mob-nav-btn" data-panel="panel-chrono" onclick="mobileSwitchPanel('panel-chrono',this)">
+    <span class="mob-nav-icon">&#11044;</span>
+    <span>Cosmodex</span>
+  </button>
+</div>
+
 </body>
 </html>
