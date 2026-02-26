@@ -776,7 +776,7 @@ let activeCalTab  = 'all';   // calendarId or 'all'
 let activeTaskTab = 'all';   // list id or 'all'
 
 // Google colorId → theme colour
-const GCAL_COLORS = {'1':'#58a8f0','2':'#46d4a0','3':'#8ccc60','4':'#f05858','5':'#f0a030','6':'#e058c0','7':'#7078f0','8':'#a890d8','9':'#38c8d8','10':'#68d448','11':'#e0cc38'};
+const GCAL_COLORS = {'1':'#58a8f0','2':'#46d4a0','3':'#8ccc60','4':'#38c8d8','5':'#f0a030','6':'#e058c0','7':'#7078f0','8':'#a890d8','9':'#a860e8','10':'#68d448','11':'#e0cc38'};
 
 // ── AUTH ──────────────────────────────────────────────
 let accessToken = null, tokenExpiry = 0, tokenClient = null, currentUser = '';
@@ -915,11 +915,11 @@ async function loadAllDataSilent(){
 // ── FETCH CALENDAR LIST ───────────────────────────────
 async function fetchCalList(){
   const res = await apiFetch(CAL_API+'/users/me/calendarList');
-  const palette = ['#58a8f0','#46d4a0','#a860e8','#f05858','#f0a030'];
+  const palette = ['#58a8f0','#46d4a0','#a860e8','#38c8d8','#f0a030','#8ccc60','#e058c0','#7078f0'];
   CAL_LIST = (res.items||[]).filter(c=>c.selected!==false).map((c,i)=>({
     id:       c.id,
     name:     c.summary||'Calendar',
-    color:    c.backgroundColor || palette[i%palette.length],
+    color:    palette[i%palette.length],
     isPrimary: c.primary === true,
   }));
 }
@@ -927,7 +927,7 @@ async function fetchCalList(){
 function evColor(gcalEv, calId){
   if(gcalEv.colorId) return GCAL_COLORS[gcalEv.colorId]||'#c9a84c';
   const cal = CAL_LIST.find(c=>c.id===calId);
-  return cal ? cal.color : '#4a7fa5';
+  return cal ? cal.color : '#58a8f0';
 }
 
 // ── FETCH EVENTS ──────────────────────────────────────
@@ -1145,6 +1145,10 @@ function buildDay(){
       e.preventDefault(); row.classList.remove('drag-over');
       const data=JSON.parse(e.dataTransfer.getData('text/plain')||'{}');
       if(data.taskTitle) openTaskToEventModal(data.taskTitle,data.taskId,data.listId,ds,hr);
+    });
+    row.addEventListener('click',e=>{
+      if(e.target.closest('.hour-event')) return;
+      openAddEvent(ds, hr);
     });
 
     const lbl=document.createElement('div');
@@ -1487,7 +1491,7 @@ function drawCosmodex() {
   const borderC = dark ? 'rgba(61,184,255,0.14)'  : 'rgba(11,98,196,0.16)';
   const tickC   = dark ? 'rgba(61,184,255,0.20)'  : 'rgba(11,98,196,0.22)';
   const elapsedC= dark ? 'rgba(61,184,255,0.65)'  : 'rgba(11,98,196,0.55)';
-  const lblC    = dark ? 'rgba(200,224,248,0.85)'  : 'rgba(17,28,45,0.88)';
+  const lblC    = dark ? '#d8eeff' : '#111c2d';
   const cx = LW*0.50, cy = LH/2;  // centred for equal label room on both sides
   const GAP = 0.020;
   const accentC   = dark ? '#3db8ff' : '#0b62c4';
@@ -1533,7 +1537,10 @@ function drawCosmodex() {
     if (em <= H_START * 60 || sm >= H_END * 60) return;
     const isPast    = em <= tm;
     const isCurrent = sm <= tm && em > tm;
-    const alpha = isPast ? 0.10 : isCurrent ? 0.60 : 0.36;
+    const pinkC  = dark ? '#ff82b4' : '#d05080';
+    const fillC  = isPast ? pinkC : accentC;
+    const alpha  = isPast ? 0.22 : isCurrent ? 0.82 : 0.52;
+    const sAlpha = isPast ? 0.18 : isCurrent ? 0.88 : 0.68;
 
     for (let i = 0; i < CHOURS; i++) {
       const hAbs = H_START + i;
@@ -1543,7 +1550,6 @@ function drawCosmodex() {
       const f0 = (os - hMin) / 60, f1 = (oe - hMin) / 60;
       const ri = petalRI() + 2*sc, ro = petalRO(i) - 2*sc;
       const a0 = hourAngle(i, f0), a1 = hourAngle(i, f1);
-      const fillC = (isPast || isCurrent) ? ev.color : accentC;
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.beginPath();
@@ -1552,7 +1558,7 @@ function drawCosmodex() {
       ctx.closePath();
       ctx.fillStyle = fillC;
       ctx.fill();
-      ctx.globalAlpha = isPast ? 0.10 : 0.72;
+      ctx.globalAlpha = sAlpha;
       ctx.strokeStyle = fillC;
       ctx.lineWidth = isCurrent ? 2.5 : 1.5;
       ctx.stroke();
@@ -1600,8 +1606,8 @@ function drawCosmodex() {
     ctx.translate(cx, cy);
     ctx.rotate(angle);
 
-    ctx.shadowColor = dark ? 'rgba(0,0,0,1)' : 'rgba(255,255,255,0.95)';
-    ctx.shadowBlur  = 5;
+    ctx.shadowColor = dark ? 'rgba(0,0,0,1)' : 'rgba(255,255,255,1)';
+    ctx.shadowBlur  = 10;
     ctx.textBaseline = 'alphabetic';
 
     if (shouldFlip) {
@@ -1622,14 +1628,14 @@ function drawCosmodex() {
     ctx.textAlign = 'left';
 
     // Time line
-    ctx.font = '9px "JetBrains Mono",monospace';
-    ctx.fillStyle = item.isPast ? 'rgba(120,120,120,0.40)' : (dark?'rgba(200,200,200,0.72)':'rgba(60,60,60,0.78)');
+    ctx.font = '10px "JetBrains Mono",monospace';
+    ctx.fillStyle = item.isPast ? 'rgba(140,140,140,0.45)' : (dark?'rgba(210,232,255,0.94)':'rgba(17,28,45,0.92)');
     ctx.fillText(item.times, 0, 0);
 
     // Event name on second line
-    ctx.font = 'bold 11px "JetBrains Mono",monospace';
-    ctx.fillStyle = item.isPast ? 'rgba(160,160,160,0.40)' : item.color;
-    ctx.fillText(item.name, 0, 14);
+    ctx.font = 'bold 12px "JetBrains Mono",monospace';
+    ctx.fillStyle = item.isPast ? 'rgba(160,160,160,0.45)' : item.color;
+    ctx.fillText(item.name, 0, 15);
 
     ctx.shadowBlur = 0;
     ctx.restore();
@@ -1657,11 +1663,11 @@ function drawCosmodex() {
     let rot = a + Math.PI / 2;
     if (Math.cos(a) < 0) rot += Math.PI;
     ctx.rotate(rot);
-    ctx.font = '10px "JetBrains Mono",monospace';
+    ctx.font = '11px "JetBrains Mono",monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.shadowColor = dark ? 'rgba(0,0,0,0.95)' : 'rgba(255,255,255,0.9)';
-    ctx.shadowBlur  = 4;
+    ctx.shadowColor = dark ? 'rgba(0,0,0,1)' : 'rgba(255,255,255,1)';
+    ctx.shadowBlur  = 9;
     ctx.fillStyle   = lblC;
     ctx.fillText(hLabel, 0, 0);
     ctx.shadowBlur = 0;
@@ -1801,14 +1807,19 @@ async function completeTask(task){
 }
 
 // ── ADD EVENT MODAL ───────────────────────────────────
-function openAddEvent(){
+function openAddEvent(dateStr, startHour){
   if(!accessToken){showSyncBar('Sign in first','err');return;}
-  // Pre-fill today's date and current time rounded to next 30 min
   const now=new Date();
-  const mins=now.getMinutes(); const roundMin=mins<30?30:0;
-  const h=roundMin===0?now.getHours()+1:now.getHours();
-  document.getElementById('ev-date').value=localDate(now);
-  document.getElementById('ev-start').value=String(h%24).padStart(2,'0')+':'+String(roundMin).padStart(2,'0');
+  if(dateStr && startHour !== undefined){
+    document.getElementById('ev-date').value=dateStr;
+    document.getElementById('ev-start').value=String(startHour%24).padStart(2,'0')+':00';
+  } else {
+    // Pre-fill today's date and current time rounded to next 30 min
+    const mins=now.getMinutes(); const roundMin=mins<30?30:0;
+    const h=roundMin===0?now.getHours()+1:now.getHours();
+    document.getElementById('ev-date').value=localDate(now);
+    document.getElementById('ev-start').value=String(h%24).padStart(2,'0')+':'+String(roundMin).padStart(2,'0');
+  }
   document.getElementById('ev-title').value='';
   document.getElementById('ev-dur').value='60';
   // Populate calendar selector
