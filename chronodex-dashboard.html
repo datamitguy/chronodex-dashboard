@@ -37,7 +37,7 @@ body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100vh; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
 
 /* Add button */
-.add-btn { margin-left:auto; background:none; border:2px solid var(--gold-dim); border-radius:5px; color:var(--gold); cursor:pointer; font-size:22px; line-height:1; padding:4px 10px; min-height:44px; min-width:44px; display:flex; align-items:center; justify-content:center; }
+.add-btn { background:none; border:2px solid var(--gold-dim); border-radius:5px; color:var(--gold); cursor:pointer; font-size:22px; line-height:1; padding:4px 10px; min-height:44px; min-width:44px; display:flex; align-items:center; justify-content:center; }
 .add-btn:active { background:var(--gold-dim); }
 
 /* Theme toggle */
@@ -368,7 +368,7 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
 <section class="panel" id="panel-left">
   <div class="panel-header">
     <span class="panel-title" id="left-title" style="font-size:13px"></span>
-    <button class="add-btn" id="add-event-btn" title="Add event">+</button>
+    <button class="add-btn" id="add-event-btn" title="Add event" style="margin-left:auto">+</button>
     <div class="view-toggle" style="margin-left:8px">
       <button class="view-btn active" data-view="day">Day</button>
       <button class="view-btn" data-view="week">Week</button>
@@ -383,7 +383,7 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
 <section class="panel" id="panel-tasks">
   <div class="panel-header">
     <span class="panel-title">Tasks</span>
-    <button class="add-btn" id="add-task-btn" title="Add task">+</button>
+    <button class="add-btn" id="add-task-btn" title="Add task" style="margin-left:auto">+</button>
     <div class="panel-accent" style="margin-left:8px"></div>
   </div>
   <div class="tab-bar" id="task-tab-bar" style="display:none"></div>
@@ -398,8 +398,10 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
 <section class="panel" id="panel-chrono">
   <div class="panel-header">
     <span class="panel-title">Cosmodex</span>
-    <button class="add-btn" id="notes-btn" title="Quick note" style="border-color:var(--blue);color:var(--blue);font-size:14px">&#9998; Notes</button>
-    <button class="add-btn" id="pomo-open-btn" title="Focus timer" style="border-color:var(--lotus);color:var(--lotus);font-size:14px">&#9650; Focus</button>
+    <div style="margin-left:auto;display:flex;gap:5px;align-items:center">
+      <button class="add-btn" id="notes-btn" title="Quick note" style="border-color:var(--blue);color:var(--blue);font-size:13px;padding:4px 10px">&#9998; Notes</button>
+      <button class="add-btn" id="pomo-open-btn" title="Focus timer" style="border-color:var(--lotus);color:var(--lotus);font-size:13px;padding:4px 10px">&#9650; Focus</button>
+    </div>
     <button class="theme-btn" id="theme-btn" style="margin-left:8px">
       <span id="theme-icon">☀</span><span id="theme-label">Light</span>
     </button>
@@ -447,7 +449,6 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
             <div class="swipe-track" id="sw-track">
               <div class="swipe-track-inner">
                 <div class="swipe-val" id="sw-val">25</div>
-                <div class="swipe-unit">minutes</div>
                 <div class="swipe-ticks" id="sw-ticks"></div>
               </div>
             </div>
@@ -462,7 +463,29 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
           <div class="sess-dot"></div><div class="sess-dot"></div>
           <div class="sess-dot"></div><div class="sess-dot"></div>
         </div>
-        <div class="pomo-tip">swipe · 1 min steps · hold +/− fast</div>
+        <!-- Daily focus stats -->
+        <div class="pomo-stats">
+          <div class="pomo-stats-title">Today</div>
+          <div class="pomo-stats-row">
+            <div class="pomo-stat">
+              <div class="pomo-stat-val" id="stat-sessions">0</div>
+              <div class="pomo-stat-lbl">sessions</div>
+            </div>
+            <div class="pomo-stat">
+              <div class="pomo-stat-val" id="stat-minutes">0</div>
+              <div class="pomo-stat-lbl">minutes</div>
+            </div>
+            <div class="pomo-stat">
+              <div class="pomo-stat-val" id="stat-streak">0</div>
+              <div class="pomo-stat-lbl">day streak</div>
+            </div>
+          </div>
+          <div id="pomo-bar-wrap" style="width:100%;margin-top:10px">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.12em;color:var(--ink-faint);text-transform:uppercase;margin-bottom:4px">Last 7 days</div>
+            <div id="pomo-week-bars" style="display:flex;gap:4px;align-items:flex-end;height:36px"></div>
+            <div id="pomo-week-labels" style="display:flex;gap:4px;margin-top:3px"></div>
+          </div>
+        </div>
       </div>
     </div>
     <!-- Scribble col -->
@@ -1206,18 +1229,20 @@ function buildMonth(){
   const todayStr=localDate(now);
   const yr=ref.getFullYear(), mo=ref.getMonth();
 
-  // Collect all events for this month from ALL calendars (not tab-filtered)
+  // Month events: holidays from ALL cals, regular events respect tab filter
   const monthStart=yr+'-'+String(mo+1).padStart(2,'0')+'-01';
   const monthEnd  =yr+'-'+String(mo+1).padStart(2,'0')+'-'+String(dim).padStart(2,'0');
-  const monthEvts=EVENTS.filter(e=>e.startISO>=monthStart&&e.startISO<=monthEnd+'T99');
+  const allMonthEvts=EVENTS.filter(e=>e.startISO>=monthStart&&e.startISO<=monthEnd+'T99');
+  const filtMonthEvts=filteredEvents().filter(e=>e.startISO>=monthStart&&e.startISO<=monthEnd+'T99');
+  const monthEvts=allMonthEvts;  // used for holiday detection only
 
   // Identify holiday calendars (not the primary gmail)
   const isHolidayCal=cal=>!cal.isPrimary&&(cal.name.toLowerCase().includes('holiday')||cal.name.toLowerCase().includes('observance')||cal.name.toLowerCase().includes('region'));
   const holidayCalIds=new Set(CAL_LIST.filter(isHolidayCal).map(c=>c.id));
 
-  // Split: holidays vs regular events
-  const holidays=monthEvts.filter(e=>holidayCalIds.has(e.calId)||e.startISO.length===10);
-  const regular =monthEvts.filter(e=>!holidayCalIds.has(e.calId)&&e.startISO.length>10);
+  // Split: holidays from all cals, regular events respect filter
+  const holidays=allMonthEvts.filter(e=>holidayCalIds.has(e.calId)||e.startISO.length===10);
+  const regular =filtMonthEvts.filter(e=>!holidayCalIds.has(e.calId)&&e.startISO.length>10);
 
   // Build sparse week grid (5 rows x 7 cols) + event counts per day
   const evByDay={};
@@ -1500,23 +1525,30 @@ function drawCosmodex() {
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(angle);
-    // x-axis now points outward along petal direction
+
+    ctx.shadowColor = dark ? 'rgba(0,0,0,1)' : 'rgba(255,255,255,0.95)';
+    ctx.shadowBlur  = 5;
+    ctx.textBaseline = 'alphabetic';
+
     if (shouldFlip) {
-      // Petal points left: text would be upside-down, so flip 180° and start from far end
-      // Measure text width to know where to start so text ends at startR (not starts)
-      ctx.scale(-1, -1);  // flip both axes = rotate 180
-      ctx.translate(-startR - 120, 0);  // flipped: text runs from far end toward petal
+      // Petal points LEFT — flip so text reads outward (away from hub)
+      // After flip, +x goes toward hub, so we translate to startR + textWidth
+      // to anchor the far end of text at startR from centre
+      ctx.font = '9px "JetBrains Mono",monospace';
+      const twT = ctx.measureText(item.times).width;
+      ctx.font = 'bold 11px "JetBrains Mono",monospace';
+      const twN = ctx.measureText(item.name).width;
+      const tw  = Math.max(twT, twN);
+      ctx.scale(-1, -1);
+      ctx.translate(-(startR + tw + 4), 0);  // anchor: text tip at startR from centre
     } else {
       ctx.translate(startR, 0);
     }
 
-    ctx.shadowColor = dark ? 'rgba(0,0,0,1)' : 'rgba(255,255,255,0.95)';
-    ctx.shadowBlur  = 5;
-    ctx.textAlign   = 'left';
+    ctx.textAlign = 'left';
 
-    // Time first (smaller, dimmer)
+    // Time line
     ctx.font = '9px "JetBrains Mono",monospace';
-    ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = item.isPast ? 'rgba(120,120,120,0.40)' : (dark?'rgba(200,200,200,0.72)':'rgba(60,60,60,0.78)');
     ctx.fillText(item.times, 0, 0);
 
@@ -1807,6 +1839,7 @@ function openPomo(ev){
   document.getElementById('pomo-overlay').classList.add('open');
   initScribble();
   drawPomoRing(); renderPomo(); buildTicks();
+  setTimeout(renderPomoStats, 80);
 }
 document.getElementById('pomo-open-btn').addEventListener('click', ()=>openPomo(null));
 document.getElementById('pomo-close').addEventListener('click', ()=>{
@@ -1885,6 +1918,7 @@ document.getElementById('pomo-start').addEventListener('click',()=>{
       pomo.remainSecs--;
       if(pomo.remainSecs<=0){
         clearInterval(pomo.interval);pomo.running=false;pomo.remainSecs=0;pomo.sessions=Math.min(4,pomo.sessions+1);
+        savePomoStat(Math.round(pomo.totalSecs/60)); renderPomoStats();
         document.getElementById('pomo-lock-msg').classList.remove('show');
         setTimeout(()=>{ _scribbleInited=false; document.getElementById('pomo-overlay').classList.remove('open'); },1200);
         try{const ac=new(window.AudioContext||window.webkitAudioContext)();[0,0.35,0.7].forEach((t,i)=>{const osc=ac.createOscillator(),g=ac.createGain();osc.connect(g);g.connect(ac.destination);osc.frequency.value=[528,660,792][i];g.gain.value=0.2;osc.start(ac.currentTime+t);g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+t+0.9);osc.stop(ac.currentTime+t+0.9);});}catch(e){}
@@ -2082,6 +2116,73 @@ function initScribble() {
     window._notesSaveT = setTimeout(saveNotes, 800);
   });
 })();
+
+
+// ── POMO STATS ────────────────────────────────────────
+const POMO_STATS_KEY = 'cosmodex_pomo_stats';
+
+function getPomoStats() {
+  try { return JSON.parse(localStorage.getItem(POMO_STATS_KEY)) || {}; } catch(e) { return {}; }
+}
+function savePomoStat(durationMins) {
+  const stats = getPomoStats();
+  const today = localDate();
+  if (!stats[today]) stats[today] = { sessions: 0, minutes: 0 };
+  stats[today].sessions++;
+  stats[today].minutes += durationMins;
+  // Trim to last 90 days
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
+  const cutStr = localDate(cutoff);
+  Object.keys(stats).forEach(k => { if (k < cutStr) delete stats[k]; });
+  localStorage.setItem(POMO_STATS_KEY, JSON.stringify(stats));
+}
+function calcStreak(stats) {
+  let streak = 0, d = new Date();
+  while (true) {
+    const ds = localDate(d);
+    if (!stats[ds]) break;
+    streak++;
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+function renderPomoStats() {
+  const stats = getPomoStats();
+  const today = localDate();
+  const td = stats[today] || { sessions: 0, minutes: 0 };
+  const el = id => document.getElementById(id);
+  if (!el('stat-sessions')) return;
+  el('stat-sessions').textContent = td.sessions;
+  el('stat-minutes').textContent  = td.minutes;
+  el('stat-streak').textContent   = calcStreak(stats);
+  // 7-day bar chart
+  const bars = el('pomo-week-bars');
+  const lbls = el('pomo-week-labels');
+  if (!bars) return;
+  bars.innerHTML = ''; lbls.innerHTML = '';
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    days.push({ ds: localDate(d), label: ['S','M','T','W','T','F','S'][d.getDay()] });
+  }
+  const maxMins = Math.max(1, ...days.map(d => (stats[d.ds]||{}).minutes||0));
+  days.forEach(day => {
+    const mins = (stats[day.ds]||{}).minutes || 0;
+    const pct  = mins / maxMins;
+    const isToday = day.ds === today;
+    const bar = document.createElement('div');
+    bar.style.cssText = 'flex:1;border-radius:2px 2px 0 0;min-height:2px;transition:height 0.3s;'+
+      'height:'+Math.round(pct*34+2)+'px;'+
+      'background:'+(isToday?'var(--gold)':mins>0?'rgba(201,168,76,0.35)':'var(--ink-faint)')+';';
+    bar.title = day.ds + ': ' + mins + ' min';
+    bars.appendChild(bar);
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'flex:1;text-align:center;font-family:JetBrains Mono,monospace;font-size:9px;'+
+      'color:'+(isToday?'var(--gold)':'var(--ink-faint)')+';';
+    lbl.textContent = day.label;
+    lbls.appendChild(lbl);
+  });
+}
 
 // ── INIT ──────────────────────────────────────────────
 renderLeft(); buildTasks(); updateClock(); drawCosmodex(); buildTicks(); renderPomo();
