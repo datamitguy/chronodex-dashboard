@@ -136,7 +136,7 @@ body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100dvh; }
 .time-big { font-size:56px; font-weight:300; letter-spacing:0.04em; line-height:1; font-variant-numeric:tabular-nums; display:block; }
 .time-date { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim); letter-spacing:0.18em; margin-top:6px; text-transform:uppercase; display:block; }
 #chronodex-canvas { max-width:100%; display:block; pointer-events:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
-.chrono-canvas-wrap { position:relative; display:inline-block; max-width:100%; }
+.chrono-canvas-wrap { position:relative; display:block; width:100%; }
 .chrono-tap-overlay { position:absolute; inset:0; cursor:pointer; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 .next-strip { background:var(--ink-faint); border:2px solid var(--border); border-radius:3px; padding:12px 18px; width:100%; }
 .next-lbl { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.18em; color:var(--ink-dim); text-transform:uppercase; margin-bottom:3px; }
@@ -1439,11 +1439,12 @@ const RI_BASE  = 30;
 const RO_MIN   = 56;
 const RO_MAX   = 195;  // slightly smaller to leave room for labels
 
-function petalRI()  { return RI_BASE; }
-function petalRO(i) { return RO_MIN + i * (RO_MAX - RO_MIN) / (CHOURS - 1); }
+function petalRI()  { return RI_BASE * _cosScale; }
+function petalRO(i) { return (RO_MIN + i * (RO_MAX - RO_MIN) / (CHOURS - 1)) * _cosScale; }
 function hourAngle(i, frac) { return -Math.PI/2 + (i + frac) * PETAL_RAD; }
 function petalMid(i) { return hourAngle(i, 0.5); }
 
+let _cosScale = 1, _cdxLW = 760, _cdxLH = 500;
 let todayEventsForPicker = [];
 
 function initHiDPI(cv) {
@@ -1463,18 +1464,19 @@ function drawCosmodex() {
   const cv = document.getElementById('cosmodex-canvas');
   const dpr = window.devicePixelRatio || 1;
   // Only re-init if needed (size changed or first draw)
-  if (!cv._cdxInit) {
-    const lw = parseInt(cv.getAttribute('width'));
-    const lh = parseInt(cv.getAttribute('height'));
+  const container = cv.parentElement;
+  const lw = Math.max(container.clientWidth || 760, 120);
+  const lh = Math.round(lw * 500 / 760);
+  if (cv._lastLW !== lw || cv._lastDPR !== dpr) {
     cv.width  = lw * dpr;
     cv.height = lh * dpr;
     cv.style.width  = lw + 'px';
     cv.style.height = lh + 'px';
-    cv._cdxInit = true;
+    cv._lastLW = lw; cv._lastDPR = dpr;
   }
+  _cdxLW = lw; _cdxLH = lh; _cosScale = lw / 760;
   const ctx = cv.getContext('2d');
-  const LW = parseInt(cv.style.width)  || 760;
-  const LH = parseInt(cv.style.height) || 500;
+  const LW = lw, LH = lh, sc = _cosScale;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, LW, LH);
   todayEventsForPicker = [];
@@ -1488,6 +1490,8 @@ function drawCosmodex() {
   const lblC    = dark ? 'rgba(200,224,248,0.85)'  : 'rgba(17,28,45,0.88)';
   const cx = LW*0.50, cy = LH/2;  // centred for equal label room on both sides
   const GAP = 0.020;
+  const accentC   = dark ? '#3db8ff' : '#0b62c4';
+  const emptyFill = dark ? 'rgba(61,184,255,0.04)' : 'rgba(11,98,196,0.05)';
 
   const now   = new Date();
   const tm    = now.getHours()*60 + now.getMinutes();
@@ -1503,13 +1507,15 @@ function drawCosmodex() {
     ctx.arc(cx, cy, ro, a0 + GAP, a1 - GAP);
     ctx.arc(cx, cy, ri, a1 - GAP, a0 + GAP, true);
     ctx.closePath();
+    ctx.fillStyle = emptyFill;
+    ctx.fill();
     ctx.strokeStyle = borderC;
     ctx.lineWidth = 1;
     ctx.stroke();
 
     // 30-min tick (small radial line inside petal near inner edge)
     const amid = hourAngle(i, 0.5);
-    const t0 = ri + 3, t1 = ri + 3 + Math.min(8, (ro - ri) * 0.18);
+    const t0 = ri + 3*sc, t1 = ri + 3*sc + Math.min(8*sc, (ro - ri) * 0.18);
     ctx.beginPath();
     ctx.moveTo(cx + t0 * Math.cos(amid), cy + t0 * Math.sin(amid));
     ctx.lineTo(cx + t1 * Math.cos(amid), cy + t1 * Math.sin(amid));
@@ -1535,18 +1541,19 @@ function drawCosmodex() {
       const os = Math.max(sm, hMin), oe = Math.min(em, hMax);
       if (oe <= os) continue;
       const f0 = (os - hMin) / 60, f1 = (oe - hMin) / 60;
-      const ri = petalRI() + 2, ro = petalRO(i) - 2;
+      const ri = petalRI() + 2*sc, ro = petalRO(i) - 2*sc;
       const a0 = hourAngle(i, f0), a1 = hourAngle(i, f1);
+      const fillC = (isPast || isCurrent) ? ev.color : accentC;
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.beginPath();
       ctx.arc(cx, cy, ro, a0 + GAP * 0.4, a1 - GAP * 0.4);
       ctx.arc(cx, cy, ri, a1 - GAP * 0.4, a0 + GAP * 0.4, true);
       ctx.closePath();
-      ctx.fillStyle = ev.color;
+      ctx.fillStyle = fillC;
       ctx.fill();
       ctx.globalAlpha = isPast ? 0.10 : 0.72;
-      ctx.strokeStyle = ev.color;
+      ctx.strokeStyle = fillC;
       ctx.lineWidth = isCurrent ? 2.5 : 1.5;
       ctx.stroke();
       ctx.restore();
@@ -1584,7 +1591,7 @@ function drawCosmodex() {
     const ro    = petalRO(i);
     const angle = petalMid(i);
     // Gap between slots: name(11px) + time(9px) + padding = ~28px per slot
-    const startR = ro + 24 + slot * 44;  // clear gap from petal tip
+    const startR = ro + 24*sc + slot * 44*sc;  // clear gap from petal tip
     // Correct flip: flip when petal points into LEFT half (cos < 0)
     // This makes text always read outward from the hub, never upside-down
     const shouldFlip = Math.cos(angle) < 0;
@@ -1634,7 +1641,7 @@ function drawCosmodex() {
     const hAbs = H_START + i;
     const a    = petalMid(i);
     const ro   = petalRO(i);
-    const labelR = ro + 14;  // just outside petal tip
+    const labelR = ro + 14*sc;  // just outside petal tip
     // Full readable label: "5am", "12pm", "1pm" etc.
     let hLabel;
     if (hAbs === 0 || hAbs === 24) hLabel = '12am';
@@ -1667,19 +1674,19 @@ function drawCosmodex() {
     const si    = Math.floor(slotF);
     const frac  = slotF - si;
     const na    = hourAngle(si, frac);
-    const nLen  = petalRO(si) + 6;
+    const nLen  = petalRO(si) + 6*sc;
     ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + nLen * Math.cos(na), cy + nLen * Math.sin(na));
     ctx.strokeStyle = dark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.5)';
     ctx.lineWidth = 5; ctx.stroke();
     ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + nLen * Math.cos(na), cy + nLen * Math.sin(na));
     ctx.strokeStyle = needleC; ctx.lineWidth = 2.5; ctx.stroke();
-    ctx.beginPath(); ctx.arc(cx + nLen * Math.cos(na), cy + nLen * Math.sin(na), 5, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(cx + nLen * Math.cos(na), cy + nLen * Math.sin(na), 5*sc, 0, Math.PI * 2);
     ctx.fillStyle = needleC; ctx.fill();
   }
 
   // ── 7. Centre hub — just a small dot, no circle ──
-  ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+  ctx.beginPath(); ctx.arc(cx, cy, 8*sc, 0, Math.PI * 2);
   ctx.fillStyle = hubC; ctx.fill();
 }
 
@@ -1690,9 +1697,9 @@ const picker=document.getElementById('event-picker');
 
 overlay.addEventListener('click',e=>{
   const rect=overlay.getBoundingClientRect();
-  const mx=(e.clientX-rect.left)*(canvas.width/rect.width);
-  const my=(e.clientY-rect.top)*(canvas.height/rect.height);
-  const cx=canvas.width/2,cy=canvas.height/2,dx=mx-cx,dy=my-cy,dist=Math.sqrt(dx*dx+dy*dy);
+  const mx=(e.clientX-rect.left);
+  const my=(e.clientY-rect.top);
+  const cx=_cdxLW*0.50,cy=_cdxLH/2,dx=mx-cx,dy=my-cy,dist=Math.sqrt(dx*dx+dy*dy);
   // Work out which petal was tapped using angle + radius
   const tapAngle=Math.atan2(dy,dx);  // -π to π
   // Normalise to 0–2π starting from top (−π/2)
@@ -1702,7 +1709,7 @@ overlay.addEventListener('click',e=>{
   const slotI=Math.floor(slotF);
   if(slotI<0||slotI>=CHOURS){closePicker();return;}
   const ro=petalRO(slotI);
-  if(dist<petalRI()||dist>ro+20){closePicker();return;}
+  if(dist<petalRI()||dist>ro+20*_cosScale){closePicker();return;}
   const tapMin=(H_START+slotF)*60;  // fractional minute
   const near=todayEventsForPicker.filter(ev=>{
     const sm=new Date(ev.startISO).getHours()*60+new Date(ev.startISO).getMinutes();
@@ -2307,6 +2314,10 @@ window.addEventListener('resize', ()=>{
 // ── INIT ──────────────────────────────────────────────
 renderLeft(); buildTasks(); updateClock(); drawCosmodex(); buildTicks(); renderPomo(); initMobileLayout();
 setInterval(()=>{updateClock();drawCosmodex();}, 30000);
+window.addEventListener('resize', () => {
+  clearTimeout(window._cdxResizeT);
+  window._cdxResizeT = setTimeout(drawCosmodex, 150);
+});
 setInterval(async ()=>{
   if(!accessToken) return;
   await maybeRefreshToken();  // renew token if expiring soon
