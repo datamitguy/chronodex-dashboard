@@ -13,14 +13,14 @@
   --bg:#0a0a08; --surface:#111110; --border:#2a2a26;
   --ink:#e8e4d8; --ink-dim:#7a7568; --ink-faint:#2e2d28;
   --gold:#c9a84c; --gold-dim:#6b5a2a;
-  --red:#c44b3a; --blue:#4a7fa5; --green:#5a8f6a; --amber:#d4813a;
+  --red:#c44b3a; --blue:#4a7fa5; --green:#5a8f6a; --amber:#d4813a; --lotus:#b07ba8;
   --pomo-bg:#0f0f0d;
 }
 [data-theme="light"] {
   --bg:#f0eeeb; --surface:#ffffff; --border:#c8c4bc;
   --ink:#1c1f26; --ink-dim:#7a808c; --ink-faint:#e2e0dc;
   --gold:#8a6a28; --gold-dim:#b89848;
-  --red:#b83228; --blue:#2e5c8a; --green:#2e6644; --amber:#c06820;
+  --red:#b83228; --blue:#2e5c8a; --green:#2e6644; --amber:#c06820; --lotus:#9a6090;
   --pomo-bg:#e8e6e2;
 }
 
@@ -99,6 +99,7 @@ body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100vh; }
 .month-dow { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-dim); text-align:center; padding:3px 0; text-transform:uppercase; }
 .month-grid { flex:1; display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:1fr; padding:0 6px 6px; gap:2px; overflow:hidden; }
 .month-cell { display:flex; flex-direction:column; padding:3px 4px; border:2px solid transparent; border-radius:3px; min-height:0; }
+.month-cell.weekend-start { border-left:2px solid rgba(196,75,58,0.35) !important; }
 .month-cell.today { border-color:var(--gold); background:rgba(160,120,48,0.07); }
 .month-cell.other-month { opacity:0.22; }
 .month-day-num { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); line-height:1.3; }
@@ -110,8 +111,8 @@ body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100vh; }
 #panel-chrono { background:var(--bg); }
 .chrono-wrapper { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:space-evenly; gap:0; padding:16px 20px 20px; width:100%; }
 .time-display { text-align:center; }
-.time-big { font-size:52px; font-weight:300; letter-spacing:-0.02em; line-height:1; font-variant-numeric:tabular-nums; }
-.time-date { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-dim); letter-spacing:0.10em; margin-top:2px; text-transform:uppercase; }
+.time-big { font-size:56px; font-weight:300; letter-spacing:0.04em; line-height:1; font-variant-numeric:tabular-nums; display:block; }
+.time-date { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim); letter-spacing:0.18em; margin-top:6px; text-transform:uppercase; display:block; }
 #chronodex-canvas { max-width:100%; display:block; pointer-events:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
 .chrono-canvas-wrap { position:relative; display:inline-block; max-width:100%; }
 .chrono-tap-overlay { position:absolute; inset:0; cursor:pointer; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
@@ -368,7 +369,6 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
   <div class="panel-header">
     <span class="panel-title" id="left-title" style="font-size:13px"></span>
     <button class="add-btn" id="add-event-btn" title="Add event">+</button>
-    <button class="add-btn" id="notes-btn" title="Quick note" style="border-color:var(--ink-faint);color:var(--ink-dim);font-size:15px">&#9998;</button>
     <div class="view-toggle" style="margin-left:8px">
       <button class="view-btn active" data-view="day">Day</button>
       <button class="view-btn" data-view="week">Week</button>
@@ -398,7 +398,8 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
 <section class="panel" id="panel-chrono">
   <div class="panel-header">
     <span class="panel-title">Cosmodex</span>
-    <button class="add-btn" id="pomo-open-btn" title="Focus timer" style="border-color:var(--gold-dim)">&#9650;</button>
+    <button class="add-btn" id="notes-btn" title="Quick note" style="border-color:var(--blue);color:var(--blue);font-size:14px">&#9998; Notes</button>
+    <button class="add-btn" id="pomo-open-btn" title="Focus timer" style="border-color:var(--lotus);color:var(--lotus);font-size:14px">&#9650; Focus</button>
     <button class="theme-btn" id="theme-btn" style="margin-left:8px">
       <span id="theme-icon">☀</span><span id="theme-label">Light</span>
     </button>
@@ -716,7 +717,35 @@ function initGIS(){
       document.getElementById('sync-user').textContent = currentUser;
       await loadAllData();
     },
+    // Use no-prompt for silent re-auth
+    error_callback: ()=>{},
   });
+}
+
+// Proactive silent token renewal — called every 5 min
+// If token expires within 10 minutes, re-request silently
+async function maybeRefreshToken(){
+  if(!tokenClient || !accessToken) return;
+  const timeLeft = tokenExpiry - Date.now();
+  if(timeLeft < 10 * 60 * 1000){
+    // Request new token without showing consent screen
+    try {
+      await new Promise((resolve, reject) => {
+        const origCallback = tokenClient.callback;
+        tokenClient.callback = (resp) => {
+          tokenClient.callback = origCallback;
+          if(resp.error){ reject(resp.error); return; }
+          accessToken = resp.access_token;
+          tokenExpiry = Date.now() + (resp.expires_in - 60) * 1000;
+          saveSession();
+          resolve();
+        };
+        tokenClient.requestAccessToken({ prompt: '' }); // empty string = no prompt
+      });
+    } catch(e) {
+      // Silent refresh failed — don't log out, just let normal expiry handle it
+    }
+  }
 }
 
 async function fetchUserInfo(){
@@ -816,7 +845,7 @@ function evColor(gcalEv, calId){
 async function fetchEvents(){
   const now=new Date();
   const tMin=new Date(now); tMin.setDate(now.getDate()-3);
-  const tMax=new Date(now); tMax.setDate(now.getDate()+14);
+  const tMax=new Date(now); tMax.setDate(now.getDate()+90);  // 90 days for holidays
   const all=[];
   await Promise.all(CAL_LIST.map(async cal=>{
     try{
@@ -1206,7 +1235,7 @@ function buildMonth(){
   html+='<button class="nav-arrow" id="m-next">&#8250;</button></div>';
   // Mini calendar grid
   html+='<div style="padding:4px 8px 0">';
-  html+='<div class="month-dow-row">'+['M','T','W','T','F','S','S'].map(x=>'<div class="month-dow">'+x+'</div>').join('')+'</div>';
+  html+='<div class="month-dow-row">'+ ['M','T','W','T','F','S','S'].map((x,xi)=>'<div class="month-dow"'+(xi>=5?' style="color:var(--red);border-left:'+(xi===5?'2px solid rgba(196,75,58,0.35)':'none')+'"':'')+'>'+ x+'</div>').join('')+'</div>';
   html+='<div class="month-grid" id="m-grid" style="flex:none;height:auto"></div>';
   html+='</div>';
   // Holiday list
@@ -1234,7 +1263,7 @@ function buildMonth(){
     const dayOfWeek=new Date(yr,mo,d).getDay();
     const isWeekend=(dayOfWeek===0||dayOfWeek===6);
     const c=document.createElement('div');
-    c.className='month-cell'+(isToday?' today':'');
+    c.className='month-cell'+(isToday?' today':'')+(dayOfWeek===6?' weekend-start':'');
     if(hasHol) c.style.background='rgba(196,75,58,0.13)';
     else if(isWeekend) c.style.background='rgba(196,75,58,0.04)';
     const numCol=hasHol?'var(--red)':isWeekend?'rgba(210,80,60,0.80)':isToday?'var(--gold)':'';
@@ -1463,7 +1492,7 @@ function drawCosmodex() {
     const ro    = petalRO(i);
     const angle = petalMid(i);
     // Gap between slots: name(11px) + time(9px) + padding = ~28px per slot
-    const startR = ro + 18 + slot * 40;  // wider slots to reduce overlap
+    const startR = ro + 24 + slot * 44;  // clear gap from petal tip
     // Correct flip: flip when petal points into LEFT half (cos < 0)
     // This makes text always read outward from the hub, never upside-down
     const shouldFlip = Math.cos(angle) < 0;
@@ -1476,7 +1505,7 @@ function drawCosmodex() {
       // Petal points left: text would be upside-down, so flip 180° and start from far end
       // Measure text width to know where to start so text ends at startR (not starts)
       ctx.scale(-1, -1);  // flip both axes = rotate 180
-      ctx.translate(-startR - 110, 0);  // wider gap for flipped labels
+      ctx.translate(-startR - 120, 0);  // flipped: text runs from far end toward petal
     } else {
       ctx.translate(startR, 0);
     }
@@ -1489,12 +1518,12 @@ function drawCosmodex() {
     ctx.font = '9px "JetBrains Mono",monospace';
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = item.isPast ? 'rgba(120,120,120,0.40)' : (dark?'rgba(200,200,200,0.72)':'rgba(60,60,60,0.78)');
-    ctx.fillText(item.times, 0, 1);
+    ctx.fillText(item.times, 0, 0);
 
-    // Event name below time, slightly indented
-    ctx.font = 'bold 12px "JetBrains Mono",monospace';
+    // Event name on second line
+    ctx.font = 'bold 11px "JetBrains Mono",monospace';
     ctx.fillStyle = item.isPast ? 'rgba(160,160,160,0.40)' : item.color;
-    ctx.fillText(item.name, 0, 15);
+    ctx.fillText(item.name, 0, 14);
 
     ctx.shadowBlur = 0;
     ctx.restore();
@@ -2059,9 +2088,9 @@ renderLeft(); buildTasks(); updateClock(); drawCosmodex(); buildTicks(); renderP
 setInterval(()=>{updateClock();drawCosmodex();}, 30000);
 setInterval(async ()=>{
   if(!accessToken) return;
-  // Background refresh: silently skip on auth errors, don't log out
+  await maybeRefreshToken();  // renew token if expiring soon
   try { await loadAllDataSilent(); } catch(e) {}
-}, 10*60*1000);  // 10 min refresh
+}, 5*60*1000);  // 5 min refresh + token renewal check
 
 const _gisWait=setInterval(()=>{
   if(window.google&&window.google.accounts){
