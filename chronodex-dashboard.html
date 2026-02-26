@@ -248,6 +248,17 @@ body.pomo-open { grid-template-columns:1fr 1.6fr 1fr 310px; }
 .modal-btn:active { background:var(--ink-faint); }
 .modal-saving { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-dim); align-self:center; }
 
+
+/* ── 24HR DAY VIEW ── */
+.hour-row { display:flex; min-height:44px; border-bottom:1.5px solid var(--ink-faint); position:relative; }
+.hour-row.hour-now { background:rgba(160,120,48,0.08); }
+.hour-row.hour-past { opacity:0.55; }
+.hour-row.drag-over { background:rgba(74,127,165,0.15); border-color:var(--blue); }
+/* DRAG ── */
+.task-item[draggable] { cursor:grab; }
+.task-item.dragging { opacity:0.4; }
+.drag-hint { font-size:14px; color:var(--ink-faint); margin-left:auto; padding-left:8px; align-self:center; flex-shrink:0; }
+
 /* Paper grain */
 body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:0.25; z-index:998;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); }
@@ -259,11 +270,11 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
 <!-- LEFT: CALENDAR -->
 <section class="panel" id="panel-left">
   <div class="panel-header">
-    <span class="panel-title" id="left-title">Week View</span>
+    <span class="panel-title" id="left-title">Day View</span>
     <button class="add-btn" id="add-event-btn" title="Add event">+</button>
     <div class="view-toggle" style="margin-left:8px">
-      <button class="view-btn" data-view="day">Day</button>
-      <button class="view-btn active" data-view="week">Week</button>
+      <button class="view-btn active" data-view="day">Day</button>
+      <button class="view-btn" data-view="week">Week</button>
       <button class="view-btn" data-view="month">Mon</button>
     </div>
   </div>
@@ -709,7 +720,7 @@ document.getElementById('theme-btn').addEventListener('click',()=>{
 });
 
 // ── VIEW STATE ────────────────────────────────────────
-let currentView='week',dayOff=0,weekOff=0,monthOff=0;
+let currentView='day',dayOff=0,weekOff=0,monthOff=0;
 document.querySelectorAll('.view-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active'));
@@ -727,32 +738,90 @@ function buildDay(){
   const ds=localDate(d),isToday=ds===localDate(now);
   const DN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const evts=filteredEvents().filter(e=>e.startISO.startsWith(ds)), nowH=now.getHours();
+  const evts=filteredEvents().filter(e=>e.startISO.startsWith(ds));
+  const nowH=now.getHours(), nowM=now.getMinutes();
   document.getElementById('left-content').innerHTML=
-    '<div class="daily-view"><div class="daily-top">'+
+    '<div class="daily-view">'+
+    '<div class="daily-top">'+
     '<button class="nav-arrow" id="d-prev">&#8249;</button>'+
     '<div style="text-align:center"><div class="daily-title-num">'+d.getDate()+'</div>'+
     '<div class="daily-title-sub">'+DN[d.getDay()].toUpperCase()+' &middot; '+MN[d.getMonth()].toUpperCase()+' '+d.getFullYear()+'</div></div>'+
-    '<button class="nav-arrow" id="d-next">&#8250;</button></div><div class="daily-timeline" id="d-tl"></div></div>';
+    '<button class="nav-arrow" id="d-next">&#8250;</button>'+
+    '</div>'+
+    '<div class="daily-timeline" id="d-tl"></div>'+
+    '</div>';
   document.getElementById('d-prev').onclick=()=>{dayOff--;buildDay();};
   document.getElementById('d-next').onclick=()=>{dayOff++;buildDay();};
   const tl=document.getElementById('d-tl');
-  for(let h=6;h<24;h++){
-    const isNow=isToday&&h===nowH;
-    const row=document.createElement('div'); row.className='hour-row'+(isNow?' hour-now':'');
-    const lbl=document.createElement('div'); lbl.className='hour-label'+(isNow?' now-lbl':'');
-    lbl.textContent=String(h).padStart(2,'0')+':00';
+
+  // Full 24 hours
+  for(let hr=0;hr<24;hr++){
+    const isNow=isToday&&hr===nowH;
+    const isPast=isToday&&hr<nowH;
+    const row=document.createElement('div');
+    row.className='hour-row'+(isNow?' hour-now':'')+(isPast?' hour-past':'');
+    row.dataset.hour=hr;
+    // Drop-zone for tasks
+    row.addEventListener('dragover',e=>{e.preventDefault();row.classList.add('drag-over');});
+    row.addEventListener('dragleave',()=>row.classList.remove('drag-over'));
+    row.addEventListener('drop',e=>{
+      e.preventDefault(); row.classList.remove('drag-over');
+      const data=JSON.parse(e.dataTransfer.getData('text/plain')||'{}');
+      if(data.taskTitle) createEventFromTask(data.taskTitle,data.taskId,data.listId,ds,hr);
+    });
+
+    const lbl=document.createElement('div');
+    lbl.className='hour-label'+(isNow?' now-lbl':'');
+    lbl.textContent=String(hr).padStart(2,'0')+':00';
+
     const evDiv=document.createElement('div'); evDiv.className='hour-events';
-    evts.filter(e=>new Date(e.startISO).getHours()===h).forEach(ev=>{
+
+    // Current time indicator line
+    if(isNow){
+      const pct=(nowM/60)*100;
+      const line=document.createElement('div');
+      line.style.cssText='position:absolute;left:0;right:0;top:'+pct+'%;height:2px;background:var(--red);opacity:0.7;pointer-events:none;z-index:2;';
+      evDiv.style.position='relative';
+      evDiv.appendChild(line);
+    }
+
+    evts.filter(e=>new Date(e.startISO).getHours()===hr).forEach(ev=>{
       const dur=Math.round((new Date(ev.endISO)-new Date(ev.startISO))/60000);
+      const startM=new Date(ev.startISO).getMinutes();
       const el=document.createElement('div'); el.className='hour-event';
-      el.style.cssText='border-color:'+ev.color+';background:'+ev.color+'28;';
-      el.textContent=dur>0?ev.title+' \u00b7 '+dur+'m':ev.title;
+      const topPct=(startM/60)*100;
+      const heightPct=Math.max(8,(dur/60)*100);
+      el.style.cssText='border-color:'+ev.color+';background:'+ev.color+'28;position:relative;margin-top:'+topPct+'%;';
+      const tStr=String(new Date(ev.startISO).getHours()).padStart(2,'0')+':'+String(startM).padStart(2,'0');
+      el.innerHTML='<span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--ink-dim)">'+tStr+'</span> '+ev.title+(dur>0?' <span style="color:var(--ink-dim);font-size:12px">'+dur+'m</span>':'');
       el.addEventListener('click',()=>openPomo(ev)); evDiv.appendChild(el);
     });
+
     row.appendChild(lbl); row.appendChild(evDiv); tl.appendChild(row);
   }
-  if(isToday){const rows=tl.querySelectorAll('.hour-row');const idx=Math.max(0,nowH-6-1);if(rows[idx])rows[idx].scrollIntoView({block:'start'});}
+
+  // Scroll to current hour (or 8am if not today)
+  const scrollTo=isToday?Math.max(0,nowH-1):8;
+  const rows=tl.querySelectorAll('.hour-row');
+  if(rows[scrollTo]) setTimeout(()=>rows[scrollTo].scrollIntoView({block:'start'}),50);
+}
+
+// Create a calendar event from a dragged task
+async function createEventFromTask(title, taskId, listId, dateStr, hour){
+  if(!accessToken){showSyncBar('Sign in to add events','err');return;}
+  const calId = CAL_LIST.find(c=>c.isPrimary)?.id || CAL_LIST[0]?.id;
+  if(!calId){showSyncBar('No calendar found','err');return;}
+  const start=new Date(dateStr+'T'+String(hour).padStart(2,'0')+':00:00');
+  const end  =new Date(start.getTime()+60*60000); // 1 hour default
+  try{
+    await apiPost(CAL_API+'/calendars/'+encodeURIComponent(calId)+'/events',{
+      summary: title,
+      start:{dateTime: start.toISOString()},
+      end:  {dateTime: end.toISOString()},
+    });
+    showSyncBar('Added "'+title+'" to calendar','ok');
+    await loadAllData();
+  }catch(err){showSyncBar('Failed: '+err.message,'err');}
 }
 
 // ── WEEK VIEW ─────────────────────────────────────────
@@ -1005,12 +1074,11 @@ function drawChronodex(){
     const lx     = cx + labelR*Math.cos(angle);
     const ly     = cy + labelR*Math.sin(angle);
 
-    // Format: "EventName
-09:00–10:30"
+    // Format: name on line 1, times on line 2
     const short = ev.title.replace(/&lt;/g,'<').replace(/&amp;/g,'&');
     const name  = short.length > 14 ? short.slice(0,13)+'…' : short;
     const fmt   = m => String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
-    const times = fmt(sm)+'–'+fmt(em);
+    const times = fmt(sm)+'-'+fmt(em);
 
     ctx.save();
     ctx.translate(lx, ly);
