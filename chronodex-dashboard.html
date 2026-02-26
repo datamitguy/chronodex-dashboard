@@ -443,12 +443,14 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
           </div>
         </div>
         <div class="swipe-section">
-          <div class="swipe-lbl">Duration</div>
           <div class="swipe-control">
             <button class="swipe-minus" id="sw-minus">−</button>
             <div class="swipe-track" id="sw-track">
               <div class="swipe-track-inner">
-                <div class="swipe-val" id="sw-val">25</div>
+                <div style="display:flex;align-items:baseline;justify-content:center;gap:6px;margin-bottom:2px">
+                  <div class="swipe-val" id="sw-val">25</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink-dim);padding-bottom:2px">min</div>
+                </div>
                 <div class="swipe-ticks" id="sw-ticks"></div>
               </div>
             </div>
@@ -463,29 +465,7 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
           <div class="sess-dot"></div><div class="sess-dot"></div>
           <div class="sess-dot"></div><div class="sess-dot"></div>
         </div>
-        <!-- Daily focus stats -->
-        <div class="pomo-stats">
-          <div class="pomo-stats-title">Today</div>
-          <div class="pomo-stats-row">
-            <div class="pomo-stat">
-              <div class="pomo-stat-val" id="stat-sessions">0</div>
-              <div class="pomo-stat-lbl">sessions</div>
-            </div>
-            <div class="pomo-stat">
-              <div class="pomo-stat-val" id="stat-minutes">0</div>
-              <div class="pomo-stat-lbl">minutes</div>
-            </div>
-            <div class="pomo-stat">
-              <div class="pomo-stat-val" id="stat-streak">0</div>
-              <div class="pomo-stat-lbl">day streak</div>
-            </div>
-          </div>
-          <div id="pomo-bar-wrap" style="width:100%;margin-top:10px">
-            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.12em;color:var(--ink-faint);text-transform:uppercase;margin-bottom:4px">Last 7 days</div>
-            <div id="pomo-week-bars" style="display:flex;gap:4px;align-items:flex-end;height:36px"></div>
-            <div id="pomo-week-labels" style="display:flex;gap:4px;margin-top:3px"></div>
-          </div>
-        </div>
+
       </div>
     </div>
     <!-- Scribble col -->
@@ -553,22 +533,18 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
   </div>
 </div>
 
-<!-- QUICK NOTES MODAL -->
-<div class="modal-backdrop" id="modal-notes">
-  <div class="modal" style="min-width:min(90vw,500px);max-width:600px">
-    <div class="modal-header">
-      <span class="modal-title">&#9998; Quick Notes</span>
-      <button class="modal-close" id="modal-notes-close">✕</button>
-    </div>
-    <div class="modal-body" style="padding:0">
-      <textarea id="notes-text" placeholder="Type your notes here…" style="width:100%;min-height:220px;background:transparent;border:none;outline:none;resize:vertical;padding:16px;font-family:'Cormorant Garamond',serif;font-size:17px;line-height:1.7;color:var(--ink)"></textarea>
-    </div>
-    <div class="modal-footer">
-      <span style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--ink-faint)" id="notes-saved-lbl"></span>
-      <button class="modal-btn" id="notes-clear-btn">Clear</button>
-      <button class="modal-btn primary" id="notes-close-btn">Done</button>
-    </div>
+<!-- QUICK NOTES SCRIBBLE OVERLAY -->
+<div id="notes-overlay" style="display:none;position:fixed;inset:0;z-index:810;background:rgba(10,10,8,0.96);backdrop-filter:blur(6px);flex-direction:column;">
+  <div style="display:flex;align-items:center;padding:10px 16px;border-bottom:2px solid var(--border);flex-shrink:0;gap:8px;background:var(--surface);">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:var(--blue)">&#9998; Notes</span>
+    <div id="notes-pen-bar" style="display:flex;gap:4px;align-items:center;margin-left:12px"></div>
+    <div id="notes-color-bar" style="display:flex;gap:5px;align-items:center"></div>
+    <button class="scribble-btn" id="notes-eraser-btn">Erase</button>
+    <button class="scribble-btn" id="notes-clear-btn2">Clear</button>
+    <button class="scribble-btn" id="notes-save-btn">&#8681; Save</button>
+    <button class="scribble-btn" id="notes-overlay-close" style="margin-left:auto;border-color:var(--border)">&#10005; Close</button>
   </div>
+  <canvas id="notes-canvas" style="flex:1;width:100%;touch-action:none;cursor:crosshair;-webkit-touch-callout:none;"></canvas>
 </div>
 
 <!-- SIGN-IN OVERLAY -->
@@ -867,8 +843,9 @@ function evColor(gcalEv, calId){
 // ── FETCH EVENTS ──────────────────────────────────────
 async function fetchEvents(){
   const now=new Date();
-  const tMin=new Date(now); tMin.setDate(now.getDate()-3);
-  const tMax=new Date(now); tMax.setDate(now.getDate()+90);  // 90 days for holidays
+  // Start from beginning of current month so month view always has full data
+  const tMin=new Date(now.getFullYear(), now.getMonth(), 1);
+  const tMax=new Date(now); tMax.setDate(now.getDate()+90);  // 90 days ahead for holidays
   const all=[];
   await Promise.all(CAL_LIST.map(async cal=>{
     try{
@@ -1331,8 +1308,8 @@ function buildMonth(){
       if(isToday) row.style.background='rgba(201,168,76,0.06)';
       let inner='<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:2px">';
       const _isWknd=(new Date(n.ds).getDay()===0||new Date(n.ds).getDay()===6);
-      inner+='<span style="font-family:JetBrains Mono,monospace;font-size:10px;letter-spacing:0.10em;color:'+(isToday?'var(--gold)':_isWknd||n.hols.length?'var(--red)':'var(--ink-dim)')+'">'+n.dow.toUpperCase()+' '+String(n.d).padStart(2,'0')+'</span>';
-      n.hols.forEach(e=>{ inner+='<span style="font-size:12px;color:var(--red);font-weight:bold">★ '+e.title.replace(/&lt;/g,String.fromCharCode(60))+'</span>'; });
+      inner+='<span style="font-family:JetBrains Mono,monospace;font-size:10px;letter-spacing:0.10em;color:'+(isToday?'var(--gold)':_isWknd||n.hols.length?'var(--amber)':'var(--ink-dim)')+'">'+n.dow.toUpperCase()+' '+String(n.d).padStart(2,'0')+'</span>';
+      n.hols.forEach(e=>{ inner+='<span style="font-size:12px;color:var(--gold);letter-spacing:0.05em">★ '+e.title.replace(/&lt;/g,String.fromCharCode(60))+'</span>'; });
       inner+='</div>';
       n.evs.slice(0,3).forEach(e=>{
         const t=e.startISO.slice(11,16);
@@ -1839,7 +1816,6 @@ function openPomo(ev){
   document.getElementById('pomo-overlay').classList.add('open');
   initScribble();
   drawPomoRing(); renderPomo(); buildTicks();
-  setTimeout(renderPomoStats, 80);
 }
 document.getElementById('pomo-open-btn').addEventListener('click', ()=>openPomo(null));
 document.getElementById('pomo-close').addEventListener('click', ()=>{
@@ -1918,7 +1894,6 @@ document.getElementById('pomo-start').addEventListener('click',()=>{
       pomo.remainSecs--;
       if(pomo.remainSecs<=0){
         clearInterval(pomo.interval);pomo.running=false;pomo.remainSecs=0;pomo.sessions=Math.min(4,pomo.sessions+1);
-        savePomoStat(Math.round(pomo.totalSecs/60)); renderPomoStats();
         document.getElementById('pomo-lock-msg').classList.remove('show');
         setTimeout(()=>{ _scribbleInited=false; document.getElementById('pomo-overlay').classList.remove('open'); },1200);
         try{const ac=new(window.AudioContext||window.webkitAudioContext)();[0,0.35,0.7].forEach((t,i)=>{const osc=ac.createOscillator(),g=ac.createGain();osc.connect(g);g.connect(ac.destination);osc.frequency.value=[528,660,792][i];g.gain.value=0.2;osc.start(ac.currentTime+t);g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+t+0.9);osc.stop(ac.currentTime+t+0.9);});}catch(e){}
@@ -2084,105 +2059,135 @@ function initScribble() {
 }
 
 
-// ── QUICK NOTES ────────────────────────────────────────
+// ── QUICK NOTES SCRIBBLE ─────────────────────────────
 (function(){
-  const NOTES_KEY = 'cosmodex_notes';
-  function openNotes(){
-    const saved = localStorage.getItem(NOTES_KEY) || '';
-    document.getElementById('notes-text').value = saved;
-    document.getElementById('notes-saved-lbl').textContent = saved ? 'Auto-saved' : '';
-    document.getElementById('modal-notes').classList.add('open');
-    setTimeout(()=>document.getElementById('notes-text').focus(), 60);
+  const COLORS = ['#e8e4d8','#c9a84c','#4a7fa5','#5a8f6a','#c44b3a','#d4813a','#222222'];
+  const SIZES  = [1,2,4,8,16];
+  let noteInited = false;
+
+  function openNotesOverlay(){
+    const ov = document.getElementById('notes-overlay');
+    ov.style.display = 'flex';
+    if(!noteInited){ noteInited=true; initNotesCanvas(); }
+    else { resizeNotesCanvas(); }
   }
-  function closeNotes(){
-    document.getElementById('modal-notes').classList.remove('open');
+  function closeNotesOverlay(){
+    document.getElementById('notes-overlay').style.display = 'none';
   }
-  function saveNotes(){
-    const txt = document.getElementById('notes-text').value;
-    localStorage.setItem(NOTES_KEY, txt);
-    document.getElementById('notes-saved-lbl').textContent = 'Saved ✓';
+
+  function initNotesCanvas(){
+    const cv  = document.getElementById('notes-canvas');
+    const dpr = window.devicePixelRatio || 1;
+
+    function resizeCanvas(){
+      const w = cv.offsetWidth  || window.innerWidth;
+      const h = cv.offsetHeight || window.innerHeight - 60;
+      const tmp = document.createElement('canvas');
+      tmp.width = cv.width; tmp.height = cv.height;
+      tmp.getContext('2d').drawImage(cv,0,0);
+      cv.width  = Math.round(w*dpr); cv.height = Math.round(h*dpr);
+      cv.style.width = w+'px'; cv.style.height = h+'px';
+      const ctx = cv.getContext('2d');
+      ctx.scale(dpr,dpr);
+      ctx.drawImage(tmp,0,0,w,h);
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    // expose for external resize calls
+    window._resizeNotesCanvas = resizeCanvas;
+
+    let color  = COLORS[0];
+    let penSz  = 2;
+    let eraser = false;
+    let drawing= false, lx=0, ly=0;
+
+    // Pen size buttons
+    const penBar = document.getElementById('notes-pen-bar');
+    SIZES.forEach(sz=>{
+      const b=document.createElement('button');
+      b.className='pen-size-btn'+(sz===penSz?' active':'');
+      const dp=Math.min(sz+4,20);
+      b.innerHTML=`<span style="width:${dp}px;height:${dp}px;border-radius:50%;background:currentColor;display:inline-block;vertical-align:middle"></span>`;
+      b.addEventListener('click',()=>{
+        penSz=sz; eraser=false;
+        penBar.querySelectorAll('.pen-size-btn').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        document.getElementById('notes-eraser-btn').classList.remove('active');
+      });
+      penBar.appendChild(b);
+    });
+
+    // Color swatches
+    const colBar = document.getElementById('notes-color-bar');
+    COLORS.forEach(c=>{
+      const s=document.createElement('div');
+      s.className='scribble-swatch'+(c===color?' active':'');
+      s.style.background=c;
+      s.addEventListener('click',()=>{
+        color=c; eraser=false;
+        colBar.querySelectorAll('.scribble-swatch').forEach(x=>x.classList.remove('active'));
+        s.classList.add('active');
+        document.getElementById('notes-eraser-btn').classList.remove('active');
+      });
+      colBar.appendChild(s);
+    });
+
+    document.getElementById('notes-eraser-btn').addEventListener('click', function(){
+      eraser=!eraser; this.classList.toggle('active',eraser);
+    });
+    document.getElementById('notes-clear-btn2').addEventListener('click',()=>{
+      const ctx=cv.getContext('2d');
+      ctx.clearRect(0,0,cv.width,cv.height);
+    });
+    document.getElementById('notes-save-btn').addEventListener('click',()=>{
+      const link=document.createElement('a');
+      link.download='cosmodex-notes-'+localDate()+'.png';
+      const tmp=document.createElement('canvas');
+      tmp.width=cv.width; tmp.height=cv.height;
+      const tc=tmp.getContext('2d');
+      tc.fillStyle=isDark?'#0a0a08':'#f0eeeb';
+      tc.fillRect(0,0,tmp.width,tmp.height);
+      tc.drawImage(cv,0,0);
+      link.href=tmp.toDataURL('image/png'); link.click();
+    });
+    document.getElementById('notes-overlay-close').addEventListener('click', closeNotesOverlay);
+
+    function getPos(e){ const r=cv.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; }
+
+    function startDraw(e){
+      e.preventDefault(); drawing=true;
+      [lx,ly]=getPos(e);
+      const ctx=cv.getContext('2d');
+      ctx.save();
+      if(eraser){ ctx.globalCompositeOperation='destination-out';ctx.beginPath();ctx.arc(lx,ly,penSz*3,0,Math.PI*2);ctx.fillStyle='rgba(0,0,0,1)';ctx.fill(); }
+      else{ ctx.beginPath();ctx.arc(lx,ly,penSz/2,0,Math.PI*2);ctx.fillStyle=color;ctx.fill(); }
+      ctx.restore();
+    }
+    function moveDraw(e){
+      if(!drawing) return; e.preventDefault();
+      const [x,y]=getPos(e);
+      const ctx=cv.getContext('2d');
+      ctx.save();
+      if(eraser){ ctx.globalCompositeOperation='destination-out';ctx.beginPath();ctx.arc(x,y,penSz*3,0,Math.PI*2);ctx.fillStyle='rgba(0,0,0,1)';ctx.fill(); }
+      else{ ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(x,y);ctx.strokeStyle=color;ctx.lineWidth=penSz;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke(); }
+      ctx.restore();
+      lx=x; ly=y;
+    }
+    function endDraw(){ drawing=false; }
+
+    cv.addEventListener('pointerdown', startDraw, {passive:false});
+    cv.addEventListener('pointermove', moveDraw,  {passive:false});
+    cv.addEventListener('pointerup',   endDraw,   {passive:false});
+    cv.addEventListener('pointercancel',endDraw,  {passive:false});
   }
-  document.getElementById('notes-btn').addEventListener('click', openNotes);
-  document.getElementById('modal-notes-close').addEventListener('click', closeNotes);
-  document.getElementById('notes-close-btn').addEventListener('click', ()=>{ saveNotes(); closeNotes(); });
-  document.getElementById('notes-clear-btn').addEventListener('click', ()=>{
-    document.getElementById('notes-text').value='';
-    localStorage.removeItem(NOTES_KEY);
-    document.getElementById('notes-saved-lbl').textContent='Cleared';
-  });
-  // Auto-save on type
-  document.getElementById('notes-text').addEventListener('input', ()=>{
-    clearTimeout(window._notesSaveT);
-    window._notesSaveT = setTimeout(saveNotes, 800);
-  });
+
+  function resizeNotesCanvas(){
+    if(window._resizeNotesCanvas) window._resizeNotesCanvas();
+  }
+
+  document.getElementById('notes-btn').addEventListener('click', openNotesOverlay);
 })();
 
-
-// ── POMO STATS ────────────────────────────────────────
-const POMO_STATS_KEY = 'cosmodex_pomo_stats';
-
-function getPomoStats() {
-  try { return JSON.parse(localStorage.getItem(POMO_STATS_KEY)) || {}; } catch(e) { return {}; }
-}
-function savePomoStat(durationMins) {
-  const stats = getPomoStats();
-  const today = localDate();
-  if (!stats[today]) stats[today] = { sessions: 0, minutes: 0 };
-  stats[today].sessions++;
-  stats[today].minutes += durationMins;
-  // Trim to last 90 days
-  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
-  const cutStr = localDate(cutoff);
-  Object.keys(stats).forEach(k => { if (k < cutStr) delete stats[k]; });
-  localStorage.setItem(POMO_STATS_KEY, JSON.stringify(stats));
-}
-function calcStreak(stats) {
-  let streak = 0, d = new Date();
-  while (true) {
-    const ds = localDate(d);
-    if (!stats[ds]) break;
-    streak++;
-    d.setDate(d.getDate() - 1);
-  }
-  return streak;
-}
-function renderPomoStats() {
-  const stats = getPomoStats();
-  const today = localDate();
-  const td = stats[today] || { sessions: 0, minutes: 0 };
-  const el = id => document.getElementById(id);
-  if (!el('stat-sessions')) return;
-  el('stat-sessions').textContent = td.sessions;
-  el('stat-minutes').textContent  = td.minutes;
-  el('stat-streak').textContent   = calcStreak(stats);
-  // 7-day bar chart
-  const bars = el('pomo-week-bars');
-  const lbls = el('pomo-week-labels');
-  if (!bars) return;
-  bars.innerHTML = ''; lbls.innerHTML = '';
-  const days = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(); d.setDate(d.getDate() - i);
-    days.push({ ds: localDate(d), label: ['S','M','T','W','T','F','S'][d.getDay()] });
-  }
-  const maxMins = Math.max(1, ...days.map(d => (stats[d.ds]||{}).minutes||0));
-  days.forEach(day => {
-    const mins = (stats[day.ds]||{}).minutes || 0;
-    const pct  = mins / maxMins;
-    const isToday = day.ds === today;
-    const bar = document.createElement('div');
-    bar.style.cssText = 'flex:1;border-radius:2px 2px 0 0;min-height:2px;transition:height 0.3s;'+
-      'height:'+Math.round(pct*34+2)+'px;'+
-      'background:'+(isToday?'var(--gold)':mins>0?'rgba(201,168,76,0.35)':'var(--ink-faint)')+';';
-    bar.title = day.ds + ': ' + mins + ' min';
-    bars.appendChild(bar);
-    const lbl = document.createElement('div');
-    lbl.style.cssText = 'flex:1;text-align:center;font-family:JetBrains Mono,monospace;font-size:9px;'+
-      'color:'+(isToday?'var(--gold)':'var(--ink-faint)')+';';
-    lbl.textContent = day.label;
-    lbls.appendChild(lbl);
-  });
-}
 
 // ── INIT ──────────────────────────────────────────────
 renderLeft(); buildTasks(); updateClock(); drawCosmodex(); buildTicks(); renderPomo();
