@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chronodex Dashboard</title>
+<title>Cosmodex</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -366,7 +366,7 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
 <!-- COL 1: CALENDAR -->
 <section class="panel" id="panel-left">
   <div class="panel-header">
-    <span class="panel-title" id="left-title">Day View</span>
+    <span class="panel-title" id="left-title" style="font-size:13px"></span>
     <button class="add-btn" id="add-event-btn" title="Add event">+</button>
     <div class="view-toggle" style="margin-left:8px">
       <button class="view-btn active" data-view="day">Day</button>
@@ -389,14 +389,15 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
   <div class="tasks-list" id="tasks-list"></div>
   <div class="tasks-footer">
     <span class="tasks-count" id="tasks-count"></span>
-    <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink-dim);">drag → cal</span>
+
   </div>
 </section>
 
 <!-- COL 3: CHRONODEX -->
 <section class="panel" id="panel-chrono">
   <div class="panel-header">
-    <span class="panel-title">Chronodex</span>
+    <span class="panel-title">Cosmodex</span>
+    <button class="add-btn" id="notes-btn" title="Quick note" style="border-color:var(--blue);color:var(--blue);font-size:16px">&#9998;</button>
     <button class="add-btn" id="pomo-open-btn" title="Focus timer" style="border-color:var(--gold-dim)">&#9650;</button>
     <button class="theme-btn" id="theme-btn" style="margin-left:8px">
       <span id="theme-icon">☀</span><span id="theme-label">Light</span>
@@ -408,7 +409,7 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
       <div class="time-date" id="time-date"></div>
     </div>
     <div class="chrono-canvas-wrap">
-      <canvas id="chronodex-canvas" width="760" height="500"></canvas>
+      <canvas id="cosmodex-canvas" width="760" height="500"></canvas>
       <div class="chrono-tap-overlay" id="chrono-overlay"></div>
     </div>
     <div class="next-strip">
@@ -528,10 +529,28 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
   </div>
 </div>
 
+<!-- QUICK NOTES MODAL -->
+<div class="modal-backdrop" id="modal-notes">
+  <div class="modal" style="min-width:min(90vw,500px);max-width:600px">
+    <div class="modal-header">
+      <span class="modal-title">&#9998; Quick Notes</span>
+      <button class="modal-close" id="modal-notes-close">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <textarea id="notes-text" placeholder="Type your notes here…" style="width:100%;min-height:220px;background:transparent;border:none;outline:none;resize:vertical;padding:16px;font-family:'Cormorant Garamond',serif;font-size:17px;line-height:1.7;color:var(--ink)"></textarea>
+    </div>
+    <div class="modal-footer">
+      <span style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--ink-faint)" id="notes-saved-lbl"></span>
+      <button class="modal-btn" id="notes-clear-btn">Clear</button>
+      <button class="modal-btn primary" id="notes-close-btn">Done</button>
+    </div>
+  </div>
+</div>
+
 <!-- SIGN-IN OVERLAY -->
 <div id="signin-overlay">
   <div class="signin-logo">◷</div>
-  <div class="signin-title">Chronodex</div>
+  <div class="signin-title">Cosmodex</div>
   <div class="signin-sub">Your day, at a glance.<br>Sign in to load your calendar &amp; tasks.</div>
   <button class="signin-btn" id="signin-btn">Sign in with Google</button>
   <div class="signin-note">Calendar &amp; Tasks access (read + write).<br>No data stored anywhere.</div>
@@ -709,7 +728,7 @@ function requestToken(){ if(!tokenClient){showSyncBar('GIS loading — try again
 function signOut(){
   if(accessToken) try{google.accounts.oauth2.revoke(accessToken,()=>{});}catch(e){}
   clearSession(); EVENTS=[];TASKS=[];CAL_LIST=[];TASK_LISTS=[];
-  renderLeft();buildTasks();updateClock();drawChronodex();
+  renderLeft();buildTasks();updateClock();drawCosmodex();
   document.getElementById('signin-overlay').classList.remove('hidden');
   document.getElementById('sync-bar').classList.remove('visible');
 }
@@ -764,7 +783,7 @@ async function loadAllDataSilent(){
     await fetchCalList();
     await Promise.all([fetchEvents(), fetchTasks()]);
     buildCalTabs(); buildTaskTabs();
-    renderLeft(); buildTasks(); updateClock(); drawChronodex();
+    renderLeft(); buildTasks(); updateClock(); drawCosmodex();
     const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
     showSyncBar('Synced · '+t,'ok');
   } catch(e) {
@@ -808,8 +827,8 @@ async function fetchEvents(){
       });
       (resp.items||[]).forEach(ev=>{
         if(ev.status==='cancelled') return;
-        const startISO=dtToLocal(ev.start.dateTime||ev.start.date+'T00:00:00');
-        const endISO  =dtToLocal(ev.end.dateTime  ||ev.end.date  +'T00:00:00');
+        const startISO=ev.start.date&&!ev.start.dateTime ? ev.start.date : dtToLocal(ev.start.dateTime||ev.start.date+'T00:00:00');
+        const endISO  =ev.end.date&&!ev.end.dateTime ? ev.end.date : dtToLocal(ev.end.dateTime||ev.end.date+'T00:00:00');
         all.push({ title:(ev.summary||'(No title)').replace(/</g,'&lt;'), startISO, endISO, color:evColor(ev,cal.id), calId:cal.id, calName:cal.name });
       });
     }catch(e){}
@@ -847,7 +866,7 @@ async function loadAllData(){
     await fetchCalList();
     await Promise.all([fetchEvents(),fetchTasks()]);
     buildCalTabs(); buildTaskTabs();
-    renderLeft(); buildTasks(); updateClock(); drawChronodex();
+    renderLeft(); buildTasks(); updateClock(); drawCosmodex();
     const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
     showSyncBar('Synced \u00b7 '+t,'ok');
   }catch(err){
@@ -856,7 +875,7 @@ async function loadAllData(){
       document.getElementById('sync-bar').classList.remove('visible'); return;
     }
     showSyncBar('\u26a0 '+err.message,'err');
-    renderLeft(); buildTasks(); updateClock(); drawChronodex();
+    renderLeft(); buildTasks(); updateClock(); drawCosmodex();
   }
 }
 
@@ -906,7 +925,7 @@ document.getElementById('theme-btn').addEventListener('click',()=>{
   document.documentElement.setAttribute('data-theme',isDark?'dark':'light');
   document.getElementById('theme-icon').textContent=isDark?'☀':'☾';
   document.getElementById('theme-label').textContent=isDark?'Light':'Dark';
-  drawChronodex(); drawPomoRing();
+  drawCosmodex(); drawPomoRing();
 });
 
 // ── VIEW STATE ────────────────────────────────────────
@@ -918,7 +937,8 @@ document.querySelectorAll('.view-btn').forEach(btn=>{
   });
 });
 function renderLeft(){
-  document.getElementById('left-title').textContent={day:'Day View',week:'Week View',month:'Month View'}[currentView];
+  const _n=new Date(); document.getElementById('left-title').textContent=
+    _n.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
   ({day:buildDay,week:buildWeek,month:buildMonth})[currentView]();
 }
 
@@ -1079,8 +1099,15 @@ function buildWeek(){
     const ds=localDate(d),isToday=ds===todayStr;
     const dayEvts=filteredEvents().filter(e=>e.startISO.startsWith(ds)).sort((a,b)=>a.startISO.localeCompare(b.startISO));
     const row=document.createElement('div'); row.className='week-day'+(isToday?' today':'');
-    row.innerHTML='<div class="day-label"><span class="day-name">'+DN[i]+'</span><span class="day-num">'+d.getDate()+'</span></div><div class="day-events" id="de'+i+'"></div>';
+    row.innerHTML='<div class="day-label" style="cursor:pointer" title="Open day view"><span class="day-name">'+DN[i]+'</span><span class="day-num">'+d.getDate()+'</span></div><div class="day-events" id="de'+i+'"></div>';
     grid.appendChild(row);
+    // Click day label -> jump to that day in day view
+    row.querySelector('.day-label').addEventListener('click',()=>{
+      currentView='day';
+      dayOff=Math.round((d-new Date(new Date().toDateString()))/86400000);
+      document.querySelectorAll('.view-btn').forEach(b=>b.classList.toggle('active',b.dataset.view==='day'));
+      renderLeft();
+    });
     const evDiv=row.querySelector('#de'+i);
     if(!dayEvts.length){evDiv.innerHTML='<span style="font-size:14px;color:var(--ink-faint);font-style:italic">clear</span>';}
     dayEvts.slice(0,3).forEach(e=>{
@@ -1095,34 +1122,134 @@ function buildWeek(){
 
 // ── MONTH VIEW ────────────────────────────────────────
 function buildMonth(){
-  const now=new Date(),ref=new Date(now.getFullYear(),now.getMonth()+monthOff,1);
+  const now=new Date(), ref=new Date(now.getFullYear(),now.getMonth()+monthOff,1);
   const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const SN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const dim=new Date(ref.getFullYear(),ref.getMonth()+1,0).getDate();
-  let fd=ref.getDay(); fd=fd===0?6:fd-1;
-  const prevDim=new Date(ref.getFullYear(),ref.getMonth(),0).getDate(),todayStr=localDate(now);
-  document.getElementById('left-content').innerHTML=
-    '<div class="month-view"><div class="month-nav">'+
-    '<button class="nav-arrow" id="m-prev">&#8249;</button>'+
-    '<span class="month-title">'+MN[ref.getMonth()]+' '+ref.getFullYear()+'</span>'+
-    '<button class="nav-arrow" id="m-next">&#8250;</button></div>'+
-    '<div class="month-dow-row">'+['M','T','W','T','F','S','S'].map(x=>'<div class="month-dow">'+x+'</div>').join('')+'</div>'+
-    '<div class="month-grid" id="m-grid"></div></div>';
+  const todayStr=localDate(now);
+  const yr=ref.getFullYear(), mo=ref.getMonth();
+
+  // Collect all events for this month from ALL calendars (not tab-filtered)
+  const monthStart=yr+'-'+String(mo+1).padStart(2,'0')+'-01';
+  const monthEnd  =yr+'-'+String(mo+1).padStart(2,'0')+'-'+String(dim).padStart(2,'0');
+  const monthEvts=EVENTS.filter(e=>e.startISO>=monthStart&&e.startISO<=monthEnd+'T99');
+
+  // Identify holiday calendars (not the primary gmail)
+  const isHolidayCal=cal=>!cal.isPrimary&&(cal.name.toLowerCase().includes('holiday')||cal.name.toLowerCase().includes('observance')||cal.name.toLowerCase().includes('region'));
+  const holidayCalIds=new Set(CAL_LIST.filter(isHolidayCal).map(c=>c.id));
+
+  // Split: holidays vs regular events
+  const holidays=monthEvts.filter(e=>holidayCalIds.has(e.calId)||e.startISO.length===10);
+  const regular =monthEvts.filter(e=>!holidayCalIds.has(e.calId)&&e.startISO.length>10);
+
+  // Build sparse week grid (5 rows x 7 cols) + event counts per day
+  const evByDay={};
+  regular.forEach(e=>{const d=e.startISO.slice(0,10);evByDay[d]=(evByDay[d]||[]);evByDay[d].push(e);});
+  const holByDay={};
+  holidays.forEach(e=>{const d=e.startISO.slice(0,10);holByDay[d]=(holByDay[d]||[]);holByDay[d].push(e);});
+
+  let fd=ref.getDay(); fd=fd===0?6:fd-1; // Mon=0
+
+  // Build HTML
+  let html='<div class="month-view" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">';
+  // Nav
+  html+='<div class="month-nav"><button class="nav-arrow" id="m-prev">&#8249;</button>';
+  html+='<span class="month-title">'+MN[mo]+' '+yr+'</span>';
+  html+='<button class="nav-arrow" id="m-next">&#8250;</button></div>';
+  // Mini calendar grid
+  html+='<div style="padding:4px 8px 0">';
+  html+='<div class="month-dow-row">'+['M','T','W','T','F','S','S'].map(x=>'<div class="month-dow">'+x+'</div>').join('')+'</div>';
+  html+='<div class="month-grid" id="m-grid" style="flex:none;height:auto"></div>';
+  html+='</div>';
+  // Holiday list
+  html+='<div style="font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold-dim);padding:8px 12px 2px">Highlights</div>';
+  html+='<div id="month-highlights" style="flex:1;overflow-y:auto;scrollbar-width:none;padding:0 10px 8px"></div>';
+  html+='</div>';
+  document.getElementById('left-content').innerHTML=html;
+
   document.getElementById('m-prev').onclick=()=>{monthOff--;buildMonth();};
   document.getElementById('m-next').onclick=()=>{monthOff++;buildMonth();};
+
+  // Fill mini grid
   const grid=document.getElementById('m-grid');
-  for(let i=fd-1;i>=0;i--){const c=document.createElement('div');c.className='month-cell other-month';c.innerHTML='<div class="month-day-num">'+(prevDim-i)+'</div>';grid.appendChild(c);}
+  // Blank leading days
+  for(let i=fd-1;i>=0;i--){
+    const c=document.createElement('div');c.className='month-cell other-month';
+    const prevDay=new Date(yr,mo,0-i); c.innerHTML='<div class="month-day-num">'+prevDay.getDate()+'</div>';
+    grid.appendChild(c);
+  }
   for(let d=1;d<=dim;d++){
-    const ds=ref.getFullYear()+'-'+String(ref.getMonth()+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-    const isToday=ds===todayStr, de=filteredEvents().filter(e=>e.startISO.startsWith(ds));
-    const c=document.createElement('div'); c.className='month-cell'+(isToday?' today':'');
-    c.innerHTML='<div class="month-day-num">'+d+'</div><div class="month-dots">'+de.slice(0,5).map(e=>'<div class="month-dot" style="background:'+e.color+'"></div>').join('')+'</div>';
+    const ds=yr+'-'+String(mo+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const isToday=ds===todayStr;
+    const hasHol=holByDay[ds]&&holByDay[ds].length>0;
+    const evs=evByDay[ds]||[];
+    const c=document.createElement('div');
+    c.className='month-cell'+(isToday?' today':'');
+    if(hasHol) c.style.background='rgba(201,168,76,0.06)';
+    // Day number + tiny dots
+    let inner='<div class="month-day-num" style="'+(hasHol?'color:var(--gold)':'')+'">'+(hasHol?'★ ':'')+d+'</div>';
+    inner+='<div class="month-dots">'+evs.slice(0,4).map(e=>'<div class="month-dot" style="background:'+e.color+'"></div>').join('')+'</div>';
+    c.innerHTML=inner;
+    // Click: jump to day view
+    c.style.cursor='pointer';
+    c.addEventListener('click',()=>{
+      currentView='day'; dayOff=d-now.getDate()+(mo-now.getMonth())*31;
+      // More accurate:
+      dayOff=Math.round((new Date(yr,mo,d)-new Date(now.toDateString()))/86400000);
+      document.querySelectorAll('.view-btn').forEach(b=>b.classList.toggle('active',b.dataset.view==='day'));
+      renderLeft();
+    });
     grid.appendChild(c);
   }
   const total=fd+dim,rem=total%7===0?0:7-(total%7);
   for(let d=1;d<=rem;d++){const c=document.createElement('div');c.className='month-cell other-month';c.innerHTML='<div class="month-day-num">'+d+'</div>';grid.appendChild(c);}
+
+  // Highlights panel: holidays + busy days
+  const hl=document.getElementById('month-highlights');
+  // Collect notable days sorted by date
+  const notable=[];
+  for(let d=1;d<=dim;d++){
+    const ds=yr+'-'+String(mo+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const hols=holByDay[ds]||[],evs=evByDay[ds]||[];
+    if(hols.length||evs.length>=2){
+      const dow=new Date(yr,mo,d).toLocaleDateString('en-US',{weekday:'short'});
+      notable.push({d,ds,dow,hols,evs});
+    }
+  }
+  if(!notable.length){
+    hl.innerHTML='<div style="color:var(--ink-faint);font-size:13px;padding:8px 2px">Clear month</div>';
+  } else {
+    notable.forEach(n=>{
+      const isToday=n.ds===todayStr;
+      const row=document.createElement('div');
+      row.style.cssText='padding:5px 4px;border-bottom:1px solid var(--ink-faint);cursor:pointer;';
+      if(isToday) row.style.background='rgba(201,168,76,0.06)';
+      let inner='<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:2px">';
+      inner+='<span style="font-family:JetBrains Mono,monospace;font-size:10px;letter-spacing:0.10em;color:'+(isToday?'var(--gold)':'var(--ink-dim)')+'">'+n.dow.toUpperCase()+' '+String(n.d).padStart(2,'0')+'</span>';
+      n.hols.forEach(e=>{ inner+='<span style="font-size:12px;color:var(--gold)">★ '+e.title.replace(/&lt;/g,'<')+'</span>'; });
+      inner+='</div>';
+      n.evs.slice(0,3).forEach(e=>{
+        const t=e.startISO.slice(11,16);
+        inner+='<div style="display:flex;align-items:center;gap:5px;padding:1px 0">';
+        inner+='<span style="width:6px;height:6px;border-radius:50%;background:'+e.color+';flex-shrink:0;display:inline-block"></span>';
+        inner+='<span style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+e.title.replace(/&lt;/g,'<')+'</span>';
+        inner+='<span style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--ink-dim);margin-left:auto;flex-shrink:0">'+t+'</span>';
+        inner+='</div>';
+      });
+      if(n.evs.length>3) inner+='<div style="font-size:11px;color:var(--ink-dim);margin-top:1px">+' +(n.evs.length-3)+' more</div>';
+      row.innerHTML=inner;
+      row.addEventListener('click',()=>{
+        currentView='day';
+        dayOff=Math.round((new Date(n.ds)-new Date(new Date().toDateString()))/86400000);
+        document.querySelectorAll('.view-btn').forEach(b=>b.classList.toggle('active',b.dataset.view==='day'));
+        renderLeft();
+      });
+      hl.appendChild(row);
+    });
+  }
 }
 
-// ── CHRONODEX ─────────────────────────────────────────
+// ── COSMODEX ─────────────────────────────────────────
 // Petal layout: 5am-midnight, 19 petals, growing outward.
 // - Empty petals: thin border outline only (no fill)
 // - Elapsed time: thick radial arc LINE per petal, not fill
@@ -1159,8 +1286,8 @@ function initHiDPI(cv) {
   return { ctx, W:logW, H:logH, dpr };
 }
 
-function drawChronodex() {
-  const cv = document.getElementById('chronodex-canvas');
+function drawCosmodex() {
+  const cv = document.getElementById('cosmodex-canvas');
   const dpr = window.devicePixelRatio || 1;
   // Only re-init if needed (size changed or first draw)
   if (!cv._cdxInit) {
@@ -1268,7 +1395,7 @@ function drawChronodex() {
     if (bestI < 0) return;
     const fmt = m => String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
     const short = ev.title.replace(/&lt;/g,'<').replace(/&amp;/g,'&');
-    const name  = short.length > 15 ? short.slice(0,14) + '\u2026' : short;
+    const name  = short.length > 12 ? short.slice(0,11) + '\u2026' : short;
     const times = fmt(sm) + '-' + fmt(em);
     labelItems.push({ bestI, name, times, color: ev.color, isPast: em <= tm });
   });
@@ -1378,7 +1505,7 @@ function drawChronodex() {
 
 // ── SMART TAP ────────────────────────────────────────
 const overlay=document.getElementById('chrono-overlay');
-const canvas=document.getElementById('chronodex-canvas');
+const canvas=document.getElementById('cosmodex-canvas');
 const picker=document.getElementById('event-picker');
 
 overlay.addEventListener('click',e=>{
@@ -1719,7 +1846,7 @@ function initScribble() {
 
   // State
   let activeColor = SCRIBBLE_COLORS[0];
-  let penSize     = 3;
+  let penSize     = 1;
   let isEraser    = false;
   let drawing     = false;
   let lastX = 0, lastY = 0;
@@ -1745,7 +1872,7 @@ function initScribble() {
   sizeBar.innerHTML = '';
   PEN_SIZES.forEach(sz => {
     const btn = document.createElement('button');
-    btn.className = 'pen-size-btn' + (sz === penSize ? ' active' : '');
+    btn.className = 'pen-size-btn' + (sz === 1 ? ' active' : '');
     btn.title = sz + 'px';
     // Show a dot whose size represents the pen width
     const dotPx = Math.min(sz + 4, 20);
@@ -1773,7 +1900,7 @@ function initScribble() {
 
   document.getElementById('scribble-download').onclick = () => {
     const link = document.createElement('a');
-    link.download = 'chronodex-notes-' + localDate() + '.png';
+    link.download = 'cosmodex-notes-' + localDate() + '.png';
     const tmp = document.createElement('canvas');
     tmp.width = cv.width; tmp.height = cv.height;
     const tc = tmp.getContext('2d');
@@ -1841,9 +1968,43 @@ function initScribble() {
   _scribbleInited = true;
 }
 
+
+// ── QUICK NOTES ────────────────────────────────────────
+(function(){
+  const NOTES_KEY = 'cosmodex_notes';
+  function openNotes(){
+    const saved = localStorage.getItem(NOTES_KEY) || '';
+    document.getElementById('notes-text').value = saved;
+    document.getElementById('notes-saved-lbl').textContent = saved ? 'Auto-saved' : '';
+    document.getElementById('modal-notes').classList.add('open');
+    setTimeout(()=>document.getElementById('notes-text').focus(), 60);
+  }
+  function closeNotes(){
+    document.getElementById('modal-notes').classList.remove('open');
+  }
+  function saveNotes(){
+    const txt = document.getElementById('notes-text').value;
+    localStorage.setItem(NOTES_KEY, txt);
+    document.getElementById('notes-saved-lbl').textContent = 'Saved ✓';
+  }
+  document.getElementById('notes-btn').addEventListener('click', openNotes);
+  document.getElementById('modal-notes-close').addEventListener('click', closeNotes);
+  document.getElementById('notes-close-btn').addEventListener('click', ()=>{ saveNotes(); closeNotes(); });
+  document.getElementById('notes-clear-btn').addEventListener('click', ()=>{
+    document.getElementById('notes-text').value='';
+    localStorage.removeItem(NOTES_KEY);
+    document.getElementById('notes-saved-lbl').textContent='Cleared';
+  });
+  // Auto-save on type
+  document.getElementById('notes-text').addEventListener('input', ()=>{
+    clearTimeout(window._notesSaveT);
+    window._notesSaveT = setTimeout(saveNotes, 800);
+  });
+})();
+
 // ── INIT ──────────────────────────────────────────────
-renderLeft(); buildTasks(); updateClock(); drawChronodex(); buildTicks(); renderPomo();
-setInterval(()=>{updateClock();drawChronodex();}, 30000);
+renderLeft(); buildTasks(); updateClock(); drawCosmodex(); buildTicks(); renderPomo();
+setInterval(()=>{updateClock();drawCosmodex();}, 30000);
 setInterval(async ()=>{
   if(!accessToken) return;
   // Background refresh: silently skip on auth errors, don't log out
