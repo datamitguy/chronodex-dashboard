@@ -25,8 +25,7 @@
 }
 
 html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--ink); font-family:'Cormorant Garamond',serif; }
-body { display:grid; grid-template-columns:1fr 1.6fr 1fr 0px; height:100vh; transition:grid-template-columns 0.3s ease; }
-body.pomo-open { grid-template-columns:1fr 1.6fr 1fr 310px; }
+body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100vh; }
 
 .panel { border-right:2px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
 .panel:last-child { border-right:none; }
@@ -155,7 +154,7 @@ body.pomo-open { grid-template-columns:1fr 1.6fr 1fr 310px; }
 .tasks-count { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); }
 
 /* POMODORO */
-#panel-pomo { background:var(--pomo-bg); border-left:2px solid var(--border); border-right:none; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+#panel-pomo { display:none; } /* pomo is now an overlay */
 .pomo-header { padding:12px 16px; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:10px; flex-shrink:0; }
 .pomo-header-title { font-family:'JetBrains Mono',monospace; font-size:14px; letter-spacing:0.20em; text-transform:uppercase; color:var(--ink-dim); }
 .pomo-close-btn { margin-left:auto; background:none; border:2px solid var(--border); border-radius:5px; color:var(--ink-dim); cursor:pointer; font-size:16px; padding:5px 10px; min-height:44px; min-width:44px; display:flex; align-items:center; justify-content:center; }
@@ -257,7 +256,104 @@ body.pomo-open { grid-template-columns:1fr 1.6fr 1fr 310px; }
 /* DRAG ── */
 .task-item[draggable] { cursor:grab; }
 .task-item.dragging { opacity:0.4; }
-.drag-hint { font-size:14px; color:var(--ink-faint); margin-left:auto; padding-left:8px; align-self:center; flex-shrink:0; }
+.drag-hint { font-size:16px; color:var(--ink-dim); margin-right:8px; align-self:center; flex-shrink:0; cursor:grab; }
+
+
+/* ══ POMODORO OVERLAY ══ */
+#pomo-overlay {
+  display:none; position:fixed; z-index:800;
+  /* covers tasks + chrono = right 2/3 of screen */
+  left:calc(100% / 3); top:0; right:0; bottom:0;
+  background:rgba(10,10,8,0.92);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  flex-direction:column;
+  border-left:2px solid var(--border);
+}
+#pomo-overlay.open { display:flex; }
+[data-theme="light"] #pomo-overlay { background:rgba(240,238,235,0.93); }
+
+.pomo-overlay-inner {
+  flex:1; display:flex; gap:0; overflow:hidden;
+}
+
+/* Left half of overlay = pomodoro */
+.pomo-col {
+  width:340px; flex-shrink:0;
+  display:flex; flex-direction:column;
+  border-right:2px solid var(--border);
+  background:var(--pomo-bg);
+  overflow-y:auto; scrollbar-width:none;
+}
+.pomo-col::-webkit-scrollbar { display:none; }
+
+/* Right half = scribble canvas */
+.scribble-col {
+  flex:1; display:flex; flex-direction:column; overflow:hidden;
+}
+.scribble-header {
+  padding:10px 16px; border-bottom:2px solid var(--border);
+  display:flex; align-items:center; gap:10px; flex-shrink:0;
+}
+.scribble-title {
+  font-family:'JetBrains Mono',monospace; font-size:13px;
+  letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-dim);
+}
+#scribble-canvas {
+  flex:1; width:100%; cursor:crosshair;
+  touch-action:none;
+  -webkit-touch-callout:none;
+  background:transparent;
+}
+.scribble-tools {
+  display:flex; gap:8px; margin-left:auto; align-items:center;
+}
+.scribble-btn {
+  background:none; border:1.5px solid var(--border); border-radius:4px;
+  color:var(--ink-dim); cursor:pointer; font-family:'JetBrains Mono',monospace;
+  font-size:11px; padding:5px 10px; min-height:32px;
+}
+.scribble-btn.active { border-color:var(--gold); color:var(--gold); }
+.scribble-swatch {
+  width:22px; height:22px; border-radius:50%; border:2px solid var(--border);
+  cursor:pointer; flex-shrink:0;
+}
+.scribble-swatch.active { border-color:var(--gold); }
+.stroke-size {
+  display:flex; align-items:center; gap:6px;
+  font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim);
+}
+.stroke-size input { width:60px; accent-color:var(--gold); }
+
+/* Locked overlay when pomo running */
+#pomo-lock-msg {
+  display:none; position:absolute; inset:0; z-index:50;
+  align-items:center; justify-content:center; flex-direction:column; gap:16px;
+  background:rgba(0,0,0,0.72);
+}
+#pomo-lock-msg.show { display:flex; }
+.lock-text {
+  font-family:'JetBrains Mono',monospace; font-size:14px;
+  letter-spacing:0.12em; color:var(--ink); text-align:center; line-height:1.8;
+}
+.lock-withdraw {
+  font-family:'JetBrains Mono',monospace; font-size:13px;
+  letter-spacing:0.10em; text-transform:uppercase;
+  padding:12px 28px; border-radius:4px; cursor:pointer;
+  border:2px solid var(--red); color:var(--red); background:none;
+  min-height:46px;
+}
+.lock-withdraw:active { background:rgba(196,75,58,0.15); }
+
+/* Pomo overlay header */
+.pomo-overlay-header {
+  padding:11px 16px; border-bottom:2px solid var(--border);
+  display:flex; align-items:center; gap:10px; flex-shrink:0;
+}
+.pomo-overlay-title {
+  font-family:'JetBrains Mono',monospace; font-size:13px;
+  letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-dim);
+}
 
 /* Paper grain */
 body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:0.25; z-index:998;
@@ -267,7 +363,7 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
 </head>
 <body>
 
-<!-- LEFT: CALENDAR -->
+<!-- COL 1: CALENDAR -->
 <section class="panel" id="panel-left">
   <div class="panel-header">
     <span class="panel-title" id="left-title">Day View</span>
@@ -278,16 +374,31 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
       <button class="view-btn" data-view="month">Mon</button>
     </div>
   </div>
-  <!-- Calendar tabs — populated after API load -->
   <div class="tab-bar" id="cal-tab-bar" style="display:none"></div>
   <div id="left-content" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>
 </section>
 
-<!-- CENTER: CHRONODEX -->
+<!-- COL 2: TASKS -->
+<section class="panel" id="panel-tasks">
+  <div class="panel-header">
+    <span class="panel-title">Tasks</span>
+    <button class="add-btn" id="add-task-btn" title="Add task">+</button>
+    <div class="panel-accent" style="margin-left:8px"></div>
+  </div>
+  <div class="tab-bar" id="task-tab-bar" style="display:none"></div>
+  <div class="tasks-list" id="tasks-list"></div>
+  <div class="tasks-footer">
+    <span class="tasks-count" id="tasks-count"></span>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink-dim);">drag → cal</span>
+  </div>
+</section>
+
+<!-- COL 3: CHRONODEX -->
 <section class="panel" id="panel-chrono">
   <div class="panel-header">
     <span class="panel-title">Chronodex</span>
-    <button class="theme-btn" id="theme-btn">
+    <button class="add-btn" id="pomo-open-btn" title="Focus timer" style="border-color:var(--gold-dim)">&#9650;</button>
+    <button class="theme-btn" id="theme-btn" style="margin-left:8px">
       <span id="theme-icon">☀</span><span id="theme-label">Light</span>
     </button>
   </div>
@@ -297,7 +408,7 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
       <div class="time-date" id="time-date"></div>
     </div>
     <div class="chrono-canvas-wrap">
-      <canvas id="chronodex-canvas" width="440" height="440"></canvas>
+      <canvas id="chronodex-canvas" width="520" height="520"></canvas>
       <div class="chrono-tap-overlay" id="chrono-overlay"></div>
     </div>
     <div class="next-strip">
@@ -308,62 +419,74 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
   </div>
 </section>
 
-<!-- RIGHT: TASKS -->
-<section class="panel" id="panel-tasks">
-  <div class="panel-header">
-    <span class="panel-title">Tasks</span>
-    <button class="add-btn" id="add-task-btn" title="Add task">+</button>
-    <div class="panel-accent" style="margin-left:8px"></div>
+<!-- POMODORO + SCRIBBLE OVERLAY (covers tasks+chrono) -->
+<div id="pomo-overlay">
+  <div class="pomo-overlay-header">
+    <span class="pomo-overlay-title">&#9650; Focus</span>
+    <button class="pomo-close-btn" id="pomo-close" style="margin-left:auto">✕</button>
   </div>
-  <!-- Task list tabs — populated after API load -->
-  <div class="tab-bar" id="task-tab-bar" style="display:none"></div>
-  <div class="tasks-list" id="tasks-list"></div>
-  <div class="tasks-footer">
-    <span class="tasks-count" id="tasks-count"></span>
-    <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink-dim);">scroll ↕</span>
-  </div>
-</section>
-
-<!-- POMODORO -->
-<section class="panel" id="panel-pomo">
-  <div class="pomo-header">
-    <span class="pomo-header-title">Pomodoro</span>
-    <button class="pomo-close-btn" id="pomo-close">✕</button>
-  </div>
-  <div class="pomo-body">
-    <div class="pomo-ev-label">Focus Session</div>
-    <div class="pomo-ev-title" id="pomo-ev-title">—</div>
-    <div class="pomo-ring-wrap">
-      <canvas id="pomo-ring" width="150" height="150"></canvas>
-      <div class="pomo-center">
-        <div class="pomo-time" id="pomo-time">25:00</div>
-        <div class="pomo-phase" id="pomo-phase">Ready</div>
-      </div>
-    </div>
-    <div class="swipe-section">
-      <div class="swipe-lbl">Duration</div>
-      <div class="swipe-control">
-        <button class="swipe-minus" id="sw-minus">−</button>
-        <div class="swipe-track" id="sw-track">
-          <div class="swipe-track-inner">
-            <div class="swipe-val" id="sw-val">25</div>
-            <div class="swipe-unit">minutes</div>
-            <div class="swipe-ticks" id="sw-ticks"></div>
+  <div class="pomo-overlay-inner">
+    <!-- Pomodoro col -->
+    <div class="pomo-col">
+      <div class="pomo-body">
+        <div class="pomo-ev-label">Focus Session</div>
+        <div class="pomo-ev-title" id="pomo-ev-title">—</div>
+        <div class="pomo-ring-wrap">
+          <canvas id="pomo-ring" width="150" height="150"></canvas>
+          <div class="pomo-center">
+            <div class="pomo-time" id="pomo-time">25:00</div>
+            <div class="pomo-phase" id="pomo-phase">Ready</div>
           </div>
         </div>
-        <button class="swipe-plus" id="sw-plus">+</button>
+        <div class="swipe-section">
+          <div class="swipe-lbl">Duration</div>
+          <div class="swipe-control">
+            <button class="swipe-minus" id="sw-minus">−</button>
+            <div class="swipe-track" id="sw-track">
+              <div class="swipe-track-inner">
+                <div class="swipe-val" id="sw-val">25</div>
+                <div class="swipe-unit">minutes</div>
+                <div class="swipe-ticks" id="sw-ticks"></div>
+              </div>
+            </div>
+            <button class="swipe-plus" id="sw-plus">+</button>
+          </div>
+        </div>
+        <div class="pomo-btns">
+          <button class="pomo-btn danger" id="pomo-reset">Reset</button>
+          <button class="pomo-btn primary" id="pomo-start">Start</button>
+        </div>
+        <div class="pomo-sess" id="pomo-sess">
+          <div class="sess-dot"></div><div class="sess-dot"></div>
+          <div class="sess-dot"></div><div class="sess-dot"></div>
+        </div>
+        <div class="pomo-tip">swipe · 1 min steps · hold +/− fast</div>
       </div>
     </div>
-    <div class="pomo-btns">
-      <button class="pomo-btn danger" id="pomo-reset">Reset</button>
-      <button class="pomo-btn primary" id="pomo-start">Start</button>
+    <!-- Scribble col -->
+    <div class="scribble-col">
+      <div class="scribble-header">
+        <span class="scribble-title">&#9998; Notes</span>
+        <div class="scribble-tools">
+          <div class="stroke-size">
+            <span>size</span>
+            <input type="range" id="stroke-size" min="1" max="24" value="3">
+          </div>
+          <div id="color-swatches" style="display:flex;gap:6px;align-items:center"></div>
+          <button class="scribble-btn" id="scribble-eraser">Erase</button>
+          <button class="scribble-btn" id="scribble-clear">Clear</button>
+        </div>
+      </div>
+      <canvas id="scribble-canvas"></canvas>
     </div>
-    <div class="pomo-sess" id="pomo-sess">
-      <div class="sess-dot"></div><div class="sess-dot"></div>
-      <div class="sess-dot"></div><div class="sess-dot"></div>
-    </div>
-    <div class="pomo-tip">swipe · 1 min steps · hold +/− fast</div>
   </div>
+  <!-- Lock screen shown when timer is running -->
+  <div id="pomo-lock-msg">
+    <div class="lock-text">Session in progress.<br>Stop the timer to close.</div>
+    <button class="lock-withdraw" id="pomo-withdraw">Withdraw Session</button>
+  </div>
+</div>
+
 </section>
 
 <!-- SIGN-IN OVERLAY -->
@@ -890,61 +1013,71 @@ function buildMonth(){
 }
 
 // ── CHRONODEX ─────────────────────────────────────────
-// Petal layout: 5am–midnight = 19 hours, each gets its own wedge.
-// Petals grow outward — 5am is smallest, 11pm is largest.
-// Events paint the exact fraction of each petal they occupy.
-// Labels sit OUTSIDE the petal, along the petal midpoint angle.
-// Fun background petal colors cycle through a warm palette.
+// Petal layout: 5am-midnight, 19 petals, growing outward.
+// - Empty petals: thin border outline only (no fill)
+// - Elapsed time: thick radial arc LINE per petal, not fill
+// - Events: solid color fill in their exact petal fraction
+// - Labels: outside petals, rotated so text goes petal->outward
+// - Crisp: canvas scaled by devicePixelRatio
 
-const H_START  = 5;           // start at 5am
-const H_END    = 24;           // end at midnight
-const CHOURS   = H_END - H_START;          // 19 hours
+const H_START  = 5;
+const H_END    = 24;
+const CHOURS   = H_END - H_START;   // 19
 const PETAL_DEG = 360 / CHOURS;
 const PETAL_RAD = PETAL_DEG * Math.PI / 180;
+const RI_BASE  = 30;
+const RO_MIN   = 56;
+const RO_MAX   = 220;
 
-// Petal radii — innermost flat, outermost grows linearly
-const RI_BASE  = 26;
-const RO_MIN   = 48;
-const RO_MAX   = 165;
 function petalRI()  { return RI_BASE; }
 function petalRO(i) { return RO_MIN + i * (RO_MAX - RO_MIN) / (CHOURS - 1); }
-
-// Angle of a point within a petal
-// i=slot index (0=5am), frac=0→1 within that hour
-// 5am starts at top (−π/2), goes clockwise
-function hourAngle(i, frac) {
-  return -Math.PI/2 + (i + frac) * PETAL_RAD;
-}
+function hourAngle(i, frac) { return -Math.PI/2 + (i + frac) * PETAL_RAD; }
 function petalMid(i) { return hourAngle(i, 0.5); }
-
-// Fun warm/vibrant petal background colors (subtle, desaturated)
-const PETAL_PALETTE_DARK = [
-  'rgba(90,80,60,0.18)','rgba(60,80,90,0.18)','rgba(80,90,60,0.18)',
-  'rgba(90,60,70,0.18)','rgba(70,60,90,0.18)','rgba(85,75,55,0.18)',
-  'rgba(60,85,80,0.18)','rgba(90,65,60,0.18)','rgba(65,75,90,0.18)',
-  'rgba(85,85,60,0.18)','rgba(60,90,70,0.18)','rgba(90,70,60,0.18)',
-  'rgba(70,60,85,0.18)','rgba(80,85,60,0.18)','rgba(60,75,90,0.18)',
-  'rgba(90,60,80,0.18)','rgba(65,90,65,0.18)','rgba(85,65,65,0.18)',
-  'rgba(60,80,85,0.18)',
-];
-const PETAL_PALETTE_LIGHT = PETAL_PALETTE_DARK.map(c=>c.replace(/[\d.]+\)$/,'0.12)'));
 
 let todayEventsForPicker = [];
 
-function drawChronodex(){
+function initHiDPI(cv) {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = cv.getBoundingClientRect();
+  const logW = cv.width, logH = cv.height;
+  cv.width  = logW * dpr;
+  cv.height = logH * dpr;
+  cv.style.width  = logW + 'px';
+  cv.style.height = logH + 'px';
+  const ctx = cv.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { ctx, W:logW, H:logH, dpr };
+}
+
+function drawChronodex() {
   const cv = document.getElementById('chronodex-canvas');
-  const ctx = cv.getContext('2d'), W=cv.width, H=cv.height, cx=W/2, cy=H/2;
-  ctx.clearRect(0,0,W,H);
+  const dpr = window.devicePixelRatio || 1;
+  // Only re-init if needed (size changed or first draw)
+  if (!cv._cdxInit) {
+    const lw = parseInt(cv.getAttribute('width'));
+    const lh = parseInt(cv.getAttribute('height'));
+    cv.width  = lw * dpr;
+    cv.height = lh * dpr;
+    cv.style.width  = lw + 'px';
+    cv.style.height = lh + 'px';
+    cv._cdxInit = true;
+  }
+  const ctx = cv.getContext('2d');
+  const LW = parseInt(cv.style.width)  || 520;
+  const LH = parseInt(cv.style.height) || 520;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, LW, LH);
   todayEventsForPicker = [];
 
-  const dark   = isDark;
-  const goldR  = dark ? '201,168,76' : '138,106,40';
-  const lblC   = dark ? 'rgba(232,228,216,0.85)' : 'rgba(28,31,38,0.90)';
-  const needleC= dark ? '#c44b3a' : '#b83228';
-  const hubC   = dark ? '#c9a84c' : '#8a6a28';
-  const borderC= dark ? 'rgba(255,255,255,0.14)' : 'rgba(28,31,38,0.16)';
-  const tickC  = dark ? 'rgba(255,255,255,0.22)' : 'rgba(28,31,38,0.22)';
-  const palette= dark ? PETAL_PALETTE_DARK : PETAL_PALETTE_LIGHT;
+  const dark    = isDark;
+  const needleC = dark ? '#c44b3a' : '#b83228';
+  const hubC    = dark ? '#c9a84c' : '#8a6a28';
+  const borderC = dark ? 'rgba(255,255,255,0.13)' : 'rgba(28,31,38,0.15)';
+  const tickC   = dark ? 'rgba(255,255,255,0.18)' : 'rgba(28,31,38,0.18)';
+  const elapsedC= dark ? 'rgba(201,168,76,0.70)'  : 'rgba(138,106,40,0.65)';
+  const lblC    = dark ? 'rgba(232,228,216,0.82)'  : 'rgba(28,31,38,0.88)';
+  const cx = LW/2, cy = LH/2;
+  const GAP = 0.020;
 
   const now   = new Date();
   const tm    = now.getHours()*60 + now.getMinutes();
@@ -952,208 +1085,186 @@ function drawChronodex(){
   const te    = EVENTS.filter(e => e.startISO.startsWith(today));
   todayEventsForPicker = te;
 
-  const GAP = 0.022; // angular gap between petals (radians)
-
-  // ── 1. Petal backgrounds + 30-min tick ─────────────
-  for(let i=0;i<CHOURS;i++){
+  // ── 1. Petal outlines only (no fill for empty petals) ──
+  for (let i = 0; i < CHOURS; i++) {
     const ri = petalRI(), ro = petalRO(i);
     const a0 = hourAngle(i, 0), a1 = hourAngle(i, 1);
-
-    // Background fill — fun subtle tint cycling through palette
     ctx.beginPath();
-    ctx.arc(cx,cy,ro, a0+GAP, a1-GAP);
-    ctx.arc(cx,cy,ri, a1-GAP, a0+GAP, true);
+    ctx.arc(cx, cy, ro, a0 + GAP, a1 - GAP);
+    ctx.arc(cx, cy, ri, a1 - GAP, a0 + GAP, true);
     ctx.closePath();
-    ctx.fillStyle = palette[i % palette.length];
-    ctx.fill();
     ctx.strokeStyle = borderC;
-    ctx.lineWidth = 1.2;
+    ctx.lineWidth = 1;
     ctx.stroke();
 
-    // 30-min tick — a small radial line at the petal midpoint
+    // 30-min tick (small radial line inside petal near inner edge)
     const amid = hourAngle(i, 0.5);
-    const tInner = ri + 4, tOuter = ri + 4 + Math.min(10, (ro-ri)*0.22);
+    const t0 = ri + 3, t1 = ri + 3 + Math.min(8, (ro - ri) * 0.18);
     ctx.beginPath();
-    ctx.moveTo(cx + tInner*Math.cos(amid), cy + tInner*Math.sin(amid));
-    ctx.lineTo(cx + tOuter*Math.cos(amid), cy + tOuter*Math.sin(amid));
+    ctx.moveTo(cx + t0 * Math.cos(amid), cy + t0 * Math.sin(amid));
+    ctx.lineTo(cx + t1 * Math.cos(amid), cy + t1 * Math.sin(amid));
     ctx.strokeStyle = tickC;
     ctx.lineWidth = 1.5;
     ctx.stroke();
   }
 
-  // ── 2. Elapsed fill (gold) ──────────────────────────
-  for(let i=0;i<CHOURS;i++){
-    const hAbs  = H_START + i;
-    const hMin  = hAbs*60, hMax = (hAbs+1)*60;
-    if(tm <= hMin) continue;
-    const frac  = Math.min((tm - hMin)/60, 1);
-    const ri    = petalRI()+2, ro = petalRO(i)-2;
-    const a0    = hourAngle(i, 0), a1 = hourAngle(i, frac);
-    const alpha = dark ? (0.52+frac*0.36) : (0.55+frac*0.28);
+  // ── 2. Elapsed time: thick arc line per completed/partial petal ──
+  for (let i = 0; i < CHOURS; i++) {
+    const hAbs = H_START + i;
+    const hMin = hAbs * 60, hMax = (hAbs + 1) * 60;
+    if (tm <= hMin) continue;
+    const frac = Math.min((tm - hMin) / 60, 1);
+    const ri = petalRI(), ro = petalRO(i);
+    const rMid = (ri + ro) / 2;
+    const a0 = hourAngle(i, 0), a1 = hourAngle(i, frac);
+    // Thick arc line at petal midpoint radius
     ctx.beginPath();
-    ctx.arc(cx,cy,ro, a0+GAP, a1);
-    ctx.arc(cx,cy,ri, a1, a0+GAP, true);
-    ctx.closePath();
-    ctx.fillStyle = `rgba(${goldR},${alpha})`;
-    ctx.fill();
-    // Leading edge highlight on current hour
-    if(frac<1){
+    ctx.arc(cx, cy, rMid, a0 + GAP * 0.5, a1);
+    ctx.strokeStyle = elapsedC;
+    ctx.lineWidth = Math.min(ro - ri - 4, 18);
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  // ── 3. Event fills ──
+  te.forEach(ev => {
+    const sm = new Date(ev.startISO).getHours() * 60 + new Date(ev.startISO).getMinutes();
+    const em = new Date(ev.endISO).getHours()   * 60 + new Date(ev.endISO).getMinutes();
+    if (em <= H_START * 60 || sm >= H_END * 60) return;
+    const isPast    = em <= tm;
+    const isCurrent = sm <= tm && em > tm;
+    const alpha = isPast ? 0.20 : isCurrent ? 0.92 : 0.75;
+
+    for (let i = 0; i < CHOURS; i++) {
+      const hAbs = H_START + i;
+      const hMin = hAbs * 60, hMax = (hAbs + 1) * 60;
+      const os = Math.max(sm, hMin), oe = Math.min(em, hMax);
+      if (oe <= os) continue;
+      const f0 = (os - hMin) / 60, f1 = (oe - hMin) / 60;
+      const ri = petalRI() + 2, ro = petalRO(i) - 2;
+      const a0 = hourAngle(i, f0), a1 = hourAngle(i, f1);
       ctx.save();
+      ctx.globalAlpha = alpha;
       ctx.beginPath();
-      ctx.arc(cx,cy,(ri+ro)/2, a1-0.004, a1+0.004);
-      ctx.lineWidth = ro-ri-3;
-      ctx.strokeStyle = `rgba(${goldR},0.92)`;
-      ctx.lineCap = 'round';
+      ctx.arc(cx, cy, ro, a0 + GAP * 0.4, a1 - GAP * 0.4);
+      ctx.arc(cx, cy, ri, a1 - GAP * 0.4, a0 + GAP * 0.4, true);
+      ctx.closePath();
+      ctx.fillStyle = ev.color;
+      ctx.fill();
+      ctx.globalAlpha = isPast ? 0.15 : 0.80;
+      ctx.strokeStyle = ev.color;
+      ctx.lineWidth = isCurrent ? 2.5 : 1.5;
       ctx.stroke();
       ctx.restore();
     }
-  }
-
-  // ── 3. Event fills ──────────────────────────────────
-  // Each event paints exactly the fraction it occupies in each petal it spans.
-  // Full petal fill if the event covers the whole hour, partial if not.
-  te.forEach(ev => {
-    const sm = new Date(ev.startISO).getHours()*60 + new Date(ev.startISO).getMinutes();
-    const em = new Date(ev.endISO).getHours()*60   + new Date(ev.endISO).getMinutes();
-    if(em <= H_START*60 || sm >= H_END*60) return;
-
-    const isPast    = em <= tm;
-    const isCurrent = sm <= tm && em > tm;
-    const fillAlpha = isPast ? 0.18 : isCurrent ? 0.90 : 0.72;
-    const strokeAlpha = isPast ? 0.12 : isCurrent ? 1.0 : 0.60;
-
-    for(let i=0;i<CHOURS;i++){
-      const hAbs = H_START + i;
-      const hMin = hAbs*60, hMax = (hAbs+1)*60;
-      const os   = Math.max(sm, hMin), oe = Math.min(em, hMax);
-      if(oe <= os) continue;
-
-      const f0 = (os - hMin)/60;  // fraction of petal where event starts (0–1)
-      const f1 = (oe - hMin)/60;  // fraction where it ends
-      const ri = petalRI()+3, ro = petalRO(i)-3;
-      const a0 = hourAngle(i, f0), a1 = hourAngle(i, f1);
-
-      // Parse color to RGBA
-      const col = ev.color;
-      ctx.globalAlpha = fillAlpha;
-      ctx.beginPath();
-      ctx.arc(cx,cy,ro, a0+GAP*0.5, a1-GAP*0.5);
-      ctx.arc(cx,cy,ri, a1-GAP*0.5, a0+GAP*0.5, true);
-      ctx.closePath();
-      ctx.fillStyle = col;
-      ctx.fill();
-      ctx.globalAlpha = strokeAlpha;
-      ctx.strokeStyle = col;
-      ctx.lineWidth = isCurrent ? 2.2 : 1.4;
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
   });
 
-  // ── 4. Event labels — OUTSIDE petals ───────────────
-  // For each event, find the petal with most overlap and draw text
-  // outside that petal along its midpoint angle. Show: name + start–end.
+  // ── 4. Event labels — outside petals, no overlap ──
+  // Sort by bestI so labels at same petal stack in order
+  const labelItems = [];
   te.forEach(ev => {
-    const sm = new Date(ev.startISO).getHours()*60 + new Date(ev.startISO).getMinutes();
-    const em = new Date(ev.endISO).getHours()*60   + new Date(ev.endISO).getMinutes();
-    if(em <= H_START*60 || sm >= H_END*60) return;
-    const isPast = em <= tm;
-
-    // Find petal with greatest overlap
+    const sm = new Date(ev.startISO).getHours() * 60 + new Date(ev.startISO).getMinutes();
+    const em = new Date(ev.endISO).getHours()   * 60 + new Date(ev.endISO).getMinutes();
+    if (em <= H_START * 60 || sm >= H_END * 60) return;
     let bestI = -1, bestOv = 0;
-    for(let i=0;i<CHOURS;i++){
-      const hMin=(H_START+i)*60, hMax=(H_START+i+1)*60;
-      const ov = Math.min(em,hMax) - Math.max(sm,hMin);
-      if(ov > bestOv){ bestOv=ov; bestI=i; }
+    for (let i = 0; i < CHOURS; i++) {
+      const ov = Math.min(em, (H_START+i+1)*60) - Math.max(sm, (H_START+i)*60);
+      if (ov > bestOv) { bestOv = ov; bestI = i; }
     }
-    if(bestI < 0) return;
-
-    const ro     = petalRO(bestI);
-    const labelR = ro + 20;  // outside the petal
-    const angle  = petalMid(bestI);
-    const lx     = cx + labelR*Math.cos(angle);
-    const ly     = cy + labelR*Math.sin(angle);
-
-    // Format: name on line 1, times on line 2
+    if (bestI < 0) return;
+    const fmt = m => String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
     const short = ev.title.replace(/&lt;/g,'<').replace(/&amp;/g,'&');
-    const name  = short.length > 14 ? short.slice(0,13)+'…' : short;
-    const fmt   = m => String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
-    const times = fmt(sm)+'-'+fmt(em);
+    const name  = short.length > 15 ? short.slice(0,14) + '\u2026' : short;
+    const times = fmt(sm) + '-' + fmt(em);
+    labelItems.push({ bestI, name, times, color: ev.color, isPast: em <= tm });
+  });
+  labelItems.sort((a,b) => a.bestI - b.bestI);
+
+  // Assign label slots — multiple events on same petal get staggered outward
+  const petalLabelCount = {};
+  labelItems.forEach(item => {
+    const i    = item.bestI;
+    const slot = petalLabelCount[i] || 0;
+    petalLabelCount[i] = slot + 1;
+
+    const ro     = petalRO(i);
+    const labelR = ro + 12 + slot * 28;  // stack outward
+    const angle  = petalMid(i);
+    const lx = cx + labelR * Math.cos(angle);
+    const ly = cy + labelR * Math.sin(angle);
 
     ctx.save();
     ctx.translate(lx, ly);
-
-    // Rotate so text reads outward from hub; flip in lower half
-    let rot = angle + Math.PI/2;
-    if(angle > 0 && angle < Math.PI) rot += Math.PI;
+    // Rotate: text flows OUTWARD from centre along petal angle.
+    // angle points from centre outward. We want text baseline at inner end,
+    // reading outward. So rotate = angle + PI/2 (text bottom toward centre).
+    // In the upper-right quadrant (angle ~-PI/2 to 0) this reads left-to-right outward.
+    // Flip in left half (angle PI/2..3PI/2 i.e. cos<0) so it's never upside-down.
+    let rot = angle + Math.PI / 2;
+    const cosA = Math.cos(angle);
+    if (cosA < 0) rot += Math.PI;
     ctx.rotate(rot);
 
-    ctx.font = `bold 10px "JetBrains Mono",monospace`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.shadowColor = 'rgba(0,0,0,0.95)';
-    ctx.shadowBlur  = 5;
-    ctx.fillStyle   = isPast ? 'rgba(180,180,180,0.5)' : ev.color;
-    ctx.fillText(name, 0, 0);
+    // Name line
+    ctx.font = 'bold 11px "JetBrains Mono",monospace';
+    ctx.textAlign  = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.shadowColor = dark ? 'rgba(0,0,0,1)' : 'rgba(255,255,255,0.9)';
+    ctx.shadowBlur  = 4;
+    ctx.fillStyle   = item.isPast ? 'rgba(160,160,160,0.45)' : item.color;
+    ctx.fillText(item.name, 0, 0);
 
-    ctx.font = `9px "JetBrains Mono",monospace`;
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = isPast ? 'rgba(140,140,140,0.45)' : 'rgba(200,200,200,0.85)';
-    ctx.fillText(times, 0, 1);
+    // Time line
+    ctx.font = '9px "JetBrains Mono",monospace';
+    ctx.fillStyle = item.isPast ? 'rgba(120,120,120,0.35)' : lblC;
+    ctx.fillText(item.times, 0, 12);
     ctx.shadowBlur = 0;
     ctx.restore();
   });
 
-  // ── 5. Hour labels (just outside petals) ───────────
-  for(let i=0;i<CHOURS;i++){
-    const hAbs  = H_START + i;
-    const a     = petalMid(i);
-    const ro    = petalRO(i);
-    // Only draw hour label if no event label is occupying this petal
-    // (always draw — event labels are at +20, hour labels at +8 from smaller petal)
-    // For clarity: draw hour at petal TIP edge, inside
-    const tipR  = ro - 8;
-    const hLabel= hAbs === 24 ? '0' : hAbs >= 12 ? (hAbs===12?'12p':(hAbs-12)+'p') : hAbs+'a';
+  // ── 5. Hour labels at petal tip ──
+  ctx.shadowBlur = 0;
+  for (let i = 0; i < CHOURS; i++) {
+    const hAbs = H_START + i;
+    const a    = petalMid(i);
+    const tipR = petalRO(i) - 9;
+    const hLabel = hAbs >= 12 ? (hAbs === 12 ? '12p' : (hAbs-12) + 'p') : hAbs + 'a';
     ctx.save();
-    ctx.translate(cx + tipR*Math.cos(a), cy + tipR*Math.sin(a));
-    let rot = a + Math.PI/2;
-    if(a > 0 && a < Math.PI) rot += Math.PI;
+    ctx.translate(cx + tipR * Math.cos(a), cy + tipR * Math.sin(a));
+    let rot = a + Math.PI / 2;
+    if (Math.cos(a) < 0) rot += Math.PI;
     ctx.rotate(rot);
     ctx.font = '10px "JetBrains Mono",monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = lblC;
+    ctx.shadowColor = dark ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.8)';
+    ctx.shadowBlur  = 3;
+    ctx.fillStyle   = lblC;
     ctx.fillText(hLabel, 0, 0);
+    ctx.shadowBlur = 0;
     ctx.restore();
   }
 
-  // ── 6. Time needle ──────────────────────────────────
-  if(tm >= H_START*60 && tm < H_END*60){
-    const slot  = tm/60 - H_START;         // fractional slot index
-    const slotI = Math.floor(slot);
-    const frac  = slot - slotI;
-    const na    = hourAngle(slotI, frac);
-    const nLen  = petalRO(slotI) + 4;
-
+  // ── 6. Time needle ──
+  if (tm >= H_START * 60 && tm < H_END * 60) {
+    const slotF = tm / 60 - H_START;
+    const si    = Math.floor(slotF);
+    const frac  = slotF - si;
+    const na    = hourAngle(si, frac);
+    const nLen  = petalRO(si) + 6;
     ctx.lineCap = 'round';
-    // Shadow
-    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+nLen*Math.cos(na), cy+nLen*Math.sin(na));
-    ctx.strokeStyle = dark?'rgba(0,0,0,0.5)':'rgba(255,255,255,0.55)';
-    ctx.lineWidth = 6; ctx.stroke();
-    // Needle
-    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+nLen*Math.cos(na), cy+nLen*Math.sin(na));
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + nLen * Math.cos(na), cy + nLen * Math.sin(na));
+    ctx.strokeStyle = dark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 5; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + nLen * Math.cos(na), cy + nLen * Math.sin(na));
     ctx.strokeStyle = needleC; ctx.lineWidth = 2.5; ctx.stroke();
-    // Tip
-    ctx.beginPath(); ctx.arc(cx+nLen*Math.cos(na), cy+nLen*Math.sin(na), 5, 0, Math.PI*2);
+    ctx.beginPath(); ctx.arc(cx + nLen * Math.cos(na), cy + nLen * Math.sin(na), 5, 0, Math.PI * 2);
     ctx.fillStyle = needleC; ctx.fill();
   }
 
-  // ── 7. Hub ──────────────────────────────────────────
-  ctx.beginPath(); ctx.arc(cx,cy,14,0,Math.PI*2);
+  // ── 7. Centre hub — just a small dot, no circle ──
+  ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2);
   ctx.fillStyle = hubC; ctx.fill();
-  ctx.beginPath(); ctx.arc(cx,cy,14,0,Math.PI*2);
-  ctx.strokeStyle = dark?'rgba(201,168,76,0.55)':'rgba(138,106,40,0.55)';
-  ctx.lineWidth = 2; ctx.stroke();
 }
 
 // ── SMART TAP ────────────────────────────────────────
@@ -1243,7 +1354,10 @@ function buildTasks(){
     const gl=document.createElement('div');gl.className='task-group-lbl';gl.textContent=lbl;list.appendChild(gl);
     items.forEach(task=>{
       const item=document.createElement('div');item.className='task-item'+(task.done?' done':'');
-      item.innerHTML='<div class="task-pri pri-'+task.priority+'"></div><div class="task-check"></div><div class="task-body"><div class="task-title">'+task.title+'</div>'+(task.due?'<div class="task-meta '+(mc||'')+'">'+fmtDue(task.due,today)+(activeTaskTab==='all'?'  \u00b7 '+task._listName:'')+'</div>':'')+'</div>';
+      item.draggable=true;
+      item.innerHTML='<div class="drag-hint">\u2630</div><div class="task-pri pri-'+task.priority+'"></div><div class="task-check"></div><div class="task-body"><div class="task-title">'+task.title+'</div>'+(task.due?'<div class="task-meta '+(mc||'')+'">'+fmtDue(task.due,today)+(activeTaskTab==='all'?'  \u00b7 '+task._listName:'')+'</div>':'')+'</div>';
+      item.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',JSON.stringify({taskTitle:task.title,taskId:task._id,listId:task._list}));item.classList.add('dragging');});
+      item.addEventListener('dragend',()=>item.classList.remove('dragging'));
       item.querySelector('.task-check').addEventListener('click',ev=>{ev.stopPropagation();completeTask(task);});
       list.appendChild(item);
     });
@@ -1372,11 +1486,26 @@ const PMIN=1,PMAX=80;let pomoDuration=25;
 const pomo={running:false,totalSecs:25*60,remainSecs:25*60,interval:null,sessions:0};
 
 function openPomo(ev){
-  if(!pomo.running)document.getElementById('pomo-ev-title').textContent=ev?ev.title:'Focus Session';
-  document.body.classList.add('pomo-open');
-  drawPomoRing();renderPomo();buildTicks();
+  if(!pomo.running) document.getElementById('pomo-ev-title').textContent = ev ? ev.title : 'Focus Session';
+  document.getElementById('pomo-overlay').classList.add('open');
+  initScribble();
+  drawPomoRing(); renderPomo(); buildTicks();
 }
-document.getElementById('pomo-close').addEventListener('click',()=>document.body.classList.remove('pomo-open'));
+document.getElementById('pomo-open-btn').addEventListener('click', ()=>openPomo(null));
+document.getElementById('pomo-close').addEventListener('click', ()=>{
+  if(pomo.running){
+    document.getElementById('pomo-lock-msg').classList.add('show');
+    return;
+  }
+  document.getElementById('pomo-overlay').classList.remove('open');
+});
+document.getElementById('pomo-withdraw').addEventListener('click', ()=>{
+  clearInterval(pomo.interval); pomo.running=false;
+  pomo.totalSecs=pomoDuration*60; pomo.remainSecs=pomoDuration*60;
+  renderPomo();
+  document.getElementById('pomo-lock-msg').classList.remove('show');
+  document.getElementById('pomo-overlay').classList.remove('open');
+});
 
 function clamp(v){return Math.max(PMIN,Math.min(PMAX,Math.round(v)));}
 function setDuration(v){
@@ -1426,6 +1555,7 @@ function renderPomo(){
   document.querySelectorAll('.sess-dot').forEach((d,i)=>d.classList.toggle('done',i<pomo.sessions));
   const sw=document.querySelector('.swipe-section');
   if(sw){sw.style.opacity=pomo.running?'0.4':'1';sw.style.pointerEvents=pomo.running?'none':'auto';}
+  if(!pomo.running) document.getElementById('pomo-lock-msg').classList.remove('show');
   drawPomoRing();
 }
 document.getElementById('pomo-start').addEventListener('click',()=>{
@@ -1437,6 +1567,8 @@ document.getElementById('pomo-start').addEventListener('click',()=>{
       pomo.remainSecs--;
       if(pomo.remainSecs<=0){
         clearInterval(pomo.interval);pomo.running=false;pomo.remainSecs=0;pomo.sessions=Math.min(4,pomo.sessions+1);
+        document.getElementById('pomo-lock-msg').classList.remove('show');
+        setTimeout(()=>document.getElementById('pomo-overlay').classList.remove('open'),1200);
         try{const ac=new(window.AudioContext||window.webkitAudioContext)();[0,0.35,0.7].forEach((t,i)=>{const osc=ac.createOscillator(),g=ac.createGain();osc.connect(g);g.connect(ac.destination);osc.frequency.value=[528,660,792][i];g.gain.value=0.2;osc.start(ac.currentTime+t);g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+t+0.9);osc.stop(ac.currentTime+t+0.9);});}catch(e){}
       }
       renderPomo();
@@ -1447,6 +1579,113 @@ document.getElementById('pomo-start').addEventListener('click',()=>{
 document.getElementById('pomo-reset').addEventListener('click',()=>{
   clearInterval(pomo.interval);pomo.running=false;pomo.totalSecs=pomoDuration*60;pomo.remainSecs=pomoDuration*60;renderPomo();
 });
+
+
+// ── SCRIBBLE BOARD ────────────────────────────────────
+let _scribbleInited = false;
+const SCRIBBLE_COLORS = ['#e8e4d8','#c9a84c','#4a7fa5','#5a8f6a','#c44b3a','#d4813a','#000000'];
+
+function initScribble() {
+  if (_scribbleInited) return;
+  _scribbleInited = true;
+  const cv  = document.getElementById('scribble-canvas');
+  const col = cv.parentElement;
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    const w   = col.clientWidth;
+    const h   = col.clientHeight;
+    // Preserve existing drawing
+    const tmp = document.createElement('canvas');
+    tmp.width = cv.width; tmp.height = cv.height;
+    tmp.getContext('2d').drawImage(cv, 0, 0);
+    cv.width  = w * dpr; cv.height = h * dpr;
+    cv.style.width = w + 'px'; cv.style.height = h + 'px';
+    const ctx = cv.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.drawImage(tmp, 0, 0, w, h);
+  }
+  resize();
+  new ResizeObserver(resize).observe(col);
+
+  // Build color swatches
+  const swatchBar = document.getElementById('color-swatches');
+  swatchBar.innerHTML = '';
+  let activeColor = SCRIBBLE_COLORS[0];
+  SCRIBBLE_COLORS.forEach(c => {
+    const s = document.createElement('div');
+    s.className = 'scribble-swatch' + (c === activeColor ? ' active' : '');
+    s.style.background = c;
+    s.addEventListener('click', () => {
+      activeColor = c;
+      isEraser = false;
+      document.querySelectorAll('.scribble-swatch').forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+      document.getElementById('scribble-eraser').classList.remove('active');
+    });
+    swatchBar.appendChild(s);
+  });
+
+  let isEraser = false;
+  document.getElementById('scribble-eraser').addEventListener('click', function() {
+    isEraser = !isEraser;
+    this.classList.toggle('active', isEraser);
+  });
+  document.getElementById('scribble-clear').addEventListener('click', () => {
+    const dpr = window.devicePixelRatio || 1;
+    cv.getContext('2d').clearRect(0, 0, cv.width / dpr * dpr, cv.height / dpr * dpr);
+  });
+
+  // Drawing logic — works for both mouse and Apple Pencil (pointer events)
+  let drawing = false, lastX = 0, lastY = 0;
+
+  function getPos(e) {
+    const rect = cv.getBoundingClientRect();
+    const dpr  = window.devicePixelRatio || 1;
+    const src  = e.touches ? e.touches[0] : e;
+    return [(src.clientX - rect.left), (src.clientY - rect.top)];
+  }
+
+  function startDraw(e) {
+    e.preventDefault();
+    drawing = true;
+    [lastX, lastY] = getPos(e);
+    const ctx = cv.getContext('2d');
+    const sz  = parseInt(document.getElementById('stroke-size').value) || 3;
+    ctx.beginPath();
+    ctx.arc(lastX, lastY, sz / 2, 0, Math.PI * 2);
+    ctx.fillStyle = isEraser ? 'rgba(0,0,0,1)' : activeColor;
+    if (isEraser) { ctx.save(); ctx.globalCompositeOperation = 'destination-out'; ctx.fill(); ctx.restore(); }
+    else ctx.fill();
+  }
+
+  function draw(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const ctx = cv.getContext('2d');
+    const [x, y] = getPos(e);
+    const sz = parseInt(document.getElementById('stroke-size').value) || 3;
+    ctx.save();
+    if (isEraser) ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = isEraser ? 'rgba(0,0,0,1)' : activeColor;
+    ctx.lineWidth   = sz;
+    ctx.lineCap     = 'round';
+    ctx.lineJoin    = 'round';
+    ctx.stroke();
+    ctx.restore();
+    lastX = x; lastY = y;
+  }
+
+  function endDraw() { drawing = false; }
+
+  cv.addEventListener('pointerdown', startDraw, { passive: false });
+  cv.addEventListener('pointermove', draw,      { passive: false });
+  cv.addEventListener('pointerup',   endDraw);
+  cv.addEventListener('pointercancel', endDraw);
+}
 
 // ── INIT ──────────────────────────────────────────────
 renderLeft(); buildTasks(); updateClock(); drawChronodex(); buildTicks(); renderPomo();
