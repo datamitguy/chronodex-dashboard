@@ -31,7 +31,7 @@ body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100vh; }
 .panel:last-child { border-right:none; }
 
 /* HEADERS */
-.panel-header { padding:12px 14px; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.panel-header { padding:9px 12px; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:5px; flex-shrink:0; }
 .panel-title { font-size:15px; letter-spacing:0.20em; text-transform:uppercase; color:var(--ink-dim); font-family:'JetBrains Mono',monospace; }
 .panel-accent { width:6px; height:6px; border-radius:50%; background:var(--gold); animation:pulse 3s ease-in-out infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
@@ -368,6 +368,7 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
   <div class="panel-header">
     <span class="panel-title" id="left-title" style="font-size:13px"></span>
     <button class="add-btn" id="add-event-btn" title="Add event">+</button>
+    <button class="add-btn" id="notes-btn" title="Quick note" style="border-color:var(--ink-faint);color:var(--ink-dim);font-size:15px">&#9998;</button>
     <div class="view-toggle" style="margin-left:8px">
       <button class="view-btn active" data-view="day">Day</button>
       <button class="view-btn" data-view="week">Week</button>
@@ -397,7 +398,6 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
 <section class="panel" id="panel-chrono">
   <div class="panel-header">
     <span class="panel-title">Cosmodex</span>
-    <button class="add-btn" id="notes-btn" title="Quick note" style="border-color:var(--blue);color:var(--blue);font-size:16px">&#9998;</button>
     <button class="add-btn" id="pomo-open-btn" title="Focus timer" style="border-color:var(--gold-dim)">&#9650;</button>
     <button class="theme-btn" id="theme-btn" style="margin-left:8px">
       <span id="theme-icon">☀</span><span id="theme-label">Light</span>
@@ -882,32 +882,80 @@ async function loadAllData(){
 // ── TABS ──────────────────────────────────────────────
 function buildCalTabs(){
   const bar=document.getElementById('cal-tab-bar');
-  if(CAL_LIST.length<=1){bar.style.display='none';activeCalTab='all';return;}
   bar.style.display='flex';
+  bar.style.cssText='display:flex;align-items:center;padding:3px 8px;border-bottom:2px solid var(--border);flex-shrink:0;gap:6px;';
   bar.innerHTML='';
-  const all=document.createElement('button'); all.className='tab'+(activeCalTab==='all'?' active':''); all.textContent='All'; all.onclick=()=>{activeCalTab='all';buildCalTabs();renderLeft();};
-  bar.appendChild(all);
+  const isFiltered=activeCalTab!=='all';
+  // "All" button — dimmed when a calendar is selected
+  const allBtn=document.createElement('button');
+  allBtn.style.cssText='font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;'+
+    'background:none;border:1.5px solid '+(isFiltered?'var(--border)':'var(--gold)')+';border-radius:4px;'+
+    'color:'+(isFiltered?'var(--ink-faint)':'var(--gold)')+';cursor:pointer;padding:3px 8px;min-height:28px;';
+  allBtn.textContent='All';
+  allBtn.onclick=()=>{activeCalTab='all';buildCalTabs();renderLeft();};
+  bar.appendChild(allBtn);
+  // Dropdown with colored dot indicator
+  const wrap=document.createElement('div');
+  wrap.style.cssText='position:relative;display:flex;align-items:center;flex:1;';
+  const selCal=CAL_LIST.find(c=>c.id===activeCalTab);
+  const sel=document.createElement('select');
+  sel.style.cssText='appearance:none;-webkit-appearance:none;width:100%;'+
+    'background:none;border:1.5px solid '+(isFiltered?selCal?.color||'var(--blue)':'var(--border)')+';border-radius:4px;'+
+    'font-family:"JetBrains Mono",monospace;font-size:11px;'+
+    'color:'+(isFiltered?'var(--ink)':'var(--ink-faint)')+';cursor:pointer;'+
+    'padding:3px 24px 3px 8px;outline:none;min-height:28px;';
+  const ph=document.createElement('option');ph.value='';
+  ph.textContent=isFiltered?(selCal?.name||'Calendar'):'Calendar ▾';
+  ph.disabled=true; ph.selected=!isFiltered;
+  sel.appendChild(ph);
   CAL_LIST.forEach(cal=>{
-    const t=document.createElement('button'); t.className='tab'+(activeCalTab===cal.id?' active':'');
-    t.innerHTML='<span class="tab-dot" style="background:'+cal.color+'"></span>'+cal.name;
-    t.onclick=()=>{activeCalTab=cal.id;buildCalTabs();renderLeft();};
-    bar.appendChild(t);
+    const o=document.createElement('option');o.value=cal.id;o.textContent=cal.name;
+    if(activeCalTab===cal.id) o.selected=true;
+    sel.appendChild(o);
   });
+  sel.onchange=e=>{if(e.target.value){activeCalTab=e.target.value;buildCalTabs();renderLeft();}};
+  // Color dot on right of dropdown
+  const dot=document.createElement('span');
+  dot.style.cssText='position:absolute;right:8px;top:50%;transform:translateY(-50%);width:7px;height:7px;border-radius:50%;pointer-events:none;flex-shrink:0;';
+  dot.style.background=isFiltered?(selCal?.color||'var(--blue)'):'var(--border)';
+  wrap.appendChild(sel);wrap.appendChild(dot);
+  bar.appendChild(wrap);
 }
 
 function buildTaskTabs(){
   const bar=document.getElementById('task-tab-bar');
-  if(TASK_LISTS.length<=1){bar.style.display='none';activeTaskTab='all';return;}
   bar.style.display='flex';
+  bar.style.cssText='display:flex;align-items:center;padding:3px 8px;border-bottom:2px solid var(--border);flex-shrink:0;gap:6px;';
   bar.innerHTML='';
-  const all=document.createElement('button'); all.className='tab'+(activeTaskTab==='all'?' active':''); all.textContent='All'; all.onclick=()=>{activeTaskTab='all';buildTaskTabs();buildTasks();};
-  bar.appendChild(all);
+  const isFiltered=activeTaskTab!=='all';
+  const allBtn=document.createElement('button');
+  allBtn.style.cssText='font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;'+
+    'background:none;border:1.5px solid '+(isFiltered?'var(--border)':'var(--gold)')+';border-radius:4px;'+
+    'color:'+(isFiltered?'var(--ink-faint)':'var(--gold)')+';cursor:pointer;padding:3px 8px;min-height:28px;';
+  allBtn.textContent='All';
+  allBtn.onclick=()=>{activeTaskTab='all';buildTaskTabs();buildTasks();};
+  bar.appendChild(allBtn);
+  const wrap=document.createElement('div');
+  wrap.style.cssText='position:relative;display:flex;align-items:center;flex:1;';
+  const selList=TASK_LISTS.find(l=>l.id===activeTaskTab);
+  const sel=document.createElement('select');
+  sel.style.cssText='appearance:none;-webkit-appearance:none;width:100%;'+
+    'background:none;border:1.5px solid '+(isFiltered?'var(--blue)':'var(--border)')+';border-radius:4px;'+
+    'font-family:"JetBrains Mono",monospace;font-size:11px;'+
+    'color:'+(isFiltered?'var(--ink)':'var(--ink-faint)')+';cursor:pointer;'+
+    'padding:3px 24px 3px 8px;outline:none;min-height:28px;';
+  const ph=document.createElement('option');ph.value='';
+  ph.textContent=isFiltered?(selList?.title||'List'):'List ▾';
+  ph.disabled=true; ph.selected=!isFiltered;
+  sel.appendChild(ph);
   TASK_LISTS.forEach(tl=>{
-    const t=document.createElement('button'); t.className='tab'+(activeTaskTab===tl.id?' active':'');
-    t.textContent=tl.title;
-    t.onclick=()=>{activeTaskTab=tl.id;buildTaskTabs();buildTasks();};
-    bar.appendChild(t);
+    const o=document.createElement('option');o.value=tl.id;o.textContent=tl.title;
+    if(activeTaskTab===tl.id) o.selected=true;
+    sel.appendChild(o);
   });
+  sel.onchange=e=>{if(e.target.value){activeTaskTab=e.target.value;buildTaskTabs();buildTasks();}};
+  wrap.appendChild(sel);
+  bar.appendChild(wrap);
 }
 
 function filteredEvents(){
@@ -1183,11 +1231,14 @@ function buildMonth(){
     const isToday=ds===todayStr;
     const hasHol=holByDay[ds]&&holByDay[ds].length>0;
     const evs=evByDay[ds]||[];
+    const dayOfWeek=new Date(yr,mo,d).getDay();
+    const isWeekend=(dayOfWeek===0||dayOfWeek===6);
     const c=document.createElement('div');
     c.className='month-cell'+(isToday?' today':'');
-    if(hasHol) c.style.background='rgba(201,168,76,0.06)';
-    // Day number + tiny dots
-    let inner='<div class="month-day-num" style="'+(hasHol?'color:var(--gold)':'')+'">'+(hasHol?'★ ':'')+d+'</div>';
+    if(hasHol) c.style.background='rgba(196,75,58,0.13)';
+    else if(isWeekend) c.style.background='rgba(196,75,58,0.04)';
+    const numCol=hasHol?'var(--red)':isWeekend?'rgba(210,80,60,0.80)':isToday?'var(--gold)':'';
+    let inner='<div class="month-day-num" style="'+(numCol?'color:'+numCol:'')+'">'+(hasHol?'★ ':'')+d+'</div>';
     inner+='<div class="month-dots">'+evs.slice(0,4).map(e=>'<div class="month-dot" style="background:'+e.color+'"></div>').join('')+'</div>';
     c.innerHTML=inner;
     // Click: jump to day view
@@ -1225,8 +1276,9 @@ function buildMonth(){
       row.style.cssText='padding:5px 4px;border-bottom:1px solid var(--ink-faint);cursor:pointer;';
       if(isToday) row.style.background='rgba(201,168,76,0.06)';
       let inner='<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:2px">';
-      inner+='<span style="font-family:JetBrains Mono,monospace;font-size:10px;letter-spacing:0.10em;color:'+(isToday?'var(--gold)':'var(--ink-dim)')+'">'+n.dow.toUpperCase()+' '+String(n.d).padStart(2,'0')+'</span>';
-      n.hols.forEach(e=>{ inner+='<span style="font-size:12px;color:var(--gold)">★ '+e.title.replace(/&lt;/g,'<')+'</span>'; });
+      const _isWknd=(new Date(n.ds).getDay()===0||new Date(n.ds).getDay()===6);
+      inner+='<span style="font-family:JetBrains Mono,monospace;font-size:10px;letter-spacing:0.10em;color:'+(isToday?'var(--gold)':_isWknd||n.hols.length?'var(--red)':'var(--ink-dim)')+'">'+n.dow.toUpperCase()+' '+String(n.d).padStart(2,'0')+'</span>';
+      n.hols.forEach(e=>{ inner+='<span style="font-size:12px;color:var(--red);font-weight:bold">★ '+e.title.replace(/&lt;/g,String.fromCharCode(60))+'</span>'; });
       inner+='</div>';
       n.evs.slice(0,3).forEach(e=>{
         const t=e.startISO.slice(11,16);
@@ -1411,7 +1463,7 @@ function drawCosmodex() {
     const ro    = petalRO(i);
     const angle = petalMid(i);
     // Gap between slots: name(11px) + time(9px) + padding = ~28px per slot
-    const startR = ro + 14 + slot * 30;
+    const startR = ro + 18 + slot * 40;  // wider slots to reduce overlap
     // Correct flip: flip when petal points into LEFT half (cos < 0)
     // This makes text always read outward from the hub, never upside-down
     const shouldFlip = Math.cos(angle) < 0;
@@ -1424,7 +1476,7 @@ function drawCosmodex() {
       // Petal points left: text would be upside-down, so flip 180° and start from far end
       // Measure text width to know where to start so text ends at startR (not starts)
       ctx.scale(-1, -1);  // flip both axes = rotate 180
-      ctx.translate(-startR - 75, 0);  // position so text runs inward (toward petal tip)
+      ctx.translate(-startR - 110, 0);  // wider gap for flipped labels
     } else {
       ctx.translate(startR, 0);
     }
@@ -1436,13 +1488,13 @@ function drawCosmodex() {
     // Time first (smaller, dimmer)
     ctx.font = '9px "JetBrains Mono",monospace';
     ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = item.isPast ? 'rgba(120,120,120,0.40)' : (dark?'rgba(200,200,200,0.75)':'rgba(60,60,60,0.80)');
-    ctx.fillText(item.times, 0, -2);
+    ctx.fillStyle = item.isPast ? 'rgba(120,120,120,0.40)' : (dark?'rgba(200,200,200,0.72)':'rgba(60,60,60,0.78)');
+    ctx.fillText(item.times, 0, 1);
 
-    // Event name below time
-    ctx.font = 'bold 11px "JetBrains Mono",monospace';
+    // Event name below time, slightly indented
+    ctx.font = 'bold 12px "JetBrains Mono",monospace';
     ctx.fillStyle = item.isPast ? 'rgba(160,160,160,0.40)' : item.color;
-    ctx.fillText(item.name, 0, 11);
+    ctx.fillText(item.name, 0, 15);
 
     ctx.shadowBlur = 0;
     ctx.restore();
