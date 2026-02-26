@@ -262,13 +262,11 @@ body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100vh; }
 /* ══ POMODORO OVERLAY ══ */
 #pomo-overlay {
   display:none; position:fixed; z-index:800;
-  /* covers tasks + chrono = right 2/3 of screen */
-  left:calc(100% / 3); top:0; right:0; bottom:0;
-  background:rgba(10,10,8,0.92);
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
+  inset:0;
+  background:rgba(10,10,8,0.94);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
   flex-direction:column;
-  border-left:2px solid var(--border);
 }
 #pomo-overlay.open { display:flex; }
 [data-theme="light"] #pomo-overlay { background:rgba(240,238,235,0.93); }
@@ -408,7 +406,7 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
       <div class="time-date" id="time-date"></div>
     </div>
     <div class="chrono-canvas-wrap">
-      <canvas id="chronodex-canvas" width="520" height="520"></canvas>
+      <canvas id="chronodex-canvas" width="680" height="460"></canvas>
       <div class="chrono-tap-overlay" id="chrono-overlay"></div>
     </div>
     <div class="next-strip">
@@ -475,6 +473,7 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
           <div id="color-swatches" style="display:flex;gap:6px;align-items:center"></div>
           <button class="scribble-btn" id="scribble-eraser">Erase</button>
           <button class="scribble-btn" id="scribble-clear">Clear</button>
+          <button class="scribble-btn" id="scribble-download">&#8681; Save</button>
         </div>
       </div>
       <canvas id="scribble-canvas"></canvas>
@@ -488,6 +487,47 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
 </div>
 
 </section>
+
+<!-- TASK→EVENT MODAL -->
+<div class="modal-backdrop" id="modal-task2event">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="t2e-modal-title">Schedule Task</span>
+      <button class="modal-close" id="modal-t2e-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Title</label>
+        <input type="text" id="t2e-title" autocomplete="off">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="t2e-date">
+        </div>
+        <div class="field">
+          <label>Calendar</label>
+          <select id="t2e-cal"></select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Start time</label>
+          <input type="time" id="t2e-start">
+        </div>
+        <div class="field">
+          <label>Duration (min)</label>
+          <input type="number" id="t2e-dur" value="60" min="5" max="480" step="5">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <span class="modal-saving" id="t2e-saving" style="display:none">Saving…</span>
+      <button class="modal-btn" id="t2e-cancel">Cancel</button>
+      <button class="modal-btn primary" id="t2e-save">Add to Calendar</button>
+    </div>
+  </div>
+</div>
 
 <!-- SIGN-IN OVERLAY -->
 <div id="signin-overlay">
@@ -689,12 +729,12 @@ function showSyncBar(msg,state){
 }
 
 // ── API HELPER ────────────────────────────────────────
-async function apiFetch(url, params, opts){
+async function apiFetch(url, params, opts, silent=false){
   if(!accessToken) throw new Error('not_authenticated');
-  if(Date.now()>tokenExpiry){ clearSession(); throw new Error('token_expired'); }
+  if(Date.now()>tokenExpiry){ if(!silent) clearSession(); throw new Error('token_expired'); }
   const qs = params ? '?'+new URLSearchParams(params) : '';
   const r = await fetch(url+qs, { headers:{Authorization:'Bearer '+accessToken}, ...opts });
-  if(r.status===401){ clearSession(); throw new Error('token_expired'); }
+  if(r.status===401){ if(!silent) clearSession(); throw new Error('token_expired'); }
   if(!r.ok) throw new Error('HTTP '+r.status);
   if(r.status===204||r.headers.get('content-length')==='0') return {};
   return r.json();
@@ -706,6 +746,34 @@ async function apiPost(url, body){
   if(r.status===401){ clearSession(); throw new Error('token_expired'); }
   if(!r.ok){ const t=await r.text(); throw new Error('HTTP '+r.status+': '+t.slice(0,120)); }
   return r.json();
+}
+
+// Silent versions for background refresh (don't clear session on 401)
+async function apiFetchSilent(url, params){
+  if(!accessToken||Date.now()>tokenExpiry) throw new Error('skip');
+  const qs=params?'?'+new URLSearchParams(params):'';
+  const r=await fetch(url+qs,{headers:{Authorization:'Bearer '+accessToken}});
+  if(r.status===401||r.status===403) throw new Error('skip');
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  if(r.status===204) return {};
+  return r.json();
+}
+async function loadAllDataSilent(){
+  // Re-use normal load but with a try/catch that never touches session
+  const oldFetch = window._apiFetch;
+  try {
+    await fetchCalList();
+    await Promise.all([fetchEvents(), fetchTasks()]);
+    buildCalTabs(); buildTaskTabs();
+    renderLeft(); buildTasks(); updateClock(); drawChronodex();
+    const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+    showSyncBar('Synced · '+t,'ok');
+  } catch(e) {
+    if(e.message!=='skip'&&e.message!=='token_expired'&&e.message!=='not_authenticated'){
+      showSyncBar('⚠ '+e.message,'err');
+    }
+    // Never log out during background refresh
+  }
 }
 
 // ── FETCH CALENDAR LIST ───────────────────────────────
@@ -890,7 +958,7 @@ function buildDay(){
     row.addEventListener('drop',e=>{
       e.preventDefault(); row.classList.remove('drag-over');
       const data=JSON.parse(e.dataTransfer.getData('text/plain')||'{}');
-      if(data.taskTitle) createEventFromTask(data.taskTitle,data.taskId,data.listId,ds,hr);
+      if(data.taskTitle) openTaskToEventModal(data.taskTitle,data.taskId,data.listId,ds,hr);
     });
 
     const lbl=document.createElement('div');
@@ -930,6 +998,49 @@ function buildDay(){
 }
 
 // Create a calendar event from a dragged task
+function openTaskToEventModal(title, taskId, listId, dateStr, hour){
+  document.getElementById('t2e-title').value = title;
+  document.getElementById('t2e-date').value  = dateStr;
+  document.getElementById('t2e-start').value = String(hour).padStart(2,'0')+':00';
+  document.getElementById('t2e-dur').value   = '60';
+  const sel = document.getElementById('t2e-cal'); sel.innerHTML='';
+  CAL_LIST.forEach(cal=>{
+    const o=document.createElement('option'); o.value=cal.id; o.textContent=cal.name;
+    if(cal.isPrimary) o.selected=true;
+    sel.appendChild(o);
+  });
+  document.getElementById('modal-task2event').classList.add('open');
+  setTimeout(()=>document.getElementById('t2e-start').focus(),50);
+}
+document.getElementById('modal-t2e-close').addEventListener('click',()=>document.getElementById('modal-task2event').classList.remove('open'));
+document.getElementById('t2e-cancel').addEventListener('click',()=>document.getElementById('modal-task2event').classList.remove('open'));
+document.getElementById('t2e-save').addEventListener('click',async()=>{
+  const title=document.getElementById('t2e-title').value.trim();
+  const date =document.getElementById('t2e-date').value;
+  const start=document.getElementById('t2e-start').value;
+  const dur  =parseInt(document.getElementById('t2e-dur').value)||60;
+  const calId=document.getElementById('t2e-cal').value;
+  if(!title||!date||!start) return;
+  const startDT=new Date(date+'T'+start);
+  const endDT  =new Date(startDT.getTime()+dur*60000);
+  document.getElementById('t2e-saving').style.display='';
+  document.getElementById('t2e-save').disabled=true;
+  try{
+    await apiPost(CAL_API+'/calendars/'+encodeURIComponent(calId)+'/events',{
+      summary:title,
+      start:{dateTime:startDT.toISOString()},
+      end:{dateTime:endDT.toISOString()},
+    });
+    document.getElementById('modal-task2event').classList.remove('open');
+    showSyncBar('Added to calendar ✓','ok');
+    await loadAllData();
+  }catch(err){ showSyncBar('⚠ '+err.message,'err'); }
+  finally{
+    document.getElementById('t2e-saving').style.display='none';
+    document.getElementById('t2e-save').disabled=false;
+  }
+});
+
 async function createEventFromTask(title, taskId, listId, dateStr, hour){
   if(!accessToken){showSyncBar('Sign in to add events','err');return;}
   const calId = CAL_LIST.find(c=>c.isPrimary)?.id || CAL_LIST[0]?.id;
@@ -1063,8 +1174,8 @@ function drawChronodex() {
     cv._cdxInit = true;
   }
   const ctx = cv.getContext('2d');
-  const LW = parseInt(cv.style.width)  || 520;
-  const LH = parseInt(cv.style.height) || 520;
+  const LW = parseInt(cv.style.width)  || 680;
+  const LH = parseInt(cv.style.height) || 460;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, LW, LH);
   todayEventsForPicker = [];
@@ -1076,7 +1187,7 @@ function drawChronodex() {
   const tickC   = dark ? 'rgba(255,255,255,0.18)' : 'rgba(28,31,38,0.18)';
   const elapsedC= dark ? 'rgba(201,168,76,0.70)'  : 'rgba(138,106,40,0.65)';
   const lblC    = dark ? 'rgba(232,228,216,0.82)'  : 'rgba(28,31,38,0.88)';
-  const cx = LW/2, cy = LH/2;
+  const cx = LW*0.42, cy = LH/2;  // slight left bias so right-side petals fit
   const GAP = 0.020;
 
   const now   = new Date();
@@ -1108,23 +1219,7 @@ function drawChronodex() {
     ctx.stroke();
   }
 
-  // ── 2. Elapsed time: thick arc line per completed/partial petal ──
-  for (let i = 0; i < CHOURS; i++) {
-    const hAbs = H_START + i;
-    const hMin = hAbs * 60, hMax = (hAbs + 1) * 60;
-    if (tm <= hMin) continue;
-    const frac = Math.min((tm - hMin) / 60, 1);
-    const ri = petalRI(), ro = petalRO(i);
-    const rMid = (ri + ro) / 2;
-    const a0 = hourAngle(i, 0), a1 = hourAngle(i, frac);
-    // Thick arc line at petal midpoint radius
-    ctx.beginPath();
-    ctx.arc(cx, cy, rMid, a0 + GAP * 0.5, a1);
-    ctx.strokeStyle = elapsedC;
-    ctx.lineWidth = Math.min(ro - ri - 4, 18);
-    ctx.lineCap = 'round';
-    ctx.stroke();
-  }
+  // (elapsed fill removed — time needle shows current position)
 
   // ── 3. Event fills ──
   te.forEach(ev => {
@@ -1180,65 +1275,79 @@ function drawChronodex() {
   });
   labelItems.sort((a,b) => a.bestI - b.bestI);
 
-  // Assign label slots — multiple events on same petal get staggered outward
+  // Assign label slots — stack outward, text along petal direction
   const petalLabelCount = {};
   labelItems.forEach(item => {
-    const i    = item.bestI;
-    const slot = petalLabelCount[i] || 0;
+    const i     = item.bestI;
+    const slot  = petalLabelCount[i] || 0;
     petalLabelCount[i] = slot + 1;
 
-    const ro     = petalRO(i);
-    const labelR = ro + 12 + slot * 28;  // stack outward
-    const angle  = petalMid(i);
-    const lx = cx + labelR * Math.cos(angle);
-    const ly = cy + labelR * Math.sin(angle);
+    const ro    = petalRO(i);
+    const angle = petalMid(i);
+
+    // Each slot offsets further from the petal tip
+    const startR = ro + 10 + slot * 32;
 
     ctx.save();
-    ctx.translate(lx, ly);
-    // Rotate: text flows OUTWARD from centre along petal angle.
-    // angle points from centre outward. We want text baseline at inner end,
-    // reading outward. So rotate = angle + PI/2 (text bottom toward centre).
-    // In the upper-right quadrant (angle ~-PI/2 to 0) this reads left-to-right outward.
-    // Flip in left half (angle PI/2..3PI/2 i.e. cos<0) so it's never upside-down.
-    let rot = angle + Math.PI / 2;
-    const cosA = Math.cos(angle);
-    if (cosA < 0) rot += Math.PI;
-    ctx.rotate(rot);
+    // Move to petal tip then rotate so x-axis points outward along petal
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    // Now we're in a coord system where +x = outward along petal
+    // Flip text if this petal is in the lower half (so it reads correctly from outside)
+    const inLower = (angle > 0 && angle < Math.PI);
+    if (inLower) {
+      // For lower petals: start further out, draw text leftward (inward)
+      ctx.translate(startR + 80, 0);
+      ctx.rotate(Math.PI);  // flip
+    } else {
+      ctx.translate(startR, 0);
+    }
 
-    // Name line
     ctx.font = 'bold 11px "JetBrains Mono",monospace';
-    ctx.textAlign  = 'left';
+    ctx.textAlign    = 'left';
     ctx.textBaseline = 'alphabetic';
-    ctx.shadowColor = dark ? 'rgba(0,0,0,1)' : 'rgba(255,255,255,0.9)';
-    ctx.shadowBlur  = 4;
-    ctx.fillStyle   = item.isPast ? 'rgba(160,160,160,0.45)' : item.color;
-    ctx.fillText(item.name, 0, 0);
+    ctx.shadowColor  = dark ? 'rgba(0,0,0,1)' : 'rgba(255,255,255,0.9)';
+    ctx.shadowBlur   = 5;
 
-    // Time line
+    // Name — offset up by ~6px so time sits below
+    ctx.fillStyle = item.isPast ? 'rgba(160,160,160,0.45)' : item.color;
+    ctx.fillText(item.name, 0, -3);
+
+    // Time
     ctx.font = '9px "JetBrains Mono",monospace';
-    ctx.fillStyle = item.isPast ? 'rgba(120,120,120,0.35)' : lblC;
-    ctx.fillText(item.times, 0, 12);
+    ctx.fillStyle = item.isPast ? 'rgba(120,120,120,0.35)' : (dark?'rgba(200,200,200,0.80)':'rgba(50,50,50,0.80)');
+    ctx.fillText(item.times, 0, 10);
     ctx.shadowBlur = 0;
     ctx.restore();
   });
 
-  // ── 5. Hour labels at petal tip ──
+  // ── 5. Hour labels OUTSIDE petals ──
   ctx.shadowBlur = 0;
   for (let i = 0; i < CHOURS; i++) {
     const hAbs = H_START + i;
     const a    = petalMid(i);
-    const tipR = petalRO(i) - 9;
-    const hLabel = hAbs >= 12 ? (hAbs === 12 ? '12p' : (hAbs-12) + 'p') : hAbs + 'a';
+    const ro   = petalRO(i);
+    const labelR = ro + 14;  // just outside petal tip
+    // Full readable label: "5am", "12pm", "1pm" etc.
+    let hLabel;
+    if (hAbs === 0 || hAbs === 24) hLabel = '12am';
+    else if (hAbs === 12) hLabel = '12pm';
+    else if (hAbs < 12)  hLabel = hAbs + 'am';
+    else                  hLabel = (hAbs-12) + 'pm';
+
+    const lx = cx + labelR * Math.cos(a);
+    const ly = cy + labelR * Math.sin(a);
     ctx.save();
-    ctx.translate(cx + tipR * Math.cos(a), cy + tipR * Math.sin(a));
+    ctx.translate(lx, ly);
+    // Rotate along petal direction, text reads outward
     let rot = a + Math.PI / 2;
     if (Math.cos(a) < 0) rot += Math.PI;
     ctx.rotate(rot);
     ctx.font = '10px "JetBrains Mono",monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.shadowColor = dark ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.8)';
-    ctx.shadowBlur  = 3;
+    ctx.shadowColor = dark ? 'rgba(0,0,0,0.95)' : 'rgba(255,255,255,0.9)';
+    ctx.shadowBlur  = 4;
     ctx.fillStyle   = lblC;
     ctx.fillText(hLabel, 0, 0);
     ctx.shadowBlur = 0;
@@ -1497,6 +1606,7 @@ document.getElementById('pomo-close').addEventListener('click', ()=>{
     document.getElementById('pomo-lock-msg').classList.add('show');
     return;
   }
+  _scribbleInited = false;  // allow re-init next open
   document.getElementById('pomo-overlay').classList.remove('open');
 });
 document.getElementById('pomo-withdraw').addEventListener('click', ()=>{
@@ -1568,7 +1678,7 @@ document.getElementById('pomo-start').addEventListener('click',()=>{
       if(pomo.remainSecs<=0){
         clearInterval(pomo.interval);pomo.running=false;pomo.remainSecs=0;pomo.sessions=Math.min(4,pomo.sessions+1);
         document.getElementById('pomo-lock-msg').classList.remove('show');
-        setTimeout(()=>document.getElementById('pomo-overlay').classList.remove('open'),1200);
+        setTimeout(()=>{ _scribbleInited=false; document.getElementById('pomo-overlay').classList.remove('open'); },1200);
         try{const ac=new(window.AudioContext||window.webkitAudioContext)();[0,0.35,0.7].forEach((t,i)=>{const osc=ac.createOscillator(),g=ac.createGain();osc.connect(g);g.connect(ac.destination);osc.frequency.value=[528,660,792][i];g.gain.value=0.2;osc.start(ac.currentTime+t);g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+t+0.9);osc.stop(ac.currentTime+t+0.9);});}catch(e){}
       }
       renderPomo();
@@ -1631,6 +1741,19 @@ function initScribble() {
     isEraser = !isEraser;
     this.classList.toggle('active', isEraser);
   });
+  document.getElementById('scribble-download').addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.download = 'chronodex-notes-' + localDate() + '.png';
+    // Composite onto a solid background for visibility
+    const tmp = document.createElement('canvas');
+    tmp.width = cv.width; tmp.height = cv.height;
+    const tc = tmp.getContext('2d');
+    tc.fillStyle = isDark ? '#0a0a08' : '#f0eeeb';
+    tc.fillRect(0, 0, tmp.width, tmp.height);
+    tc.drawImage(cv, 0, 0);
+    link.href = tmp.toDataURL('image/png');
+    link.click();
+  });
   document.getElementById('scribble-clear').addEventListener('click', () => {
     const dpr = window.devicePixelRatio || 1;
     cv.getContext('2d').clearRect(0, 0, cv.width / dpr * dpr, cv.height / dpr * dpr);
@@ -1690,7 +1813,11 @@ function initScribble() {
 // ── INIT ──────────────────────────────────────────────
 renderLeft(); buildTasks(); updateClock(); drawChronodex(); buildTicks(); renderPomo();
 setInterval(()=>{updateClock();drawChronodex();}, 30000);
-setInterval(()=>{if(accessToken)loadAllData();}, 10*60*1000);  // 10 min refresh
+setInterval(async ()=>{
+  if(!accessToken) return;
+  // Background refresh: silently skip on auth errors, don't log out
+  try { await loadAllDataSilent(); } catch(e) {}
+}, 10*60*1000);  // 10 min refresh
 
 const _gisWait=setInterval(()=>{
   if(window.google&&window.google.accounts){
