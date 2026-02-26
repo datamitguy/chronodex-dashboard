@@ -286,7 +286,7 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
       <div class="time-date" id="time-date"></div>
     </div>
     <div class="chrono-canvas-wrap">
-      <canvas id="chronodex-canvas" width="380" height="380"></canvas>
+      <canvas id="chronodex-canvas" width="440" height="440"></canvas>
       <div class="chrono-tap-overlay" id="chrono-overlay"></div>
     </div>
     <div class="next-strip">
@@ -821,210 +821,271 @@ function buildMonth(){
 }
 
 // ── CHRONODEX ─────────────────────────────────────────
-// Petal layout: each hour is a wedge, growing outward from 6am→midnight
-// 18 hours (6am–midnight) → each petal spans 360/18 = 20°
-// Inner radius grows linearly so early hours are compact, later hours wider
-const CHOURS = 18;           // 6am(0) → midnight(17)  [0-indexed]
-const H_START = 6;           // first hour
-const PETAL_DEG = 360 / CHOURS;          // 20° per hour
+// Petal layout: 5am–midnight = 19 hours, each gets its own wedge.
+// Petals grow outward — 5am is smallest, 11pm is largest.
+// Events paint the exact fraction of each petal they occupy.
+// Labels sit OUTSIDE the petal, along the petal midpoint angle.
+// Fun background petal colors cycle through a warm palette.
+
+const H_START  = 5;           // start at 5am
+const H_END    = 24;           // end at midnight
+const CHOURS   = H_END - H_START;          // 19 hours
+const PETAL_DEG = 360 / CHOURS;
 const PETAL_RAD = PETAL_DEG * Math.PI / 180;
 
-// For each hour slot i (0=6am … 17=11pm):
-// inner radius: flat 28px for all (centre hub clearance)
-// outer radius: grows from 55px (6am) to 190px (11pm) linearly
-function petalRI(){ return 28; }
-function petalRO(i){ return 55 + i * (190-55) / (CHOURS-1); }
+// Petal radii — innermost flat, outermost grows linearly
+const RI_BASE  = 26;
+const RO_MIN   = 48;
+const RO_MAX   = 165;
+function petalRI()  { return RI_BASE; }
+function petalRO(i) { return RO_MIN + i * (RO_MAX - RO_MIN) / (CHOURS - 1); }
 
-// Angle for a given hour+fraction: 6am = top (−π/2), goes clockwise
-function hourAngle(h, frac){
-  // h is absolute hour (6–24), frac is 0–1 within that hour
-  const slot = (h - H_START) + frac;   // 0–18
-  return -Math.PI/2 + slot * PETAL_RAD;
+// Angle of a point within a petal
+// i=slot index (0=5am), frac=0→1 within that hour
+// 5am starts at top (−π/2), goes clockwise
+function hourAngle(i, frac) {
+  return -Math.PI/2 + (i + frac) * PETAL_RAD;
 }
+function petalMid(i) { return hourAngle(i, 0.5); }
 
-// Midpoint angle of a petal
-function petalMid(i){ return -Math.PI/2 + (i + 0.5)*PETAL_RAD; }
+// Fun warm/vibrant petal background colors (subtle, desaturated)
+const PETAL_PALETTE_DARK = [
+  'rgba(90,80,60,0.18)','rgba(60,80,90,0.18)','rgba(80,90,60,0.18)',
+  'rgba(90,60,70,0.18)','rgba(70,60,90,0.18)','rgba(85,75,55,0.18)',
+  'rgba(60,85,80,0.18)','rgba(90,65,60,0.18)','rgba(65,75,90,0.18)',
+  'rgba(85,85,60,0.18)','rgba(60,90,70,0.18)','rgba(90,70,60,0.18)',
+  'rgba(70,60,85,0.18)','rgba(80,85,60,0.18)','rgba(60,75,90,0.18)',
+  'rgba(90,60,80,0.18)','rgba(65,90,65,0.18)','rgba(85,65,65,0.18)',
+  'rgba(60,80,85,0.18)',
+];
+const PETAL_PALETTE_LIGHT = PETAL_PALETTE_DARK.map(c=>c.replace(/[\d.]+\)$/,'0.12)'));
 
-let todayEventsForPicker=[];
+let todayEventsForPicker = [];
 
 function drawChronodex(){
-  const cv=document.getElementById('chronodex-canvas');
-  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height,cx=W/2,cy=H/2;
-  ctx.clearRect(0,0,W,H); todayEventsForPicker=[];
-  const dark=isDark;
-  const goldR=dark?'201,168,76':'138,106,40';
-  const lblC=dark?'rgba(232,228,216,1.0)':'rgba(28,31,38,0.95)';
-  const needle=dark?'#c44b3a':'#b83228';
-  const hub=dark?'#c9a84c':'#8a6a28';
-  const petalBg=dark?'rgba(255,255,255,0.04)':'rgba(28,31,38,0.04)';
-  const petalBorder=dark?'rgba(255,255,255,0.20)':'rgba(28,31,38,0.22)';
-  const tickC=dark?'rgba(255,255,255,0.30)':'rgba(28,31,38,0.30)';
+  const cv = document.getElementById('chronodex-canvas');
+  const ctx = cv.getContext('2d'), W=cv.width, H=cv.height, cx=W/2, cy=H/2;
+  ctx.clearRect(0,0,W,H);
+  todayEventsForPicker = [];
 
-  const now=new Date();
-  const tm=now.getHours()*60+now.getMinutes();   // minutes since midnight
-  const today=localDate(now);
-  const te=EVENTS.filter(e=>e.startISO.startsWith(today));
-  todayEventsForPicker=te;
+  const dark   = isDark;
+  const goldR  = dark ? '201,168,76' : '138,106,40';
+  const lblC   = dark ? 'rgba(232,228,216,0.85)' : 'rgba(28,31,38,0.90)';
+  const needleC= dark ? '#c44b3a' : '#b83228';
+  const hubC   = dark ? '#c9a84c' : '#8a6a28';
+  const borderC= dark ? 'rgba(255,255,255,0.14)' : 'rgba(28,31,38,0.16)';
+  const tickC  = dark ? 'rgba(255,255,255,0.22)' : 'rgba(28,31,38,0.22)';
+  const palette= dark ? PETAL_PALETTE_DARK : PETAL_PALETTE_LIGHT;
 
-  // ── 1. Draw petal backgrounds ──────────────────────
+  const now   = new Date();
+  const tm    = now.getHours()*60 + now.getMinutes();
+  const today = localDate(now);
+  const te    = EVENTS.filter(e => e.startISO.startsWith(today));
+  todayEventsForPicker = te;
+
+  const GAP = 0.022; // angular gap between petals (radians)
+
+  // ── 1. Petal backgrounds + 30-min tick ─────────────
   for(let i=0;i<CHOURS;i++){
-    const ri=petalRI(), ro=petalRO(i);
-    const a0=hourAngle(H_START+i, 0);
-    const a1=hourAngle(H_START+i, 1);
-    const gap=0.018; // small angular gap between petals
+    const ri = petalRI(), ro = petalRO(i);
+    const a0 = hourAngle(i, 0), a1 = hourAngle(i, 1);
 
+    // Background fill — fun subtle tint cycling through palette
     ctx.beginPath();
-    ctx.arc(cx,cy,ro, a0+gap, a1-gap);
-    ctx.arc(cx,cy,ri, a1-gap, a0+gap, true);
+    ctx.arc(cx,cy,ro, a0+GAP, a1-GAP);
+    ctx.arc(cx,cy,ri, a1-GAP, a0+GAP, true);
     ctx.closePath();
-    ctx.fillStyle=petalBg; ctx.fill();
-    ctx.strokeStyle=petalBorder; ctx.lineWidth=1.2; ctx.stroke();
+    ctx.fillStyle = palette[i % palette.length];
+    ctx.fill();
+    ctx.strokeStyle = borderC;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    // 30-min tick — a small radial line at the petal midpoint
+    const amid = hourAngle(i, 0.5);
+    const tInner = ri + 4, tOuter = ri + 4 + Math.min(10, (ro-ri)*0.22);
+    ctx.beginPath();
+    ctx.moveTo(cx + tInner*Math.cos(amid), cy + tInner*Math.sin(amid));
+    ctx.lineTo(cx + tOuter*Math.cos(amid), cy + tOuter*Math.sin(amid));
+    ctx.strokeStyle = tickC;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
   }
 
-  // ── 2. Draw 30-min tick inside each petal ──────────
+  // ── 2. Elapsed fill (gold) ──────────────────────────
   for(let i=0;i<CHOURS;i++){
-    const ri=petalRI()+4, ro=petalRO(i)-6;
-    const amid=hourAngle(H_START+i, 0.5); // 30-min mark
-    const tickLen=Math.min(12, (ro-ri)*0.25);
-    const rMid=(ri+ro)/2;
+    const hAbs  = H_START + i;
+    const hMin  = hAbs*60, hMax = (hAbs+1)*60;
+    if(tm <= hMin) continue;
+    const frac  = Math.min((tm - hMin)/60, 1);
+    const ri    = petalRI()+2, ro = petalRO(i)-2;
+    const a0    = hourAngle(i, 0), a1 = hourAngle(i, frac);
+    const alpha = dark ? (0.52+frac*0.36) : (0.55+frac*0.28);
     ctx.beginPath();
-    ctx.moveTo(cx+(rMid-tickLen/2)*Math.cos(amid), cy+(rMid-tickLen/2)*Math.sin(amid));
-    ctx.lineTo(cx+(rMid+tickLen/2)*Math.cos(amid), cy+(rMid+tickLen/2)*Math.sin(amid));
-    ctx.strokeStyle=tickC; ctx.lineWidth=1.5; ctx.stroke();
-  }
-
-  // ── 3. Draw elapsed fill (gold, progressively per petal) ──
-  for(let i=0;i<CHOURS;i++){
-    const hAbs=H_START+i;
-    const hMin=hAbs*60, hMax=(hAbs+1)*60;
-    if(tm<=hMin) continue;  // not reached yet
-    const frac=Math.min((tm-hMin)/60, 1);
-    const ri=petalRI()+2, ro=petalRO(i)-2;
-    const a0=hourAngle(H_START+i, 0);
-    const a1=hourAngle(H_START+i, frac);
-    const gap=0.018;
-    const alpha=dark?(0.55+frac*0.35):(0.58+frac*0.30);
-    ctx.beginPath();
-    ctx.arc(cx,cy,ro, a0+gap, a1);
-    ctx.arc(cx,cy,ri, a1, a0+gap, true);
+    ctx.arc(cx,cy,ro, a0+GAP, a1);
+    ctx.arc(cx,cy,ri, a1, a0+GAP, true);
     ctx.closePath();
-    ctx.fillStyle=`rgba(${goldR},${alpha})`; ctx.fill();
-    // Leading edge glow
+    ctx.fillStyle = `rgba(${goldR},${alpha})`;
+    ctx.fill();
+    // Leading edge highlight on current hour
     if(frac<1){
+      ctx.save();
       ctx.beginPath();
-      ctx.arc(cx,cy,(ri+ro)/2, a1-0.006, a1+0.006);
-      ctx.lineWidth=ro-ri-3; ctx.strokeStyle=`rgba(${goldR},0.95)`; ctx.lineCap='round'; ctx.stroke();
+      ctx.arc(cx,cy,(ri+ro)/2, a1-0.004, a1+0.004);
+      ctx.lineWidth = ro-ri-3;
+      ctx.strokeStyle = `rgba(${goldR},0.92)`;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      ctx.restore();
     }
   }
 
-  // ── 4. Draw event segments ─────────────────────────
-  te.forEach(ev=>{
-    const sm=new Date(ev.startISO).getHours()*60+new Date(ev.startISO).getMinutes();
-    const em=new Date(ev.endISO).getHours()*60+new Date(ev.endISO).getMinutes();
-    if(em<=H_START*60||sm>=24*60) return;
-    const isPast=em<=tm, isCurrent=sm<=tm&&em>tm;
-    const fillA=isPast?'33':isCurrent?'ee':'bb';
-    const strokeOp=isPast?0.15:isCurrent?1.0:0.65;
+  // ── 3. Event fills ──────────────────────────────────
+  // Each event paints exactly the fraction it occupies in each petal it spans.
+  // Full petal fill if the event covers the whole hour, partial if not.
+  te.forEach(ev => {
+    const sm = new Date(ev.startISO).getHours()*60 + new Date(ev.startISO).getMinutes();
+    const em = new Date(ev.endISO).getHours()*60   + new Date(ev.endISO).getMinutes();
+    if(em <= H_START*60 || sm >= H_END*60) return;
 
-    // For each hour petal this event overlaps, draw a segment
+    const isPast    = em <= tm;
+    const isCurrent = sm <= tm && em > tm;
+    const fillAlpha = isPast ? 0.18 : isCurrent ? 0.90 : 0.72;
+    const strokeAlpha = isPast ? 0.12 : isCurrent ? 1.0 : 0.60;
+
     for(let i=0;i<CHOURS;i++){
-      const hAbs=H_START+i;
-      const hMin=hAbs*60, hMax=(hAbs+1)*60;
-      const os=Math.max(sm,hMin), oe=Math.min(em,hMax);
-      if(oe<=os) continue;
-      const f0=(os-hMin)/60, f1=(oe-hMin)/60;
-      const ri=petalRI()+3, ro=petalRO(i)-3;
-      const a0=hourAngle(H_START+i, f0);
-      const a1=hourAngle(H_START+i, f1);
-      const gap=0.015;
+      const hAbs = H_START + i;
+      const hMin = hAbs*60, hMax = (hAbs+1)*60;
+      const os   = Math.max(sm, hMin), oe = Math.min(em, hMax);
+      if(oe <= os) continue;
+
+      const f0 = (os - hMin)/60;  // fraction of petal where event starts (0–1)
+      const f1 = (oe - hMin)/60;  // fraction where it ends
+      const ri = petalRI()+3, ro = petalRO(i)-3;
+      const a0 = hourAngle(i, f0), a1 = hourAngle(i, f1);
+
+      // Parse color to RGBA
+      const col = ev.color;
+      ctx.globalAlpha = fillAlpha;
       ctx.beginPath();
-      ctx.arc(cx,cy,ro, a0+gap, a1-gap);
-      ctx.arc(cx,cy,ri, a1-gap, a0+gap, true);
+      ctx.arc(cx,cy,ro, a0+GAP*0.5, a1-GAP*0.5);
+      ctx.arc(cx,cy,ri, a1-GAP*0.5, a0+GAP*0.5, true);
       ctx.closePath();
-      ctx.fillStyle=ev.color+fillA; ctx.fill();
-      ctx.globalAlpha=strokeOp;
-      ctx.strokeStyle=ev.color; ctx.lineWidth=isCurrent?2:1.5; ctx.stroke();
-      ctx.globalAlpha=1;
-    }
-
-    // ── Event label: placed in the petal with most overlap ──
-    if(em-sm>=15){
-      let bestI=-1, bestOverlap=0;
-      for(let i=0;i<CHOURS;i++){
-        const hMin=(H_START+i)*60, hMax=(H_START+i+1)*60;
-        const ov=Math.min(em,hMax)-Math.max(sm,hMin);
-        if(ov>bestOverlap){bestOverlap=ov;bestI=i;}
-      }
-      if(bestI>=0&&!isPast){
-        const hMin=(H_START+bestI)*60, hMax=(H_START+bestI+1)*60;
-        const f0=(Math.max(sm,hMin)-hMin)/60;
-        const f1=(Math.min(em,hMax)-hMin)/60;
-        const fMid=(f0+f1)/2;
-        const labelA=hourAngle(H_START+bestI, fMid);
-        const ro=petalRO(bestI);
-        const ri=petalRI();
-        const labelR=(ri+ro*0.7)/1.5; // position in middle third of petal
-        const lx=cx+labelR*Math.cos(labelA), ly=cy+labelR*Math.sin(labelA);
-
-        // Available arc width in pixels
-        const arcLen=labelR*(f1-f0)*PETAL_RAD;
-        const maxChars=Math.max(2, Math.floor(arcLen/7));
-        const short=ev.title.replace(/&lt;/g,'<').replace(/&amp;/g,'&');
-        const label=short.length>maxChars?short.slice(0,maxChars-1)+'…':short;
-
-        ctx.save();
-        ctx.translate(lx,ly);
-        // Text reads outward: rotate along petal direction, flip if lower half
-        let rot=labelA+Math.PI/2;
-        if(labelA>0&&labelA<Math.PI) rot+=Math.PI;
-        ctx.rotate(rot);
-        ctx.font=`bold 10px "JetBrains Mono",monospace`;
-        ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.shadowColor='rgba(0,0,0,0.95)'; ctx.shadowBlur=5;
-        ctx.fillStyle='rgba(255,255,255,0.96)';
-        ctx.fillText(label,0,0);
-        ctx.shadowBlur=0;
-        ctx.restore();
-      }
+      ctx.fillStyle = col;
+      ctx.fill();
+      ctx.globalAlpha = strokeAlpha;
+      ctx.strokeStyle = col;
+      ctx.lineWidth = isCurrent ? 2.2 : 1.4;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
     }
   });
 
-  // ── 5. Hour labels (outside petals) ────────────────
-  ctx.font='12px "JetBrains Mono",monospace';
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillStyle=lblC;
+  // ── 4. Event labels — OUTSIDE petals ───────────────
+  // For each event, find the petal with most overlap and draw text
+  // outside that petal along its midpoint angle. Show: name + start–end.
+  te.forEach(ev => {
+    const sm = new Date(ev.startISO).getHours()*60 + new Date(ev.startISO).getMinutes();
+    const em = new Date(ev.endISO).getHours()*60   + new Date(ev.endISO).getMinutes();
+    if(em <= H_START*60 || sm >= H_END*60) return;
+    const isPast = em <= tm;
+
+    // Find petal with greatest overlap
+    let bestI = -1, bestOv = 0;
+    for(let i=0;i<CHOURS;i++){
+      const hMin=(H_START+i)*60, hMax=(H_START+i+1)*60;
+      const ov = Math.min(em,hMax) - Math.max(sm,hMin);
+      if(ov > bestOv){ bestOv=ov; bestI=i; }
+    }
+    if(bestI < 0) return;
+
+    const ro     = petalRO(bestI);
+    const labelR = ro + 20;  // outside the petal
+    const angle  = petalMid(bestI);
+    const lx     = cx + labelR*Math.cos(angle);
+    const ly     = cy + labelR*Math.sin(angle);
+
+    // Format: "EventName
+09:00–10:30"
+    const short = ev.title.replace(/&lt;/g,'<').replace(/&amp;/g,'&');
+    const name  = short.length > 14 ? short.slice(0,13)+'…' : short;
+    const fmt   = m => String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+    const times = fmt(sm)+'–'+fmt(em);
+
+    ctx.save();
+    ctx.translate(lx, ly);
+
+    // Rotate so text reads outward from hub; flip in lower half
+    let rot = angle + Math.PI/2;
+    if(angle > 0 && angle < Math.PI) rot += Math.PI;
+    ctx.rotate(rot);
+
+    ctx.font = `bold 10px "JetBrains Mono",monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.shadowColor = 'rgba(0,0,0,0.95)';
+    ctx.shadowBlur  = 5;
+    ctx.fillStyle   = isPast ? 'rgba(180,180,180,0.5)' : ev.color;
+    ctx.fillText(name, 0, 0);
+
+    ctx.font = `9px "JetBrains Mono",monospace`;
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = isPast ? 'rgba(140,140,140,0.45)' : 'rgba(200,200,200,0.85)';
+    ctx.fillText(times, 0, 1);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  });
+
+  // ── 5. Hour labels (just outside petals) ───────────
   for(let i=0;i<CHOURS;i++){
-    const hAbs=H_START+i;
-    const labelA=petalMid(i);
-    const ro=petalRO(i);
-    const lr=ro+16;
-    const hLabel=hAbs===24?'0':hAbs>=12?(hAbs===12?'12p':(hAbs-12)+'p'):hAbs+'a';
-    ctx.fillText(hLabel, cx+lr*Math.cos(labelA), cy+lr*Math.sin(labelA));
+    const hAbs  = H_START + i;
+    const a     = petalMid(i);
+    const ro    = petalRO(i);
+    // Only draw hour label if no event label is occupying this petal
+    // (always draw — event labels are at +20, hour labels at +8 from smaller petal)
+    // For clarity: draw hour at petal TIP edge, inside
+    const tipR  = ro - 8;
+    const hLabel= hAbs === 24 ? '0' : hAbs >= 12 ? (hAbs===12?'12p':(hAbs-12)+'p') : hAbs+'a';
+    ctx.save();
+    ctx.translate(cx + tipR*Math.cos(a), cy + tipR*Math.sin(a));
+    let rot = a + Math.PI/2;
+    if(a > 0 && a < Math.PI) rot += Math.PI;
+    ctx.rotate(rot);
+    ctx.font = '10px "JetBrains Mono",monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = lblC;
+    ctx.fillText(hLabel, 0, 0);
+    ctx.restore();
   }
 
-  // ── 6. Time needle ─────────────────────────────────
-  const hSlot=Math.floor(tm/60)-H_START;
-  const frac=(tm%60)/60;
-  if(hSlot>=0&&hSlot<CHOURS){
-    const na=hourAngle(H_START+hSlot, frac);
-    const nLen=petalRO(hSlot)+8;
-    ctx.lineCap='round';
+  // ── 6. Time needle ──────────────────────────────────
+  if(tm >= H_START*60 && tm < H_END*60){
+    const slot  = tm/60 - H_START;         // fractional slot index
+    const slotI = Math.floor(slot);
+    const frac  = slot - slotI;
+    const na    = hourAngle(slotI, frac);
+    const nLen  = petalRO(slotI) + 4;
+
+    ctx.lineCap = 'round';
     // Shadow
-    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+nLen*Math.cos(na),cy+nLen*Math.sin(na));
-    ctx.strokeStyle=dark?'rgba(0,0,0,0.5)':'rgba(255,255,255,0.6)'; ctx.lineWidth=7; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+nLen*Math.cos(na), cy+nLen*Math.sin(na));
+    ctx.strokeStyle = dark?'rgba(0,0,0,0.5)':'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 6; ctx.stroke();
     // Needle
-    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+nLen*Math.cos(na),cy+nLen*Math.sin(na));
-    ctx.strokeStyle=needle; ctx.lineWidth=3; ctx.stroke();
-    // Tip dot
-    ctx.beginPath(); ctx.arc(cx+nLen*Math.cos(na),cy+nLen*Math.sin(na),5,0,Math.PI*2);
-    ctx.fillStyle=needle; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+nLen*Math.cos(na), cy+nLen*Math.sin(na));
+    ctx.strokeStyle = needleC; ctx.lineWidth = 2.5; ctx.stroke();
+    // Tip
+    ctx.beginPath(); ctx.arc(cx+nLen*Math.cos(na), cy+nLen*Math.sin(na), 5, 0, Math.PI*2);
+    ctx.fillStyle = needleC; ctx.fill();
   }
 
-  // ── 7. Centre hub ──────────────────────────────────
+  // ── 7. Hub ──────────────────────────────────────────
   ctx.beginPath(); ctx.arc(cx,cy,14,0,Math.PI*2);
-  ctx.fillStyle=hub; ctx.fill();
+  ctx.fillStyle = hubC; ctx.fill();
   ctx.beginPath(); ctx.arc(cx,cy,14,0,Math.PI*2);
-  ctx.strokeStyle=dark?'rgba(201,168,76,0.6)':'rgba(138,106,40,0.6)'; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.strokeStyle = dark?'rgba(201,168,76,0.55)':'rgba(138,106,40,0.55)';
+  ctx.lineWidth = 2; ctx.stroke();
 }
 
 // ── SMART TAP ────────────────────────────────────────
