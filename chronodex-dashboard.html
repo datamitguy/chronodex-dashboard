@@ -16,32 +16,32 @@
 *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
 
 [data-theme="dark"] {
-  --bg:#080807; --surface:#101010; --border:#222220;
-  --ink:#ddd8cc; --ink-dim:#5a5650; --ink-faint:#1a1a18;
-  --accent:#c8a96e;       /* single warm gold accent */
-  --accent-dim:#5a4a28;
-  --accent-glow:rgba(200,169,110,0.12);
-  --gold:#c8a96e; --gold-dim:#5a4a28;  /* alias for compat */
-  --red:#a03828;           /* only for errors/overdue */
-  --blue:#c8a96e;          /* remap blue→accent */
-  --green:#c8a96e;         /* remap green→accent */
-  --amber:#c8a96e;         /* remap amber→accent */
-  --lotus:#c8a96e;         /* remap lotus→accent */
-  --pomo-bg:#0c0c0a;
+  --bg:#030508; --surface:#090d14; --border:#1a2535;
+  --ink:#cce0f8; --ink-dim:#445870; --ink-faint:#0e1520;
+  --accent:#3db8ff;       /* high-contrast azure blue */
+  --accent-dim:#0c2d4a;
+  --accent-glow:rgba(61,184,255,0.13);
+  --gold:#3db8ff; --gold-dim:#0c2d4a;  /* alias for compat */
+  --red:#e05555;           /* only for errors/overdue */
+  --blue:#3db8ff;          /* remap blue→accent */
+  --green:#3db8ff;         /* remap green→accent */
+  --amber:#3db8ff;         /* remap amber→accent */
+  --lotus:#3db8ff;         /* remap lotus→accent */
+  --pomo-bg:#060a12;
 }
 [data-theme="light"] {
-  --bg:#f4f1ec; --surface:#faf8f4; --border:#d8d4cc;
-  --ink:#1a1814; --ink-dim:#888078; --ink-faint:#ede9e2;
-  --accent:#7a5c28;
-  --accent-dim:#c8b080;
-  --accent-glow:rgba(122,92,40,0.08);
-  --gold:#7a5c28; --gold-dim:#c8b080;
-  --red:#8a2820;
-  --blue:#7a5c28;
-  --green:#7a5c28;
-  --amber:#7a5c28;
-  --lotus:#7a5c28;
-  --pomo-bg:#edeae4;
+  --bg:#f0f4f8; --surface:#ffffff; --border:#c4d0dc;
+  --ink:#111c2d; --ink-dim:#5a6e82; --ink-faint:#dde6f0;
+  --accent:#0b62c4;
+  --accent-dim:#b0ccec;
+  --accent-glow:rgba(11,98,196,0.09);
+  --gold:#0b62c4; --gold-dim:#b0ccec;
+  --red:#c42b2b;
+  --blue:#0b62c4;
+  --green:#0b62c4;
+  --amber:#0b62c4;
+  --lotus:#0b62c4;
+  --pomo-bg:#e8eef6;
 }
 
 html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--ink); font-family:'Cormorant Garamond',serif; }
@@ -89,7 +89,7 @@ body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100dvh; }
 .daily-timeline { flex:1; overflow-y:auto; scrollbar-width:none; }
 .daily-timeline::-webkit-scrollbar { display:none; }
 .hour-row { display:flex; min-height:40px; border-bottom:1.5px solid var(--ink-faint); }
-.hour-row.hour-now { background:rgba(160,120,48,0.07); }
+.hour-row.hour-now { background:rgba(61,184,255,0.08); }
 .hour-label { width:52px; flex-shrink:0; font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); padding:6px 6px 0; text-align:right; }
 .hour-label.now-lbl { color:var(--gold); }
 .hour-events { flex:1; padding:4px 8px; display:flex; flex-direction:column; gap:3px; }
@@ -102,7 +102,7 @@ body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100dvh; }
 .week-grid { flex:1; display:flex; flex-direction:column; overflow:hidden; }
 .week-day { flex:1; display:flex; align-items:stretch; border-bottom:1.5px solid var(--ink-faint); }
 .week-day:last-child { border-bottom:none; }
-.week-day.today { background:rgba(160,120,48,0.06); }
+.week-day.today { background:rgba(61,184,255,0.07); }
 .day-label { width:54px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:center; border-right:2px solid var(--ink-faint); }
 .day-name { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.08em; color:var(--ink-dim); text-transform:uppercase; }
 .day-num { font-size:22px; font-weight:300; line-height:1; margin-top:2px; }
@@ -121,7 +121,7 @@ body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100dvh; }
 .month-grid { flex:1; display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:1fr; padding:0 6px 6px; gap:2px; overflow:hidden; }
 .month-cell { display:flex; flex-direction:column; padding:3px 4px; border:2px solid transparent; border-radius:3px; min-height:0; }
 .month-cell.weekend-start { border-left:2px solid rgba(196,75,58,0.35) !important; }
-.month-cell.today { border-color:var(--gold); background:rgba(160,120,48,0.07); }
+.month-cell.today { border-color:var(--gold); background:rgba(61,184,255,0.08); }
 .month-cell.other-month { opacity:0.22; }
 .month-day-num { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); line-height:1.3; }
 .month-cell.today .month-day-num { color:var(--gold); font-weight:400; }
@@ -341,7 +341,7 @@ body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100dvh; }
 
 /* ── 24HR DAY VIEW ── */
 .hour-row { display:flex; min-height:44px; border-bottom:1.5px solid var(--ink-faint); position:relative; }
-.hour-row.hour-now { background:rgba(160,120,48,0.08); }
+.hour-row.hour-now { background:rgba(61,184,255,0.09); }
 .hour-row.hour-past { opacity:0.55; }
 .hour-row.drag-over { background:rgba(74,127,165,0.15); border-color:var(--blue); }
 /* DRAG ── */
@@ -354,13 +354,13 @@ body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100dvh; }
 #pomo-overlay {
   display:none; position:fixed; z-index:800;
   inset:0;
-  background:rgba(10,10,8,0.94);
+  background:rgba(3,5,8,0.96);
   backdrop-filter:blur(8px);
   -webkit-backdrop-filter:blur(8px);
   flex-direction:column;
 }
 #pomo-overlay.open { display:flex; }
-[data-theme="light"] #pomo-overlay { background:rgba(240,238,235,0.93); }
+[data-theme="light"] #pomo-overlay { background:rgba(232,240,250,0.95); }
 
 .pomo-overlay-inner {
   flex:1; display:flex; gap:0; overflow:hidden;
@@ -1480,12 +1480,12 @@ function drawCosmodex() {
   todayEventsForPicker = [];
 
   const dark    = isDark;
-  const needleC = dark ? '#c44b3a' : '#b83228';
-  const hubC    = dark ? '#c9a84c' : '#8a6a28';
-  const borderC = dark ? 'rgba(255,255,255,0.13)' : 'rgba(28,31,38,0.15)';
-  const tickC   = dark ? 'rgba(255,255,255,0.18)' : 'rgba(28,31,38,0.18)';
-  const elapsedC= dark ? 'rgba(201,168,76,0.70)'  : 'rgba(138,106,40,0.65)';
-  const lblC    = dark ? 'rgba(232,228,216,0.82)'  : 'rgba(28,31,38,0.88)';
+  const needleC = dark ? '#e05555' : '#c42b2b';
+  const hubC    = dark ? '#3db8ff' : '#0b62c4';
+  const borderC = dark ? 'rgba(61,184,255,0.14)'  : 'rgba(11,98,196,0.16)';
+  const tickC   = dark ? 'rgba(61,184,255,0.20)'  : 'rgba(11,98,196,0.22)';
+  const elapsedC= dark ? 'rgba(61,184,255,0.65)'  : 'rgba(11,98,196,0.55)';
+  const lblC    = dark ? 'rgba(200,224,248,0.85)'  : 'rgba(17,28,45,0.88)';
   const cx = LW*0.50, cy = LH/2;  // centred for equal label room on both sides
   const GAP = 0.020;
 
