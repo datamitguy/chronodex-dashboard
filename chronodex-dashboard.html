@@ -31,7 +31,7 @@
 }
 [data-theme="light"] {
   --bg:#f0f4f8; --surface:#ffffff; --border:#7090b8;
-  --ink:#111c2d; --ink-dim:#3a5070; --ink-faint:#dde6f0;
+  --ink:#0a1a35; --ink-dim:#0b62c4; --ink-faint:#dde6f0;
   --accent:#0b62c4;
   --accent-dim:#b0ccec;
   --accent-glow:rgba(11,98,196,0.09);
@@ -43,6 +43,40 @@
   --lotus:#0b62c4;
   --pomo-bg:#e8eef6;
 }
+/* Light mode — force all secondary/dim text to readable dark blue */
+[data-theme="light"] .task-group-lbl,
+[data-theme="light"] .panel-title,
+[data-theme="light"] .tab:not(.active),
+[data-theme="light"] .view-btn:not(.active),
+[data-theme="light"] .time-date,
+[data-theme="light"] .next-lbl,
+[data-theme="light"] .next-time,
+[data-theme="light"] .task-meta:not(.overdue):not(.today-due),
+[data-theme="light"] .tasks-count,
+[data-theme="light"] .task-check,
+[data-theme="light"] .swipe-lbl,
+[data-theme="light"] .pomo-phase,
+[data-theme="light"] .pomo-ev-label,
+[data-theme="light"] .pomo-header-title,
+[data-theme="light"] .pomo-overlay-title,
+[data-theme="light"] .scribble-title,
+[data-theme="light"] .scribble-btn,
+[data-theme="light"] .pen-size-btn,
+[data-theme="light"] .picker-label,
+[data-theme="light"] .picker-time,
+[data-theme="light"] .picker-cancel,
+[data-theme="light"] .insights-section-lbl,
+[data-theme="light"] .stat-card-lbl,
+[data-theme="light"] .stat-card-unit,
+[data-theme="light"] .breath-hint,
+[data-theme="light"] .focus-check-lbl,
+[data-theme="light"] .modal-btn:not(.primary),
+[data-theme="light"] .modal-saving,
+[data-theme="light"] .nav-arrow,
+[data-theme="light"] .sbtn:not(.on),
+[data-theme="light"] .lifeos-det-updated,
+[data-theme="light"] .daily-title-sub,
+[data-theme="light"] .month-day-num { color: var(--accent); }
 
 html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--ink); font-family:'Cormorant Garamond',serif; }
 html { height: 100dvh; }
@@ -141,8 +175,8 @@ body { display:grid; grid-template-columns:36px 1fr 340px 340px; grid-template-r
 #panel-left, #panel-tasks { background:var(--surface); }
 .chrono-wrapper { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:space-evenly; gap:0; padding:16px 20px 20px; width:100%; }
 .time-display { text-align:center; }
-.time-big { font-size:56px; font-weight:300; letter-spacing:0.04em; line-height:1; font-variant-numeric:tabular-nums; display:block; }
-.time-date { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim); letter-spacing:0.18em; margin-top:6px; text-transform:uppercase; display:block; }
+.time-big { font-size:76px; font-weight:300; letter-spacing:0.04em; line-height:1; font-variant-numeric:tabular-nums; display:block; }
+.time-date { font-family:'JetBrains Mono',monospace; font-size:15px; color:var(--ink-dim); letter-spacing:0.18em; margin-top:8px; text-transform:uppercase; display:block; }
 /* Safari renders canvas with a default border/outline — suppress it */
 #chronodex-canvas { max-width:100%; display:block; pointer-events:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; outline:none; border:none; -webkit-appearance:none; appearance:none; }
 .chrono-canvas-wrap { position:relative; display:block; width:100%; }
@@ -538,6 +572,22 @@ body { display:grid; grid-template-columns:36px 1fr 340px 340px; grid-template-r
 .heatmap-cell {
   width:36px; height:14px; border-radius:3px; flex-shrink:0;
 }
+/* 6×15 insights grid */
+.insights-grid-6x15 {
+  display:grid;
+  grid-template-columns: repeat(15, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  gap:5px;
+  width:100%;
+}
+.ig-cell {
+  aspect-ratio:2/1;
+  border-radius:3px;
+  border:1px solid var(--border);
+  cursor:default;
+  transition:opacity 0.1s;
+}
+.ig-cell:hover { opacity:0.75; }
 
 /* ── BREATHING RING ── */
 .breath-section { display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px 0 4px; }
@@ -831,6 +881,135 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
   font-size:12px; letter-spacing:0.10em; padding:8px 18px; min-height:38px;
 }
 .lifeos-del-btn:active { background:rgba(224,85,85,0.15); }
+
+/* ══ HABITS OVERLAY ══ */
+#habits-overlay {
+  display:none; position:fixed; inset:0; z-index:820;
+  background:rgba(3,5,8,0.97); backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px); flex-direction:column;
+}
+#habits-overlay.open { display:flex; }
+[data-theme="light"] #habits-overlay { background:rgba(232,240,250,0.97); }
+.habits-header {
+  padding:11px 16px; border-bottom:2px solid var(--border);
+  display:flex; align-items:center; gap:12px; flex-shrink:0;
+}
+.habits-header-title {
+  font-family:'JetBrains Mono',monospace; font-size:13px;
+  letter-spacing:0.18em; text-transform:uppercase; color:var(--accent);
+}
+.habits-body {
+  flex:1; overflow-y:auto; padding:28px 48px; scrollbar-width:none;
+  display:flex; flex-direction:column; gap:36px;
+  max-width:960px; margin:0 auto; width:100%;
+}
+.habits-body::-webkit-scrollbar { display:none; }
+/* Tabs */
+.habits-tab-bar {
+  display:flex; gap:0; border-bottom:2px solid var(--border); flex-shrink:0;
+}
+.habits-tab {
+  font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.10em;
+  text-transform:uppercase; color:var(--ink-dim); background:none; border:none;
+  border-bottom:3px solid transparent; padding:10px 18px; cursor:pointer;
+}
+.habits-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+/* Section label */
+.habits-section-lbl {
+  font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.18em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:14px;
+}
+/* Day strip */
+.habit-day-strip {
+  display:flex; gap:5px; margin-bottom:18px; align-items:flex-end;
+}
+.habit-day-cell {
+  display:flex; flex-direction:column; align-items:center; gap:4px; flex:1;
+}
+.habit-day-label {
+  font-family:'JetBrains Mono',monospace; font-size:9px;
+  letter-spacing:0.08em; color:var(--accent); text-transform:uppercase;
+}
+.habit-day-label.today { color:var(--accent); font-weight:700; }
+/* Habit rows */
+.habit-row {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 0; border-bottom:1px solid var(--border);
+}
+.habit-row:last-child { border-bottom:none; }
+.habit-name {
+  font-size:15px; font-weight:400; flex:1; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.habit-checks { display:flex; gap:5px; flex-shrink:0; }
+.habit-check-box {
+  width:28px; height:28px; border:2px solid var(--border); border-radius:4px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  font-size:13px; flex-shrink:0; transition:background 0.15s, border-color 0.15s;
+  background:none; color:transparent;
+}
+.habit-check-box.done {
+  background:var(--accent-dim); border-color:var(--accent); color:var(--accent);
+}
+.habit-check-box.today-col { border-color:var(--accent); }
+/* Add habit input row */
+.habit-add-row {
+  display:flex; gap:8px; margin-top:16px;
+}
+.habit-add-inp {
+  flex:1; background:var(--ink-faint); border:2px solid var(--border);
+  border-radius:5px; color:var(--ink); font-family:'JetBrains Mono',monospace;
+  font-size:13px; padding:10px 14px; outline:none;
+}
+.habit-add-inp:focus { border-color:var(--accent); }
+.habit-add-btn {
+  background:var(--accent-dim); border:2px solid var(--accent);
+  border-radius:5px; color:var(--accent); cursor:pointer;
+  font-family:'JetBrains Mono',monospace; font-size:13px;
+  letter-spacing:0.08em; padding:10px 18px; min-height:44px; white-space:nowrap;
+}
+.habit-add-btn:active { background:var(--accent); color:var(--bg); }
+.habit-del-btn {
+  background:none; border:none; color:var(--ink-dim); cursor:pointer;
+  font-size:16px; padding:4px 8px; opacity:0.3; flex-shrink:0;
+}
+.habit-del-btn:hover { opacity:1; color:var(--red); }
+/* Streak badge */
+.habit-streak {
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  color:var(--accent); letter-spacing:0.08em; flex-shrink:0; min-width:32px; text-align:right;
+}
+/* Note/textarea for routines & behaviours */
+.habits-textarea {
+  width:100%; min-height:140px; background:var(--ink-faint);
+  border:2px solid var(--border); border-radius:5px; color:var(--ink);
+  font-family:'Cormorant Garamond',serif; font-size:16px; line-height:1.7;
+  padding:14px 16px; outline:none; resize:vertical;
+}
+.habits-textarea:focus { border-color:var(--accent); }
+.habits-save-btn {
+  background:var(--accent-dim); border:2px solid var(--accent);
+  border-radius:5px; color:var(--accent); cursor:pointer;
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  letter-spacing:0.10em; padding:9px 22px; min-height:40px; margin-top:10px;
+}
+.habits-save-btn:active { background:var(--accent); color:var(--bg); }
+/* Routine item */
+.routine-item {
+  display:flex; align-items:flex-start; gap:10px;
+  padding:10px 0; border-bottom:1px solid var(--border);
+}
+.routine-item:last-child { border-bottom:none; }
+.routine-time-inp {
+  width:72px; background:var(--ink-faint); border:2px solid var(--border);
+  border-radius:4px; color:var(--accent); font-family:'JetBrains Mono',monospace;
+  font-size:12px; padding:6px 8px; outline:none; flex-shrink:0;
+}
+.routine-time-inp:focus { border-color:var(--accent); }
+.routine-text-inp {
+  flex:1; background:none; border:none; color:var(--ink);
+  font-family:'JetBrains Mono',monospace; font-size:13px; outline:none; padding:6px 0;
+}
 </style>
 </head>
 <body>
@@ -841,6 +1020,7 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
   <button class="sbtn on" id="sbtn-tasks" title="Tasks" onclick="toggleSidePanel('tasks')">&#9745;</button>
   <div class="sbtn-sep"></div>
   <button class="sbtn" id="sbtn-insights" title="Insights" onclick="openInsights()">&#128200;</button>
+  <button class="sbtn" id="sbtn-habits" title="Habits" onclick="openHabits()">&#9651;</button>
   <button class="sbtn" id="sbtn-lifeos" title="Life OS" onclick="openLifeOS()">&#10010;</button>
   <div style="flex:1"></div>
   <button class="sbtn" id="theme-btn" title="Toggle theme">&#9788;</button>
@@ -1068,10 +1248,84 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
         <span>4h+</span>
       </div>
     </div>
-    <div class="stat-grid" id="insights-stats"></div>
     <div>
-      <div class="insights-section-lbl">Recent Focus Sessions</div>
-      <div id="insights-sessions"></div>
+      <div class="insights-section-lbl">Focus Stats</div>
+      <div class="stat-grid" id="insights-stats"></div>
+    </div>
+    <div>
+      <div class="insights-section-lbl">90-Day Focus Grid — 6 rows &times; 15 days</div>
+      <div class="insights-grid-6x15" id="insights-grid-6x15"></div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-dim)">
+        <span>0h</span>
+        <div id="insights-grid-legend" style="display:flex;gap:4px"></div>
+        <span>4h+</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HABITS OVERLAY -->
+<div id="habits-overlay">
+  <div class="habits-header">
+    <span class="habits-header-title">&#9651; Habits &middot; Routines &middot; Behaviours</span>
+    <button onclick="closeHabits()" style="margin-left:auto;background:none;border:2px solid var(--border);border-radius:5px;color:var(--ink-dim);cursor:pointer;font-size:16px;padding:5px 10px;min-height:44px;min-width:44px">&#10005;</button>
+  </div>
+  <!-- Tab bar -->
+  <div class="habits-tab-bar">
+    <button class="habits-tab active" id="htab-habits" onclick="switchHabitsTab('habits')">Habits</button>
+    <button class="habits-tab" id="htab-routines" onclick="switchHabitsTab('routines')">Routines</button>
+    <button class="habits-tab" id="htab-behaviours" onclick="switchHabitsTab('behaviours')">Behaviours</button>
+  </div>
+  <!-- Habits tab -->
+  <div id="hpane-habits" class="habits-body">
+    <div>
+      <div class="habits-section-lbl">Daily Habit Tracker — Last 7 days</div>
+      <div id="habits-day-strip" class="habit-day-strip"></div>
+      <div id="habits-list"></div>
+      <div class="habit-add-row">
+        <input class="habit-add-inp" id="habit-new-inp" placeholder="Add a habit&#8230;" autocomplete="off" maxlength="60">
+        <button class="habit-add-btn" onclick="habitsAddNew()">+ Add</button>
+      </div>
+    </div>
+  </div>
+  <!-- Routines tab -->
+  <div id="hpane-routines" class="habits-body" style="display:none">
+    <div>
+      <div class="habits-section-lbl">Morning Routine</div>
+      <div id="routines-morning-list"></div>
+      <div class="habit-add-row" style="margin-top:12px">
+        <input class="routine-time-inp" id="routine-morning-time" placeholder="06:00" style="margin-right:4px">
+        <input class="habit-add-inp" id="routine-morning-inp" placeholder="Add morning routine step&#8230;" autocomplete="off" maxlength="80">
+        <button class="habit-add-btn" onclick="routineAdd('morning')">+ Add</button>
+      </div>
+    </div>
+    <div>
+      <div class="habits-section-lbl">Evening Routine</div>
+      <div id="routines-evening-list"></div>
+      <div class="habit-add-row" style="margin-top:12px">
+        <input class="routine-time-inp" id="routine-evening-time" placeholder="21:00" style="margin-right:4px">
+        <input class="habit-add-inp" id="routine-evening-inp" placeholder="Add evening routine step&#8230;" autocomplete="off" maxlength="80">
+        <button class="habit-add-btn" onclick="routineAdd('evening')">+ Add</button>
+      </div>
+    </div>
+  </div>
+  <!-- Behaviours tab -->
+  <div id="hpane-behaviours" class="habits-body" style="display:none">
+    <div>
+      <div class="habits-section-lbl">Identity &amp; Values</div>
+      <textarea class="habits-textarea" id="behav-identity" placeholder="Who am I becoming? What do I stand for?&#10;e.g. I am someone who shows up consistently…" oninput="behavSave()"></textarea>
+    </div>
+    <div>
+      <div class="habits-section-lbl">Keystone Behaviours</div>
+      <div id="behav-keystone-list"></div>
+      <div class="habit-add-row" style="margin-top:12px">
+        <input class="habit-add-inp" id="behav-keystone-inp" placeholder="Add a keystone behaviour&#8230;" autocomplete="off" maxlength="100">
+        <button class="habit-add-btn" onclick="behavKeystoneAdd()">+ Add</button>
+      </div>
+    </div>
+    <div>
+      <div class="habits-section-lbl">Reflection Notes</div>
+      <textarea class="habits-textarea" id="behav-notes" placeholder="Weekly reflection, friction points, what's working&#8230;" oninput="behavSave()"></textarea>
     </div>
   </div>
 </div>
@@ -1375,27 +1629,35 @@ function initGIS(){
 }
 
 // Proactive silent token renewal — called every 5 min
-// If token expires within 10 minutes, re-request silently
+// Uses prompt:'none' so Google never shows any popup/redirect.
+// If silent refresh fails the token naturally expires; user re-auths on next manual sync.
 async function maybeRefreshToken(){
   if(!tokenClient || !accessToken) return;
   const timeLeft = tokenExpiry - Date.now();
   if(timeLeft < 10 * 60 * 1000){
-    // Request new token without showing consent screen
     try {
       await new Promise((resolve, reject) => {
         const origCallback = tokenClient.callback;
+        const origError    = tokenClient.error_callback;
         tokenClient.callback = (resp) => {
-          tokenClient.callback = origCallback;
+          tokenClient.callback       = origCallback;
+          tokenClient.error_callback = origError;
           if(resp.error){ reject(resp.error); return; }
           accessToken = resp.access_token;
           tokenExpiry = Date.now() + (resp.expires_in - 60) * 1000;
           saveSession();
           resolve();
         };
-        tokenClient.requestAccessToken({ prompt: '' }); // empty string = no prompt
+        tokenClient.error_callback = () => {
+          tokenClient.callback       = origCallback;
+          tokenClient.error_callback = origError;
+          reject('silent_fail');
+        };
+        // prompt:'none' = strict no-UI; fails silently instead of opening a popup
+        tokenClient.requestAccessToken({ prompt: 'none', hint: currentUser });
       });
     } catch(e) {
-      // Silent refresh failed — don't log out, just let normal expiry handle it
+      // Silent refresh failed — token will expire naturally; no popup shown
     }
   }
 }
@@ -2054,8 +2316,8 @@ function drawCosmodex() {
   const dark    = isDark;
   const needleC = dark ? '#e05555' : '#c42b2b';
   const hubC    = dark ? '#3db8ff' : '#0b62c4';
-  const borderC = dark ? 'rgba(61,184,255,0.14)'  : 'rgba(11,98,196,0.16)';
-  const tickC   = dark ? 'rgba(61,184,255,0.20)'  : 'rgba(11,98,196,0.22)';
+  const borderC = dark ? 'rgba(61,184,255,0.55)'  : 'rgba(11,98,196,0.50)';
+  const tickC   = dark ? 'rgba(61,184,255,0.45)'  : 'rgba(11,98,196,0.40)';
   const elapsedC= dark ? 'rgba(61,184,255,0.65)'  : 'rgba(11,98,196,0.55)';
   const lblC    = dark ? '#d8eeff' : '#111c2d';
   const cx = LW*0.50, cy = LH/2;  // centred for equal label room on both sides
@@ -2080,7 +2342,7 @@ function drawCosmodex() {
     ctx.fillStyle = emptyFill;
     ctx.fill();
     ctx.strokeStyle = borderC;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1.5;
     ctx.stroke();
 
     // 30-min tick (small radial line inside petal near inner edge)
@@ -3135,7 +3397,7 @@ async function buildInsights(){
   // Show loading state
   document.getElementById('heatmap-wrap').innerHTML='<div style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--ink-dim)">Loading…</div>';
   document.getElementById('insights-stats').innerHTML='';
-  document.getElementById('insights-sessions').innerHTML='';
+  document.getElementById('insights-grid-6x15').innerHTML='';
 
   // Build 90-day map from spreadsheet
   const dayFocus={};   // date → hours of deep work
@@ -3226,19 +3488,40 @@ async function buildInsights(){
       <div class="stat-card-val" style="font-size:18px">${bestEntry?bestEntry[0].slice(5)+' · '+bestEntry[1].toFixed(1)+'h':'—'}</div>
     </div>`;
 
-  // ── Recent sessions list ──
-  const sesEl=document.getElementById('insights-sessions');
-  if(!sessions.length){
-    sesEl.innerHTML='<div style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--ink-dim)">No sessions logged yet. Complete a Focus session to start tracking.</div>';
-  } else {
-    const recent=sessions.slice(-10).reverse();
-    sesEl.innerHTML=recent.map(s=>`
-      <div style="display:flex;align-items:baseline;gap:10px;padding:6px 0;border-bottom:1px solid var(--ink-faint)">
-        <span style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--ink-dim);flex-shrink:0">${s.date}</span>
-        <span style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${s.title||'Focus Session'}</span>
-        <span style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--accent);flex-shrink:0">${s.hrs.toFixed(1)}h</span>
-      </div>`).join('');
+  // ── 6×15 Focus Grid (90 days, 6 rows × 15 columns) ──
+  const gridEl=document.getElementById('insights-grid-6x15');
+  gridEl.innerHTML='';
+  const GRID_ROWS=6, GRID_COLS=15, GRID_DAYS=GRID_ROWS*GRID_COLS; // 90
+  const MAX_HRS2=4;
+  // Build array of 90 days oldest→newest
+  const gridDays=[];
+  for(let i=GRID_DAYS-1;i>=0;i--){
+    const d=new Date(now); d.setDate(now.getDate()-i);
+    gridDays.push(localDate(d));
   }
+  // Fill grid left-to-right, top-to-bottom (row 1 = oldest 15, row 6 = newest 15)
+  gridDays.forEach((dateStr,idx)=>{
+    const hrs=dayFocus[dateStr]||0;
+    const intensity=Math.min(hrs/MAX_HRS2,1);
+    const cell=document.createElement('div');
+    cell.className='ig-cell';
+    const alpha=intensity===0?0.07:(0.15+intensity*0.85);
+    cell.style.background=dark?`rgba(61,184,255,${alpha.toFixed(2)})`:`rgba(11,98,196,${alpha.toFixed(2)})`;
+    if(intensity>0) cell.style.borderColor=dark?`rgba(61,184,255,${(alpha+0.2).toFixed(2)})`:`rgba(11,98,196,${(alpha+0.2).toFixed(2)})`;
+    cell.title=dateStr+' · '+(hrs>0?hrs.toFixed(1)+'h deep work':'no sessions');
+    gridEl.appendChild(cell);
+  });
+
+  // Legend for grid
+  const gridLeg=document.getElementById('insights-grid-legend');
+  gridLeg.innerHTML='';
+  [0,0.25,0.5,0.75,1].forEach(v=>{
+    const c=document.createElement('div');
+    c.style.cssText='width:32px;height:12px;border-radius:2px;';
+    const alpha=v===0?0.07:(0.15+v*0.85);
+    c.style.background=dark?`rgba(61,184,255,${alpha.toFixed(2)})`:`rgba(11,98,196,${alpha.toFixed(2)})`;
+    gridLeg.appendChild(c);
+  });
 }
 
 // ── SIDEBAR PANEL TOGGLES ────────────────────────────
@@ -3601,6 +3884,210 @@ async function losSave(){
 function losDebouncedSave(){
   clearTimeout(_losSaveTimer);
   _losSaveTimer=setTimeout(losSave, 1200);
+}
+
+// ══ HABITS / ROUTINES / BEHAVIOURS ═══════════════════
+
+const HABITS_KEY      = 'cdx_habits_v1';
+const ROUTINES_KEY    = 'cdx_routines_v1';
+const BEHAVIOURS_KEY  = 'cdx_behaviours_v1';
+
+function habitsLoad(){ try{ return JSON.parse(localStorage.getItem(HABITS_KEY)||'[]'); }catch(e){ return []; } }
+function habitsSave(d){ try{ localStorage.setItem(HABITS_KEY,JSON.stringify(d)); }catch(e){} }
+function routinesLoad(){ try{ return JSON.parse(localStorage.getItem(ROUTINES_KEY)||'{"morning":[],"evening":[]}'); }catch(e){ return {morning:[],evening:[]}; } }
+function routinesSave(d){ try{ localStorage.setItem(ROUTINES_KEY,JSON.stringify(d)); }catch(e){} }
+function behavLoad(){ try{ return JSON.parse(localStorage.getItem(BEHAVIOURS_KEY)||'{"identity":"","keystone":[],"notes":""}'); }catch(e){ return {identity:'',keystone:[],notes:''}; } }
+function behavSaveStore(d){ try{ localStorage.setItem(BEHAVIOURS_KEY,JSON.stringify(d)); }catch(e){} }
+
+function localDateStr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function last7Days(){
+  const days=[]; const now=new Date();
+  for(let i=6;i>=0;i--){ const d=new Date(now); d.setDate(now.getDate()-i); days.push(d); }
+  return days;
+}
+
+function openHabits(){
+  document.getElementById('habits-overlay').classList.add('open');
+  switchHabitsTab('habits');
+}
+function closeHabits(){
+  document.getElementById('habits-overlay').classList.remove('open');
+}
+
+function switchHabitsTab(tab){
+  ['habits','routines','behaviours'].forEach(t=>{
+    document.getElementById('htab-'+t).classList.toggle('active', t===tab);
+    document.getElementById('hpane-'+t).style.display = t===tab ? 'flex' : 'none';
+  });
+  if(tab==='habits')      renderHabits();
+  if(tab==='routines')    renderRoutines();
+  if(tab==='behaviours')  renderBehaviours();
+}
+
+// ── HABITS TAB ──────────────────────────────────────
+function renderHabits(){
+  const habits = habitsLoad();
+  const days   = last7Days();
+  const todayStr = localDateStr(new Date());
+  const DN = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+  // Day strip header
+  const strip = document.getElementById('habits-day-strip');
+  strip.innerHTML = '<div style="width:160px;flex-shrink:0"></div>' +
+    days.map(d=>`<div class="habit-day-cell"><div class="habit-day-label${localDateStr(d)===todayStr?' today':''}">${DN[d.getDay()]}<br>${d.getDate()}</div></div>`).join('') +
+    '<div style="width:56px;flex-shrink:0"></div>';
+
+  // Habit rows
+  const list = document.getElementById('habits-list');
+  if(!habits.length){
+    list.innerHTML='<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--ink-dim);padding:16px 0">No habits yet — add one below.</div>';
+    return;
+  }
+  list.innerHTML = habits.map((h,hi)=>{
+    const checks = days.map((d,di)=>{
+      const ds = localDateStr(d);
+      const done = (h.log||[]).includes(ds);
+      const isToday = ds===todayStr;
+      return `<div class="habit-day-cell"><div class="habit-check-box${done?' done':''}${isToday?' today-col':''}" onclick="habitToggle(${hi},'${ds}')" title="${ds}">${done?'✓':''}</div></div>`;
+    }).join('');
+    const streak = habitsStreak(h);
+    return `<div class="habit-row">
+      <div class="habit-name">${escHtml(h.name)}</div>
+      ${checks}
+      <div class="habit-streak">${streak>0?streak+'d':''}</div>
+      <button class="habit-del-btn" onclick="habitDelete(${hi})" title="Remove">&#8722;</button>
+    </div>`;
+  }).join('');
+}
+
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function habitsStreak(h){
+  const log = h.log||[]; let s=0; const now=new Date();
+  for(let i=0;;i++){
+    const d=new Date(now); d.setDate(now.getDate()-i);
+    if(log.includes(localDateStr(d))) s++; else break;
+  }
+  return s;
+}
+
+function habitToggle(hi, dateStr){
+  const habits = habitsLoad();
+  if(!habits[hi]) return;
+  const log = habits[hi].log||[];
+  const idx = log.indexOf(dateStr);
+  if(idx>=0) log.splice(idx,1); else log.push(dateStr);
+  habits[hi].log = log;
+  habitsSave(habits);
+  renderHabits();
+}
+
+function habitDelete(hi){
+  const habits = habitsLoad();
+  habits.splice(hi,1);
+  habitsSave(habits);
+  renderHabits();
+}
+
+function habitsAddNew(){
+  const inp = document.getElementById('habit-new-inp');
+  const name = inp.value.trim();
+  if(!name) return;
+  const habits = habitsLoad();
+  habits.push({name, log:[]});
+  habitsSave(habits);
+  inp.value='';
+  renderHabits();
+}
+document.addEventListener('keydown', e=>{
+  if(document.getElementById('habits-overlay').classList.contains('open') && e.key==='Enter'){
+    const focus = document.activeElement;
+    if(focus && focus.id==='habit-new-inp') habitsAddNew();
+    if(focus && focus.id==='routine-morning-inp') routineAdd('morning');
+    if(focus && focus.id==='routine-evening-inp') routineAdd('evening');
+    if(focus && focus.id==='behav-keystone-inp')  behavKeystoneAdd();
+  }
+});
+
+// ── ROUTINES TAB ─────────────────────────────────────
+function renderRoutines(){
+  const data = routinesLoad();
+  ['morning','evening'].forEach(slot=>{
+    const list = document.getElementById('routines-'+slot+'-list');
+    const items = data[slot]||[];
+    if(!items.length){
+      list.innerHTML=`<div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-dim);padding:10px 0">No steps yet.</div>`;
+      return;
+    }
+    list.innerHTML = items.map((item,i)=>`
+      <div class="routine-item">
+        <input class="routine-time-inp" value="${escHtml(item.time||'')}" placeholder="--:--" onchange="routineUpdate('${slot}',${i},'time',this.value)">
+        <input class="routine-text-inp" value="${escHtml(item.text||'')}" placeholder="Step&#8230;" onchange="routineUpdate('${slot}',${i},'text',this.value)">
+        <button class="habit-del-btn" onclick="routineDelete('${slot}',${i})">&#8722;</button>
+      </div>`).join('');
+  });
+}
+
+function routineAdd(slot){
+  const timeEl = document.getElementById('routine-'+slot+'-time');
+  const textEl = document.getElementById('routine-'+slot+'-inp');
+  const text = textEl.value.trim(); if(!text) return;
+  const data = routinesLoad();
+  (data[slot]=data[slot]||[]).push({time:timeEl.value.trim(), text});
+  routinesSave(data); textEl.value=''; timeEl.value='';
+  renderRoutines();
+}
+
+function routineUpdate(slot,i,field,val){
+  const data = routinesLoad();
+  if(data[slot]&&data[slot][i]) data[slot][i][field]=val;
+  routinesSave(data);
+}
+
+function routineDelete(slot,i){
+  const data = routinesLoad();
+  if(data[slot]) data[slot].splice(i,1);
+  routinesSave(data); renderRoutines();
+}
+
+// ── BEHAVIOURS TAB ───────────────────────────────────
+function renderBehaviours(){
+  const data = behavLoad();
+  document.getElementById('behav-identity').value = data.identity||'';
+  document.getElementById('behav-notes').value    = data.notes||'';
+  const list = document.getElementById('behav-keystone-list');
+  const ks = data.keystone||[];
+  if(!ks.length){
+    list.innerHTML=`<div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-dim);padding:10px 0">No keystone behaviours yet.</div>`;
+  } else {
+    list.innerHTML = ks.map((k,i)=>`
+      <div class="habit-row">
+        <div class="habit-name">${escHtml(k)}</div>
+        <button class="habit-del-btn" onclick="behavKeystoneDelete(${i})">&#8722;</button>
+      </div>`).join('');
+  }
+}
+
+function behavSave(){
+  const data = behavLoad();
+  data.identity = document.getElementById('behav-identity').value;
+  data.notes    = document.getElementById('behav-notes').value;
+  behavSaveStore(data);
+}
+
+function behavKeystoneAdd(){
+  const inp = document.getElementById('behav-keystone-inp');
+  const val = inp.value.trim(); if(!val) return;
+  const data = behavLoad();
+  (data.keystone=data.keystone||[]).push(val);
+  behavSaveStore(data); inp.value='';
+  renderBehaviours();
+}
+
+function behavKeystoneDelete(i){
+  const data = behavLoad();
+  (data.keystone||[]).splice(i,1);
+  behavSaveStore(data); renderBehaviours();
 }
 </script>
 
