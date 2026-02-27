@@ -46,7 +46,7 @@
 
 html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--ink); font-family:'Cormorant Garamond',serif; }
 html { height: 100dvh; }
-body { display:grid; grid-template-columns:36px 1fr 1fr 1.8fr; height:100dvh; }
+body { display:grid; grid-template-columns:36px 240px 240px 1fr; height:100dvh; }
 
 .panel { border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; min-width:0; }
 .panel:last-child { border-right:none; }
@@ -244,9 +244,9 @@ body { display:grid; grid-template-columns:36px 1fr 1fr 1.8fr; height:100dvh; }
 .task-del-btn {
   background:none; border:none; color:var(--ink-dim); cursor:pointer;
   font-size:12px; padding:2px 4px; flex-shrink:0; line-height:1;
-  opacity:0; transition:opacity 0.15s;
+  opacity:0.35; transition:opacity 0.15s;
 }
-.task-item:hover .task-del-btn { opacity:0.6; }
+.task-item:hover .task-del-btn { opacity:0.65; }
 .task-del-btn:hover { color:var(--red) !important; opacity:1 !important; }
 .ev-del-btn {
   position:absolute; right:4px; top:50%; transform:translateY(-50%);
@@ -1387,7 +1387,7 @@ function buildDay(){
       const el=document.createElement('div'); el.className='hour-event';
       const topPct=(startM/60)*100;
       const heightPct=Math.max(8,(dur/60)*100);
-      el.style.cssText='border-color:'+ev.color+';background:'+ev.color+'28;position:relative;margin-top:'+topPct+'%;';
+      el.style.cssText='border-color:'+ev.color+';background:'+ev.color+'28;position:relative;margin-top:'+Math.round(startM/60*40)+'px;';
       const tStr=String(new Date(ev.startISO).getHours()).padStart(2,'0')+':'+String(startM).padStart(2,'0');
       el.innerHTML='<span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--ink-dim)">'+tStr+'</span> '+ev.title+(dur>0?' <span style="color:var(--ink-dim);font-size:12px">'+dur+'m</span>':'')+'<button class="ev-del-btn" title="Delete event">✕</button>';
       el.querySelector('.ev-del-btn').addEventListener('click',e=>{e.stopPropagation();deleteEvent(ev);});
@@ -1814,8 +1814,7 @@ function drawCosmodex() {
     const fmt = m => String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
     const short = ev.title.replace(/&lt;/g,'<').replace(/&amp;/g,'&');
     const name  = short.length > 12 ? short.slice(0,11) + '\u2026' : short;
-    const times = fmt(sm) + '-' + fmt(em);
-    labelItems.push({ bestI, name, times, color: ev.color, isPast: em <= tm });
+    labelItems.push({ bestI, name, color: ev.color, isPast: em <= tm });
   });
   labelItems.sort((a,b) => a.bestI - b.bestI);
 
@@ -1828,10 +1827,8 @@ function drawCosmodex() {
 
     const ro    = petalRO(i);
     const angle = petalMid(i);
-    // Gap between slots: name(11px) + time(9px) + padding = ~28px per slot
-    const startR = ro + 24*sc + slot * 44*sc;  // clear gap from petal tip
-    // Correct flip: flip when petal points into LEFT half (cos < 0)
-    // This makes text always read outward from the hub, never upside-down
+    // Single-line label: ~14px per slot is enough
+    const startR = ro + 16*sc + slot * 26*sc;
     const shouldFlip = Math.cos(angle) < 0;
 
     ctx.save();
@@ -1840,79 +1837,75 @@ function drawCosmodex() {
 
     ctx.shadowColor = dark ? 'rgba(0,0,0,1)' : 'rgba(255,255,255,1)';
     ctx.shadowBlur  = 10;
-    ctx.textBaseline = 'alphabetic';
+    ctx.textBaseline = 'middle';
 
     if (shouldFlip) {
-      // Petal points LEFT — flip so text reads outward (away from hub)
-      // After flip, +x goes toward hub, so we translate to startR + textWidth
-      // to anchor the far end of text at startR from centre
-      ctx.font = '9px "JetBrains Mono",monospace';
-      const twT = ctx.measureText(item.times).width;
       ctx.font = 'bold 11px "JetBrains Mono",monospace';
       const twN = ctx.measureText(item.name).width;
-      const tw  = Math.max(twT, twN);
       ctx.scale(-1, -1);
-      ctx.translate(-(startR + tw + 4), 0);  // anchor: text tip at startR from centre
+      ctx.translate(-(startR + twN + 4), 0);
     } else {
       ctx.translate(startR, 0);
     }
 
     ctx.textAlign = 'left';
 
-    // Time line
-    ctx.font = '10px "JetBrains Mono",monospace';
-    ctx.fillStyle = item.isPast ? 'rgba(140,140,140,0.45)' : (dark?'rgba(210,232,255,0.94)':'rgba(17,28,45,0.92)');
-    ctx.fillText(item.times, 0, 0);
-
-    // Event name on second line
+    // Event name only
     ctx.font = 'bold 12px "JetBrains Mono",monospace';
     ctx.fillStyle = item.isPast ? 'rgba(160,160,160,0.45)' : item.color;
-    ctx.fillText(item.name, 0, 15);
+    ctx.fillText(item.name, 0, 0);
 
     ctx.shadowBlur = 0;
     ctx.restore();
   });
 
-  // ── 5. Boundary markers every 3 petals (5am, 8am, 11am, 2pm, 5pm, 8pm, 11pm) ──
+  // ── 5. Boundary markers: small dot every petal, accent tick + label every 3rd ──
   ctx.shadowBlur = 0;
-  [0,3,6,9,12,15,18].forEach(i=>{
-    const hAbs = H_START + i;
-    const a    = hourAngle(i, 0);  // START boundary of petal i
-    const ro   = petalRO(i);
-    const ri   = petalRI();
-    let hLabel = hAbs===12?'12pm':hAbs<12?hAbs+'am':(hAbs-12)+'pm';
+  for(let i=0;i<CHOURS;i++){
+    const hAbs   = H_START + i;
+    const a      = hourAngle(i, 0);
+    const ro     = petalRO(i);
+    const ri     = petalRI();
+    const isMajor = i % 3 === 0;
 
-    // Subtle radial tick along boundary line
+    if(isMajor){
+      // Subtle radial tick at major hour boundaries
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(cx+(ri+2*sc)*Math.cos(a), cy+(ri+2*sc)*Math.sin(a));
+      ctx.lineTo(cx+(ro+2*sc)*Math.cos(a), cy+(ro+2*sc)*Math.sin(a));
+      ctx.strokeStyle=accentC; ctx.globalAlpha=0.18; ctx.lineWidth=1; ctx.stroke();
+      ctx.restore();
+    }
+
+    // Dot at outer edge — larger and brighter at major marks
+    const dotR    = ro + 5*sc;
+    const dotSize = isMajor ? 3*sc : 1.5*sc;
+    const dotAlpha= isMajor ? 0.80 : 0.40;
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(cx + (ri+2*sc)*Math.cos(a), cy + (ri+2*sc)*Math.sin(a));
-    ctx.lineTo(cx + (ro+2*sc)*Math.cos(a), cy + (ro+2*sc)*Math.sin(a));
-    ctx.strokeStyle = accentC; ctx.globalAlpha=0.18; ctx.lineWidth=1; ctx.stroke();
+    ctx.arc(cx+dotR*Math.cos(a), cy+dotR*Math.sin(a), dotSize, 0, Math.PI*2);
+    ctx.fillStyle=accentC; ctx.globalAlpha=dotAlpha; ctx.fill();
     ctx.restore();
 
-    // Dot at outer edge of boundary
-    const dotR = ro + 5*sc;
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx+dotR*Math.cos(a), cy+dotR*Math.sin(a), 3*sc, 0, Math.PI*2);
-    ctx.fillStyle = accentC; ctx.globalAlpha = 0.8; ctx.fill();
-    ctx.restore();
-
-    // Label just outside the dot, rotated to read outward
-    const labelR = ro + 18*sc;
-    ctx.save();
-    ctx.translate(cx+labelR*Math.cos(a), cy+labelR*Math.sin(a));
-    let rot = a + Math.PI/2;
-    if(Math.cos(a)<0) rot += Math.PI;
-    ctx.rotate(rot);
-    ctx.font = '10px "JetBrains Mono",monospace';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.shadowColor = dark?'rgba(0,0,0,1)':'rgba(255,255,255,1)'; ctx.shadowBlur=7;
-    ctx.fillStyle = dark?'rgba(180,220,255,0.70)':'rgba(20,45,80,0.70)';
-    ctx.fillText(hLabel, 0, 0);
-    ctx.shadowBlur=0;
-    ctx.restore();
-  });
+    if(isMajor){
+      // Hour label just outside dot, rotated to read outward
+      let hLabel = hAbs===12?'12pm':hAbs<12?hAbs+'am':(hAbs-12)+'pm';
+      const labelR = ro + 18*sc;
+      ctx.save();
+      ctx.translate(cx+labelR*Math.cos(a), cy+labelR*Math.sin(a));
+      let rot = a + Math.PI/2;
+      if(Math.cos(a)<0) rot += Math.PI;
+      ctx.rotate(rot);
+      ctx.font = '10px "JetBrains Mono",monospace';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.shadowColor=dark?'rgba(0,0,0,1)':'rgba(255,255,255,1)'; ctx.shadowBlur=7;
+      ctx.fillStyle=dark?'rgba(180,220,255,0.70)':'rgba(20,45,80,0.70)';
+      ctx.fillText(hLabel, 0, 0);
+      ctx.shadowBlur=0;
+      ctx.restore();
+    }
+  }
 
   // ── 6. Time needle ──
   if (tm >= H_START * 60 && tm < H_END * 60) {
@@ -2856,17 +2849,14 @@ function toggleSidePanel(which){
   _panelVis[which]=!_panelVis[which];
   const pl=document.getElementById('panel-left');
   const pt=document.getElementById('panel-tasks');
-  const c1=_panelVis.left?'1fr':'0px';
-  const c2=_panelVis.tasks?'1fr':'0px';
+  const c1=_panelVis.left?'240px':'0px';
+  const c2=_panelVis.tasks?'240px':'0px';
   document.body.style.gridTemplateColumns='36px '+c1+' '+c2+' 1fr';
-  // Force panels to collapse below their content minimum
-  pl.style.width=_panelVis.left?'':'0px';
-  pt.style.width=_panelVis.tasks?'':'0px';
-  pl.style.minWidth='0'; pl.style.overflow=_panelVis.left?'hidden':'hidden';
-  pt.style.minWidth='0'; pt.style.overflow=_panelVis.tasks?'hidden':'hidden';
+  pl.style.display=_panelVis.left?'flex':'none';
+  pt.style.display=_panelVis.tasks?'flex':'none';
   document.getElementById('sbtn-cal').classList.toggle('on',_panelVis.left);
   document.getElementById('sbtn-tasks').classList.toggle('on',_panelVis.tasks);
-  // Canvas will be redrawn by ResizeObserver when panel-chrono resizes
+  // Canvas redrawn by ResizeObserver when panel-chrono resizes
 }
 
 // ── INIT ──────────────────────────────────────────────
