@@ -48,7 +48,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); col
 html { height: 100dvh; }
 body { display:grid; grid-template-columns:36px 1fr 1fr 1.8fr; height:100dvh; }
 
-.panel { border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+.panel { border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; min-width:0; }
 .panel:last-child { border-right:none; }
 
 /* HEADERS */
@@ -222,15 +222,16 @@ body { display:grid; grid-template-columns:36px 1fr 1fr 1.8fr; height:100dvh; }
 #sidebar {
   background:var(--surface); border-right:1px solid var(--border);
   display:flex; flex-direction:column; align-items:center;
-  padding:10px 0; gap:6px; z-index:10; overflow:hidden;
+  padding:8px 0 10px; gap:4px; z-index:10; overflow:hidden;
 }
 .sbtn {
-  width:30px; height:30px; border-radius:5px; background:none; border:none;
+  width:34px; height:34px; border-radius:6px; background:none; border:none;
   color:var(--ink-dim); cursor:pointer; display:flex; align-items:center;
-  justify-content:center; font-size:14px; flex-shrink:0;
+  justify-content:center; font-size:17px; flex-shrink:0;
 }
 .sbtn.on { color:var(--accent); background:var(--accent-dim); }
 .sbtn:hover { background:var(--ink-faint); }
+.sbtn-sep { width:22px; height:1px; background:var(--border); margin:4px 0; flex-shrink:0; }
 
 /* Subtask indent */
 .task-item.subtask { padding-left:38px; }
@@ -386,12 +387,12 @@ body { display:grid; grid-template-columns:36px 1fr 1fr 1.8fr; height:100dvh; }
 [data-theme="light"] #pomo-overlay { background:rgba(232,240,250,0.95); }
 
 .pomo-overlay-inner {
-  flex:1; display:flex; gap:0; overflow:hidden;
+  flex:1; display:flex; overflow:hidden; justify-content:center;
 }
 
 /* Left half of overlay = pomodoro */
 .pomo-col {
-  width:340px; flex-shrink:0;
+  width:min(400px,100%); flex-shrink:0; flex-grow:0;
   display:flex; flex-direction:column;
   border-right:2px solid var(--border);
   background:var(--pomo-bg);
@@ -469,6 +470,46 @@ body { display:grid; grid-template-columns:36px 1fr 1fr 1.8fr; height:100dvh; }
   letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-dim);
 }
 
+/* ── INSIGHTS OVERLAY ── */
+#insights-overlay {
+  display:none; position:fixed; inset:0; z-index:820;
+  background:rgba(3,5,8,0.97); backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px); flex-direction:column;
+}
+#insights-overlay.open { display:flex; }
+[data-theme="light"] #insights-overlay { background:rgba(232,240,250,0.97); }
+.insights-header {
+  padding:11px 16px; border-bottom:2px solid var(--border);
+  display:flex; align-items:center; gap:10px; flex-shrink:0;
+}
+.insights-body {
+  flex:1; overflow-y:auto; padding:20px 24px; scrollbar-width:none;
+  display:flex; flex-direction:column; gap:24px;
+}
+.insights-body::-webkit-scrollbar { display:none; }
+.insights-section-lbl {
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  letter-spacing:0.18em; text-transform:uppercase; color:var(--accent-dim);
+  margin-bottom:10px;
+}
+.stat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.stat-card {
+  background:var(--ink-faint); border:1px solid var(--border); border-radius:6px; padding:14px;
+}
+.stat-card-lbl {
+  font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.15em;
+  text-transform:uppercase; color:var(--ink-dim); margin-bottom:5px;
+}
+.stat-card-val {
+  font-size:30px; font-weight:300; color:var(--accent); line-height:1;
+}
+.stat-card-unit { font-size:14px; color:var(--ink-dim); }
+.heatmap-wrap { display:flex; gap:3px; }
+.heatmap-col { display:flex; flex-direction:column; gap:3px; }
+.heatmap-cell {
+  width:13px; height:13px; border-radius:2px; flex-shrink:0;
+}
+
 /* Paper grain */
 body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:0.25; z-index:998;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); }
@@ -481,6 +522,10 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
 <div id="sidebar">
   <button class="sbtn on" id="sbtn-cal" title="Calendar" onclick="toggleSidePanel('left')">&#128197;</button>
   <button class="sbtn on" id="sbtn-tasks" title="Tasks" onclick="toggleSidePanel('tasks')">&#9745;</button>
+  <div class="sbtn-sep"></div>
+  <button class="sbtn" id="sbtn-insights" title="Insights" onclick="openInsights()">&#128200;</button>
+  <div style="flex:1"></div>
+  <button class="sbtn" id="theme-btn" title="Toggle theme">&#9788;</button>
 </div>
 
 <!-- COL 1: CALENDAR -->
@@ -521,9 +566,6 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
       <button class="add-btn" id="notes-btn" title="Quick note" style="border-color:var(--accent);color:var(--accent);font-size:13px;padding:4px 10px">&#9998; Notes</button>
       <button class="add-btn" id="pomo-open-btn" title="Focus timer" style="border-color:var(--accent);color:var(--accent);font-size:13px;padding:4px 10px">&#9650; Focus</button>
     </div>
-    <button class="theme-btn" id="theme-btn" style="margin-left:8px">
-      <span id="theme-icon">☀</span><span id="theme-label">Light</span>
-    </button>
   </div>
   <div class="chrono-wrapper">
     <div class="time-display">
@@ -664,6 +706,31 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
     <button class="scribble-btn" id="notes-overlay-close" style="margin-left:auto;border-color:var(--border)">&#10005; Close</button>
   </div>
   <canvas id="notes-canvas" style="flex:1;width:100%;touch-action:none;cursor:crosshair;-webkit-touch-callout:none;"></canvas>
+</div>
+
+<!-- INSIGHTS OVERLAY -->
+<div id="insights-overlay">
+  <div class="insights-header">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent)">&#128200; Insights</span>
+    <button onclick="closeInsights()" style="margin-left:auto;background:none;border:2px solid var(--border);border-radius:5px;color:var(--ink-dim);cursor:pointer;font-size:16px;padding:5px 10px;min-height:44px;min-width:44px">✕</button>
+  </div>
+  <div class="insights-body">
+    <div>
+      <div class="insights-section-lbl">Focus Heatmap — Last 90 Days</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-dim);margin-bottom:8px">Each cell = 1 day · full blue = 4h+ deep work</div>
+      <div id="heatmap-wrap" class="heatmap-wrap"></div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-dim)">
+        <span>0h</span>
+        <div id="heatmap-legend" style="display:flex;gap:2px"></div>
+        <span>4h+</span>
+      </div>
+    </div>
+    <div class="stat-grid" id="insights-stats"></div>
+    <div>
+      <div class="insights-section-lbl">Recent Focus Sessions</div>
+      <div id="insights-sessions"></div>
+    </div>
+  </div>
 </div>
 
 <!-- SIGN-IN OVERLAY -->
@@ -1147,8 +1214,7 @@ let isDark=true;
 document.getElementById('theme-btn').addEventListener('click',()=>{
   isDark=!isDark;
   document.documentElement.setAttribute('data-theme',isDark?'dark':'light');
-  document.getElementById('theme-icon').textContent=isDark?'☀':'☾';
-  document.getElementById('theme-label').textContent=isDark?'Light':'Dark';
+  document.getElementById('theme-btn').textContent=isDark?'☀':'☾';
   drawCosmodex(); drawPomoRing();
 });
 
@@ -1238,10 +1304,10 @@ function buildDay(){
     row.appendChild(lbl); row.appendChild(evDiv); tl.appendChild(row);
   }
 
-  // Scroll to current hour (or 8am if not today)
-  const scrollTo=isToday?Math.max(0,nowH-1):8;
+  // Scroll to current hour (or 8am if not today) — double rAF ensures DOM is painted
+  const scrollTo=isToday?Math.max(0,Math.min(nowH-1,22)):8;
   const rows=tl.querySelectorAll('.hour-row');
-  if(rows[scrollTo]) setTimeout(()=>rows[scrollTo].scrollIntoView({block:'start'}),50);
+  if(rows[scrollTo]) requestAnimationFrame(()=>requestAnimationFrame(()=>rows[scrollTo].scrollIntoView({block:'start'})));
 }
 
 // Create a calendar event from a dragged task
@@ -1698,38 +1764,46 @@ function drawCosmodex() {
     ctx.restore();
   });
 
-  // ── 5. Hour labels OUTSIDE petals ──
+  // ── 5. Boundary markers every 3 petals (5am, 8am, 11am, 2pm, 5pm, 8pm, 11pm) ──
   ctx.shadowBlur = 0;
-  for (let i = 0; i < CHOURS; i++) {
+  [0,3,6,9,12,15,18].forEach(i=>{
     const hAbs = H_START + i;
-    const a    = petalMid(i);
+    const a    = hourAngle(i, 0);  // START boundary of petal i
     const ro   = petalRO(i);
-    const labelR = ro + 14*sc;  // just outside petal tip
-    // Full readable label: "5am", "12pm", "1pm" etc.
-    let hLabel;
-    if (hAbs === 0 || hAbs === 24) hLabel = '12am';
-    else if (hAbs === 12) hLabel = '12pm';
-    else if (hAbs < 12)  hLabel = hAbs + 'am';
-    else                  hLabel = (hAbs-12) + 'pm';
+    const ri   = petalRI();
+    let hLabel = hAbs===12?'12pm':hAbs<12?hAbs+'am':(hAbs-12)+'pm';
 
-    const lx = cx + labelR * Math.cos(a);
-    const ly = cy + labelR * Math.sin(a);
+    // Subtle radial tick along boundary line
     ctx.save();
-    ctx.translate(lx, ly);
-    // Rotate along petal direction, text reads outward
-    let rot = a + Math.PI / 2;
-    if (Math.cos(a) < 0) rot += Math.PI;
-    ctx.rotate(rot);
-    ctx.font = '11px "JetBrains Mono",monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.shadowColor = dark ? 'rgba(0,0,0,1)' : 'rgba(255,255,255,1)';
-    ctx.shadowBlur  = 9;
-    ctx.fillStyle   = lblC;
-    ctx.fillText(hLabel, 0, 0);
-    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.moveTo(cx + (ri+2*sc)*Math.cos(a), cy + (ri+2*sc)*Math.sin(a));
+    ctx.lineTo(cx + (ro+2*sc)*Math.cos(a), cy + (ro+2*sc)*Math.sin(a));
+    ctx.strokeStyle = accentC; ctx.globalAlpha=0.18; ctx.lineWidth=1; ctx.stroke();
     ctx.restore();
-  }
+
+    // Dot at outer edge of boundary
+    const dotR = ro + 5*sc;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx+dotR*Math.cos(a), cy+dotR*Math.sin(a), 3*sc, 0, Math.PI*2);
+    ctx.fillStyle = accentC; ctx.globalAlpha = 0.8; ctx.fill();
+    ctx.restore();
+
+    // Label just outside the dot, rotated to read outward
+    const labelR = ro + 18*sc;
+    ctx.save();
+    ctx.translate(cx+labelR*Math.cos(a), cy+labelR*Math.sin(a));
+    let rot = a + Math.PI/2;
+    if(Math.cos(a)<0) rot += Math.PI;
+    ctx.rotate(rot);
+    ctx.font = '10px "JetBrains Mono",monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.shadowColor = dark?'rgba(0,0,0,1)':'rgba(255,255,255,1)'; ctx.shadowBlur=7;
+    ctx.fillStyle = dark?'rgba(180,220,255,0.70)':'rgba(20,45,80,0.70)';
+    ctx.fillText(hLabel, 0, 0);
+    ctx.shadowBlur=0;
+    ctx.restore();
+  });
 
   // ── 6. Time needle ──
   if (tm >= H_START * 60 && tm < H_END * 60) {
@@ -2095,6 +2169,7 @@ document.getElementById('pomo-start').addEventListener('click',()=>{
       pomo.remainSecs--;
       if(pomo.remainSecs<=0){
         clearInterval(pomo.interval);pomo.running=false;pomo.remainSecs=0;pomo.sessions=Math.min(4,pomo.sessions+1);
+        logToSheet('Events',[new Date().toISOString(),document.getElementById('pomo-ev-title').textContent,'pomo_complete',String((pomoDuration/60).toFixed(2))]);
         document.getElementById('pomo-lock-msg').classList.remove('show');
         setTimeout(()=>{ _scribbleInited=false; document.getElementById('pomo-overlay').classList.remove('open'); },1200);
         try{const ac=new(window.AudioContext||window.webkitAudioContext)();[0,0.35,0.7].forEach((t,i)=>{const osc=ac.createOscillator(),g=ac.createGain();osc.connect(g);g.connect(ac.destination);osc.frequency.value=[528,660,792][i];g.gain.value=0.2;osc.start(ac.currentTime+t);g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+t+0.9);osc.stop(ac.currentTime+t+0.9);});}catch(e){}
@@ -2415,16 +2490,139 @@ window.addEventListener('resize', ()=>{
   }
 });
 
+// ── INSIGHTS ─────────────────────────────────────────
+async function openInsights(){
+  document.getElementById('insights-overlay').classList.add('open');
+  await buildInsights();
+}
+function closeInsights(){
+  document.getElementById('insights-overlay').classList.remove('open');
+}
+
+async function buildInsights(){
+  // Show loading state
+  document.getElementById('heatmap-wrap').innerHTML='<div style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--ink-dim)">Loading…</div>';
+  document.getElementById('insights-stats').innerHTML='';
+  document.getElementById('insights-sessions').innerHTML='';
+
+  // Build 90-day map from spreadsheet
+  const dayFocus={};   // date → hours of deep work
+  const sessions=[];   // [{date,title,hrs}]
+
+  if(SHEETS_ID && accessToken){
+    try{
+      const res=await apiFetch(`${SHEETS_API}/${SHEETS_ID}/values/Events!A:D`);
+      (res.values||[]).forEach(row=>{
+        if(row[2]==='pomo_complete'){
+          const date=(row[0]||'').slice(0,10);
+          const hrs=parseFloat(row[3])||0;
+          if(date){ dayFocus[date]=(dayFocus[date]||0)+hrs; }
+          sessions.push({date,title:row[1]||'',hrs});
+        }
+      });
+    }catch(e){}
+  }
+
+  // ── Heatmap ──
+  const wrap=document.getElementById('heatmap-wrap');
+  wrap.innerHTML='';
+  const now=new Date(), DAYS=91;
+  // Build cells day by day
+  const cells=[];
+  for(let i=DAYS-1;i>=0;i--){
+    const d=new Date(now);d.setDate(now.getDate()-i);
+    cells.push({date:localDate(d),dow:d.getDay()});
+  }
+  // Group into columns of 7 starting from the first full week
+  const MAX_HRS=4;
+  const dark=isDark;
+  // pad so columns align to Monday (dow=1)
+  const firstDow=cells[0].dow; // 0=Sun, pad to make Mon=0
+  const padDays=(firstDow===0?6:firstDow-1);
+  for(let p=0;p<padDays;p++) cells.unshift(null); // null = empty pad cell
+  // Chunk into cols of 7
+  const cols=[];
+  for(let i=0;i<cells.length;i+=7) cols.push(cells.slice(i,i+7));
+  cols.forEach(col=>{
+    const colEl=document.createElement('div');colEl.className='heatmap-col';
+    col.forEach(cell=>{
+      const d=document.createElement('div');d.className='heatmap-cell';
+      if(!cell){d.style.background='transparent';colEl.appendChild(d);return;}
+      const hrs=dayFocus[cell.date]||0;
+      const intensity=Math.min(hrs/MAX_HRS,1);
+      if(intensity===0){
+        d.style.background=dark?'rgba(61,184,255,0.08)':'rgba(11,98,196,0.08)';
+      }else{
+        const alpha=0.18+intensity*0.82;
+        d.style.background=dark?`rgba(61,184,255,${alpha.toFixed(2)})`:`rgba(11,98,196,${alpha.toFixed(2)})`;
+      }
+      d.title=cell.date+' · '+(hrs>0?hrs.toFixed(1)+'h deep work':'no sessions');
+      colEl.appendChild(d);
+    });
+    wrap.appendChild(colEl);
+  });
+
+  // Legend
+  const leg=document.getElementById('heatmap-legend');
+  leg.innerHTML='';
+  [0,0.25,0.5,0.75,1].forEach(v=>{
+    const c=document.createElement('div');
+    c.style.cssText='width:13px;height:13px;border-radius:2px;';
+    const alpha=v===0?0.08:(0.18+v*0.82);
+    c.style.background=dark?`rgba(61,184,255,${alpha.toFixed(2)})`:`rgba(11,98,196,${alpha.toFixed(2)})`;
+    leg.appendChild(c);
+  });
+
+  // ── Stats ──
+  const totalHrs=Object.values(dayFocus).reduce((s,v)=>s+v,0);
+  const thisWeek=cells.slice(-7).filter(Boolean).reduce((s,c)=>s+(dayFocus[c.date]||0),0);
+  const bestEntry=Object.entries(dayFocus).sort((a,b)=>b[1]-a[1])[0];
+  const statsEl=document.getElementById('insights-stats');
+  statsEl.innerHTML=`
+    <div class="stat-card">
+      <div class="stat-card-lbl">Total 90 days</div>
+      <div class="stat-card-val">${totalHrs.toFixed(1)}<span class="stat-card-unit">h</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-lbl">This week</div>
+      <div class="stat-card-val">${thisWeek.toFixed(1)}<span class="stat-card-unit">h</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-lbl">Best day</div>
+      <div class="stat-card-val" style="font-size:18px">${bestEntry?bestEntry[0].slice(5)+' · '+bestEntry[1].toFixed(1)+'h':'—'}</div>
+    </div>`;
+
+  // ── Recent sessions list ──
+  const sesEl=document.getElementById('insights-sessions');
+  if(!sessions.length){
+    sesEl.innerHTML='<div style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--ink-dim)">No sessions logged yet. Complete a Focus session to start tracking.</div>';
+  } else {
+    const recent=sessions.slice(-10).reverse();
+    sesEl.innerHTML=recent.map(s=>`
+      <div style="display:flex;align-items:baseline;gap:10px;padding:6px 0;border-bottom:1px solid var(--ink-faint)">
+        <span style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--ink-dim);flex-shrink:0">${s.date}</span>
+        <span style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${s.title||'Focus Session'}</span>
+        <span style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--accent);flex-shrink:0">${s.hrs.toFixed(1)}h</span>
+      </div>`).join('');
+  }
+}
+
 // ── SIDEBAR PANEL TOGGLES ────────────────────────────
 const _panelVis={left:true,tasks:true};
 function toggleSidePanel(which){
   _panelVis[which]=!_panelVis[which];
+  const pl=document.getElementById('panel-left');
+  const pt=document.getElementById('panel-tasks');
   const c1=_panelVis.left?'1fr':'0';
   const c2=_panelVis.tasks?'1fr':'0';
   document.body.style.gridTemplateColumns='36px '+c1+' '+c2+' 1.8fr';
+  // Force panels to collapse below their content minimum size
+  pl.style.width=_panelVis.left?'':'0';
+  pt.style.width=_panelVis.tasks?'':'0';
+  pl.style.minWidth='0'; pt.style.minWidth='0';
   document.getElementById('sbtn-cal').classList.toggle('on',_panelVis.left);
   document.getElementById('sbtn-tasks').classList.toggle('on',_panelVis.tasks);
-  setTimeout(drawCosmodex,150);
+  setTimeout(drawCosmodex,200);
 }
 
 // ── INIT ──────────────────────────────────────────────
