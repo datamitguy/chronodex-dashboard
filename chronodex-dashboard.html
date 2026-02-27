@@ -237,10 +237,24 @@ body { display:grid; grid-template-columns:36px 1fr 1fr 1.8fr; height:100dvh; }
 .task-item.subtask { padding-left:38px; }
 .task-add-sub {
   background:none; border:none; color:var(--ink-dim); cursor:pointer;
-  font-size:16px; padding:2px 5px; margin-left:auto; flex-shrink:0;
-  line-height:1; opacity:0; transition:opacity 0.15s;
+  font-size:13px; padding:2px 5px; flex-shrink:0;
+  line-height:1; opacity:0.65;
 }
-.task-item:hover .task-add-sub { opacity:1; }
+.task-add-sub:hover { opacity:1; color:var(--accent); }
+.task-del-btn {
+  background:none; border:none; color:var(--ink-dim); cursor:pointer;
+  font-size:12px; padding:2px 4px; flex-shrink:0; line-height:1;
+  opacity:0; transition:opacity 0.15s;
+}
+.task-item:hover .task-del-btn { opacity:0.6; }
+.task-del-btn:hover { color:var(--red) !important; opacity:1 !important; }
+.ev-del-btn {
+  position:absolute; right:4px; top:50%; transform:translateY(-50%);
+  background:none; border:none; color:var(--ink-dim); cursor:pointer;
+  font-size:11px; padding:2px 4px; opacity:0; transition:opacity 0.15s; z-index:3;
+}
+.hour-event:hover .ev-del-btn { opacity:0.7; }
+.ev-del-btn:hover { color:var(--red) !important; opacity:1 !important; }
 
 /* ══ RESPONSIVE / MOBILE ══ */
 @media (max-width: 720px) {
@@ -489,7 +503,7 @@ body { display:grid; grid-template-columns:36px 1fr 1fr 1.8fr; height:100dvh; }
 .insights-body::-webkit-scrollbar { display:none; }
 .insights-section-lbl {
   font-family:'JetBrains Mono',monospace; font-size:11px;
-  letter-spacing:0.18em; text-transform:uppercase; color:var(--accent-dim);
+  letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-dim);
   margin-bottom:10px;
 }
 .stat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
@@ -508,6 +522,67 @@ body { display:grid; grid-template-columns:36px 1fr 1fr 1.8fr; height:100dvh; }
 .heatmap-col { display:flex; flex-direction:column; gap:3px; }
 .heatmap-cell {
   width:13px; height:13px; border-radius:2px; flex-shrink:0;
+}
+
+/* ── BREATHING RING ── */
+.breath-section { display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px 0 4px; }
+.breath-ring-outer {
+  width:72px; height:72px; border-radius:50%;
+  border:2.5px solid var(--accent);
+  display:flex; align-items:center; justify-content:center;
+  animation:breathe-ring 16s ease-in-out infinite;
+}
+.breath-ring-inner {
+  width:44px; height:44px; border-radius:50%;
+  background:var(--accent-glow);
+  animation:breathe-inner 16s ease-in-out infinite;
+}
+@keyframes breathe-ring {
+  0%,100% { transform:scale(0.55); opacity:0.30; }
+  25%      { transform:scale(1.00); opacity:0.85; }
+  50%      { transform:scale(1.00); opacity:0.85; }
+  75%      { transform:scale(0.55); opacity:0.30; }
+}
+@keyframes breathe-inner {
+  0%,100% { transform:scale(0.45); opacity:0.15; }
+  25%      { transform:scale(1.00); opacity:0.80; }
+  50%      { transform:scale(1.00); opacity:0.80; }
+  75%      { transform:scale(0.45); opacity:0.15; }
+}
+.breath-phase {
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  letter-spacing:0.16em; text-transform:uppercase; color:var(--accent);
+  text-align:center; min-height:16px;
+}
+.breath-hint { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--ink-dim); letter-spacing:0.10em; }
+/* ── FOCUS CHECKLIST ── */
+.focus-checklist { width:100%; border-top:1px solid var(--border); padding-top:12px; }
+.focus-check-lbl {
+  font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.16em;
+  text-transform:uppercase; color:var(--ink-dim); margin-bottom:8px;
+}
+.focus-check-items { display:flex; flex-direction:column; gap:4px; margin-bottom:8px; }
+.focus-check-item { display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:4px; background:var(--ink-faint); }
+.focus-check-item.done .focus-check-txt { text-decoration:line-through; opacity:0.45; }
+.focus-check-box {
+  width:16px; height:16px; border:2px solid var(--border); border-radius:3px;
+  flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  font-size:10px; cursor:pointer;
+}
+.focus-check-item.done .focus-check-box { background:var(--accent-dim); border-color:var(--accent); color:var(--accent); }
+.focus-check-txt { font-size:14px; flex:1; }
+.focus-check-add { display:flex; gap:6px; align-items:center; }
+.focus-check-add input {
+  flex:1; background:var(--ink-faint); border:2px solid var(--border); border-radius:4px;
+  color:var(--ink); font-family:'JetBrains Mono',monospace; font-size:13px;
+  padding:6px 10px; outline:none;
+}
+.focus-check-add input:focus { border-color:var(--accent); }
+.focus-check-add-btn {
+  background:var(--accent-dim); border:2px solid var(--accent); border-radius:4px;
+  color:var(--accent); cursor:pointer; font-size:18px; line-height:1;
+  width:34px; height:34px; display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
 }
 
 /* Paper grain */
@@ -625,6 +700,23 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
         <div class="pomo-sess" id="pomo-sess">
           <div class="sess-dot"></div><div class="sess-dot"></div>
           <div class="sess-dot"></div><div class="sess-dot"></div>
+        </div>
+
+        <!-- Breathing ring -->
+        <div class="breath-section">
+          <div class="breath-ring-outer"><div class="breath-ring-inner"></div></div>
+          <div class="breath-phase" id="breath-phase">Breathe in</div>
+          <div class="breath-hint">Box breathing · 4-4-4-4</div>
+        </div>
+
+        <!-- Session checklist -->
+        <div class="focus-checklist">
+          <div class="focus-check-lbl">Session checklist</div>
+          <div class="focus-check-items" id="focus-check-items"></div>
+          <div class="focus-check-add">
+            <input type="text" id="focus-check-input" placeholder="Add item…" autocomplete="off">
+            <button class="focus-check-add-btn" id="focus-check-add-btn">+</button>
+          </div>
         </div>
 
       </div>
@@ -1072,7 +1164,7 @@ async function fetchEvents(){
         if(ev.status==='cancelled') return;
         const startISO=ev.start.date&&!ev.start.dateTime ? ev.start.date : dtToLocal(ev.start.dateTime||ev.start.date+'T00:00:00');
         const endISO  =ev.end.date&&!ev.end.dateTime ? ev.end.date : dtToLocal(ev.end.dateTime||ev.end.date+'T00:00:00');
-        all.push({ title:(ev.summary||'(No title)').replace(/</g,'&lt;'), startISO, endISO, color:evColor(ev,cal.id), calId:cal.id, calName:cal.name });
+        all.push({ title:(ev.summary||'(No title)').replace(/</g,'&lt;'), startISO, endISO, color:evColor(ev,cal.id), calId:cal.id, calName:cal.name, evId:ev.id });
       });
     }catch(e){}
   }));
@@ -1297,17 +1389,17 @@ function buildDay(){
       const heightPct=Math.max(8,(dur/60)*100);
       el.style.cssText='border-color:'+ev.color+';background:'+ev.color+'28;position:relative;margin-top:'+topPct+'%;';
       const tStr=String(new Date(ev.startISO).getHours()).padStart(2,'0')+':'+String(startM).padStart(2,'0');
-      el.innerHTML='<span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--ink-dim)">'+tStr+'</span> '+ev.title+(dur>0?' <span style="color:var(--ink-dim);font-size:12px">'+dur+'m</span>':'');
+      el.innerHTML='<span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--ink-dim)">'+tStr+'</span> '+ev.title+(dur>0?' <span style="color:var(--ink-dim);font-size:12px">'+dur+'m</span>':'')+'<button class="ev-del-btn" title="Delete event">✕</button>';
+      el.querySelector('.ev-del-btn').addEventListener('click',e=>{e.stopPropagation();deleteEvent(ev);});
       el.addEventListener('click',()=>openPomo(ev)); evDiv.appendChild(el);
     });
 
     row.appendChild(lbl); row.appendChild(evDiv); tl.appendChild(row);
   }
 
-  // Scroll to current hour (or 8am if not today) — double rAF ensures DOM is painted
+  // Scroll to current hour (or 8am if not today) — use scrollTop for reliable cross-browser behaviour
   const scrollTo=isToday?Math.max(0,Math.min(nowH-1,22)):8;
-  const rows=tl.querySelectorAll('.hour-row');
-  if(rows[scrollTo]) requestAnimationFrame(()=>requestAnimationFrame(()=>rows[scrollTo].scrollIntoView({block:'start'})));
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ tl.scrollTop = scrollTo * 44; }));
 }
 
 // Create a calendar event from a dragged task
@@ -1651,7 +1743,24 @@ function drawCosmodex() {
     ctx.stroke();
   }
 
-  // (elapsed fill removed — time needle shows current position)
+  // ── 2. Elapsed time fill — subtle glow on past petals ──
+  for(let i=0;i<CHOURS;i++){
+    const hAbs=H_START+i;
+    const hMin=hAbs*60, hMax=(hAbs+1)*60;
+    if(tm<=hMin) break; // all remaining petals are future
+    const frac=Math.min(1,(tm-hMin)/60);
+    const ri=petalRI()+1*_cosScale, ro=petalRO(i)-1*_cosScale;
+    const a0=hourAngle(i,0), a1=hourAngle(i,frac);
+    ctx.save();
+    ctx.globalAlpha=0.14;
+    ctx.beginPath();
+    ctx.arc(cx,cy,ro,a0+GAP*0.5,a1-GAP*0.5);
+    ctx.arc(cx,cy,ri,a1-GAP*0.5,a0+GAP*0.5,true);
+    ctx.closePath();
+    ctx.fillStyle=accentC;
+    ctx.fill();
+    ctx.restore();
+  }
 
   // ── 3. Event fills ──
   te.forEach(ev => {
@@ -1905,33 +2014,122 @@ function updateClock(){
 }
 
 // ── TASKS ─────────────────────────────────────────────
+let _draggedTask=null;
 function buildTasks(){
-  const list=document.getElementById('tasks-list'),today=localDate();
+  const list=document.getElementById('tasks-list'), today=localDate();
   list.innerHTML='';
-  const tasks=filteredTasks();
-  if(!tasks.length){ list.innerHTML='<div class="loading-msg">'+(accessToken?'No tasks':'Sign in to see tasks')+'</div>'; document.getElementById('tasks-count').textContent=''; return; }
-  const ov=tasks.filter(t=>!t.done&&t.due&&t.due<today);
-  const dt=tasks.filter(t=>!t.done&&t.due===today);
-  const up=tasks.filter(t=>!t.done&&(!t.due||t.due>today));
-  const dn=tasks.filter(t=>t.done);
+  const allTasks=filteredTasks();
+  if(!allTasks.length){ list.innerHTML='<div class="loading-msg">'+(accessToken?'No tasks':'Sign in to see tasks')+'</div>'; document.getElementById('tasks-count').textContent=''; return; }
+
+  // Build ID lookup and children map to maintain correct tree order
+  const taskById={};
+  allTasks.forEach(t=>taskById[t._id]=t);
+  const childrenOf={};
+  allTasks.forEach(t=>{
+    if(t._parent&&taskById[t._parent]){
+      if(!childrenOf[t._parent])childrenOf[t._parent]=[];
+      childrenOf[t._parent].push(t);
+    }
+  });
+
+  // Only root tasks (no parent, or parent not in filtered set) go into groups
+  const rootTasks=allTasks.filter(t=>!t._parent||!taskById[t._parent]);
+  const ov=rootTasks.filter(t=>!t.done&&t.due&&t.due<today);
+  const dt=rootTasks.filter(t=>!t.done&&t.due===today);
+  const up=rootTasks.filter(t=>!t.done&&(!t.due||t.due>today));
+  const dn=rootTasks.filter(t=>t.done);
+
+  function renderTask(task, mc){
+    const isSubtask=!!(task._parent&&taskById[task._parent]);
+    const item=document.createElement('div');
+    item.className='task-item'+(task.done?' done':'')+(isSubtask?' subtask':'');
+    item.draggable=true;
+    item.dataset.taskId=task._id;
+    const metaHtml=task.due?'<div class="task-meta '+(mc||'')+'">'+fmtDue(task.due,today)+(activeTaskTab==='all'?' \u00b7 '+task._listName:'')+'</div>':'';
+    item.innerHTML=
+      '<div class="drag-hint">\u2630</div>'+
+      '<div class="task-pri pri-'+task.priority+'"></div>'+
+      '<div class="task-check"></div>'+
+      '<div class="task-body"><div class="task-title">'+(isSubtask?'\u2937 ':'')+task.title+'</div>'+metaHtml+'</div>'+
+      (!isSubtask?'<button class="task-add-sub" title="Add subtask">+</button>':'')+
+      '<button class="task-del-btn" title="Delete task">\u2715</button>';
+
+    // Drag: allow all tasks to be dragged (including subtasks)
+    item.addEventListener('dragstart',e=>{
+      _draggedTask=task;
+      e.dataTransfer.setData('text/plain',JSON.stringify({taskTitle:task.title,taskId:task._id,listId:task._list}));
+      item.classList.add('dragging');
+    });
+    item.addEventListener('dragend',()=>{ item.classList.remove('dragging'); _draggedTask=null; });
+
+    // Drop on a task item → reparent dragged task as a child (only if different task, not already a subtask target)
+    item.addEventListener('dragover',e=>{
+      if(_draggedTask&&_draggedTask._id!==task._id&&!isSubtask){
+        e.preventDefault(); e.stopPropagation(); item.classList.add('drag-over');
+      }
+    });
+    item.addEventListener('dragleave',()=>item.classList.remove('drag-over'));
+    item.addEventListener('drop',e=>{
+      e.preventDefault(); e.stopPropagation(); item.classList.remove('drag-over');
+      if(_draggedTask&&_draggedTask._id!==task._id) moveTaskToSubtask(_draggedTask._id,_draggedTask._list,task._id,task._list);
+    });
+
+    item.querySelector('.task-check').addEventListener('click',ev=>{ev.stopPropagation();toggleTask(task);});
+    const subBtn=item.querySelector('.task-add-sub');
+    if(subBtn) subBtn.addEventListener('click',ev=>{ev.stopPropagation();openAddSubtask(task);});
+    const delBtn=item.querySelector('.task-del-btn');
+    if(delBtn) delBtn.addEventListener('click',ev=>{ev.stopPropagation();deleteTask(task);});
+
+    list.appendChild(item);
+    // Render children right after parent so hierarchy is visually correct
+    (childrenOf[task._id]||[]).forEach(child=>renderTask(child, mc));
+  }
+
   function grp(lbl,items,mc){
     if(!items.length)return;
     const gl=document.createElement('div');gl.className='task-group-lbl';gl.textContent=lbl;list.appendChild(gl);
-    items.forEach(task=>{
-      const isSubtask=!!task._parent;
-      const item=document.createElement('div');item.className='task-item'+(task.done?' done':'')+(isSubtask?' subtask':'');
-      item.draggable=!isSubtask;
-      item.innerHTML='<div class="drag-hint">\u2630</div><div class="task-pri pri-'+task.priority+'"></div><div class="task-check"></div><div class="task-body"><div class="task-title">'+(isSubtask?'\u2937 ':'')+task.title+'</div>'+(task.due?'<div class="task-meta '+(mc||'')+'">'+fmtDue(task.due,today)+(activeTaskTab==='all'?'  \u00b7 '+task._listName:'')+'</div>':'')+'</div>'+(isSubtask?'':'<button class="task-add-sub" title="Add subtask">&#43;</button>');
-      item.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',JSON.stringify({taskTitle:task.title,taskId:task._id,listId:task._list}));item.classList.add('dragging');});
-      item.addEventListener('dragend',()=>item.classList.remove('dragging'));
-      item.querySelector('.task-check').addEventListener('click',ev=>{ev.stopPropagation();toggleTask(task);});
-      const subBtn=item.querySelector('.task-add-sub');
-      if(subBtn) subBtn.addEventListener('click',ev=>{ev.stopPropagation();openAddSubtask(task);});
-      list.appendChild(item);
-    });
+    items.forEach(task=>renderTask(task,mc));
   }
-  grp('\u26a0 Overdue',ov,'overdue');grp('\u00b7 Today',dt,'today-due');grp('\u00b7 Upcoming',up,'');grp('\u00b7 Done',dn,'');
-  document.getElementById('tasks-count').textContent=tasks.filter(t=>!t.done).length+' remaining';
+  grp('\u26a0 Overdue',ov,'overdue');
+  grp('\u00b7 Today',dt,'today-due');
+  grp('\u00b7 Upcoming',up,'');
+  grp('\u00b7 Done',dn,'');
+  document.getElementById('tasks-count').textContent=allTasks.filter(t=>!t.done).length+' remaining';
+}
+
+async function deleteTask(task){
+  if(!confirm('Delete "'+task.title.replace(/&lt;/g,'<')+'"?')) return;
+  try{
+    await fetch(TASKS_API+'/lists/'+task._list+'/tasks/'+task._id,{
+      method:'DELETE', headers:{Authorization:'Bearer '+accessToken}
+    });
+    TASKS=TASKS.filter(t=>t._id!==task._id&&t._parent!==task._id); // remove task + its children
+    buildTasks();
+    showSyncBar('Task deleted','ok');
+  }catch(e){ showSyncBar('\u26a0 Delete failed','err'); }
+}
+
+async function deleteEvent(ev){
+  if(!confirm('Delete "'+ev.title.replace(/&lt;/g,'<')+'"\n'+ev.startISO.slice(0,16).replace('T',' ')+'?')) return;
+  try{
+    await fetch(CAL_API+'/calendars/'+encodeURIComponent(ev.calId)+'/events/'+ev.evId,{
+      method:'DELETE', headers:{Authorization:'Bearer '+accessToken}
+    });
+    EVENTS=EVENTS.filter(e=>e.evId!==ev.evId);
+    renderLeft(); drawCosmodex();
+    showSyncBar('Event deleted','ok');
+  }catch(e){ showSyncBar('\u26a0 Delete failed','err'); }
+}
+
+async function moveTaskToSubtask(taskId, fromListId, parentId, parentListId){
+  if(fromListId!==parentListId){ showSyncBar('Can only move tasks within the same list','err'); return; }
+  try{
+    await fetch(TASKS_API+'/lists/'+fromListId+'/tasks/'+taskId+'/move?parent='+encodeURIComponent(parentId),{
+      method:'POST', headers:{Authorization:'Bearer '+accessToken}
+    });
+    await loadAllData();
+    showSyncBar('Moved as subtask \u2713','ok');
+  }catch(e){ showSyncBar('\u26a0 Move failed: '+e.message,'err'); }
 }
 function fmtDue(due,today){ if(due===today)return'Today'; return new Date(due+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
 
@@ -2086,10 +2284,52 @@ document.getElementById('tk-save').addEventListener('click',async()=>{
 const PMIN=1,PMAX=80;let pomoDuration=25;
 const pomo={running:false,totalSecs:25*60,remainSecs:25*60,interval:null,sessions:0};
 
+// ── BREATHING RING ──────────────────────────────────
+let _breathInterval=null;
+const _breathPhases=['Breathe in \u2191','Hold','Breathe out \u2193','Hold'];
+let _breathPhaseIdx=0;
+function startBreathing(){
+  _breathPhaseIdx=0;
+  const el=document.getElementById('breath-phase');
+  if(el) el.textContent=_breathPhases[0];
+  clearInterval(_breathInterval);
+  _breathInterval=setInterval(()=>{
+    _breathPhaseIdx=(_breathPhaseIdx+1)%4;
+    const el=document.getElementById('breath-phase');
+    if(el) el.textContent=_breathPhases[_breathPhaseIdx];
+  },4000);
+}
+function stopBreathing(){ clearInterval(_breathInterval); _breathInterval=null; }
+
+// ── FOCUS CHECKLIST ─────────────────────────────────
+let focusChecklist=[];
+function renderFocusChecklist(){
+  const el=document.getElementById('focus-check-items'); if(!el) return;
+  el.innerHTML='';
+  focusChecklist.forEach((item,i)=>{
+    const div=document.createElement('div');
+    div.className='focus-check-item'+(item.done?' done':'');
+    div.innerHTML='<div class="focus-check-box">'+(item.done?'\u2713':'')+'</div><span class="focus-check-txt">'+item.text+'</span>';
+    div.querySelector('.focus-check-box').addEventListener('click',()=>{
+      focusChecklist[i].done=!focusChecklist[i].done; renderFocusChecklist();
+    });
+    el.appendChild(div);
+  });
+}
+document.getElementById('focus-check-add-btn').addEventListener('click',()=>{
+  const inp=document.getElementById('focus-check-input');
+  const text=inp.value.trim(); if(!text) return;
+  focusChecklist.push({text,done:false}); inp.value=''; renderFocusChecklist();
+});
+document.getElementById('focus-check-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter') document.getElementById('focus-check-add-btn').click();
+});
+
 function openPomo(ev){
   if(!pomo.running) document.getElementById('pomo-ev-title').textContent = ev ? ev.title : 'Focus Session';
   document.getElementById('pomo-overlay').classList.add('open');
   initScribble();
+  startBreathing();
   drawPomoRing(); renderPomo(); buildTicks();
 }
 document.getElementById('pomo-open-btn').addEventListener('click', ()=>openPomo(null));
@@ -2098,13 +2338,15 @@ document.getElementById('pomo-close').addEventListener('click', ()=>{
     document.getElementById('pomo-lock-msg').classList.add('show');
     return;
   }
-  _scribbleInited = false;  // allow re-init next open
+  _scribbleInited = false;
+  stopBreathing();
   document.getElementById('pomo-overlay').classList.remove('open');
 });
 document.getElementById('pomo-withdraw').addEventListener('click', ()=>{
   clearInterval(pomo.interval); pomo.running=false;
   pomo.totalSecs=pomoDuration*60; pomo.remainSecs=pomoDuration*60;
   renderPomo();
+  stopBreathing();
   document.getElementById('pomo-lock-msg').classList.remove('show');
   document.getElementById('pomo-overlay').classList.remove('open');
 });
@@ -2170,6 +2412,7 @@ document.getElementById('pomo-start').addEventListener('click',()=>{
       if(pomo.remainSecs<=0){
         clearInterval(pomo.interval);pomo.running=false;pomo.remainSecs=0;pomo.sessions=Math.min(4,pomo.sessions+1);
         logToSheet('Events',[new Date().toISOString(),document.getElementById('pomo-ev-title').textContent,'pomo_complete',String((pomoDuration/60).toFixed(2))]);
+        stopBreathing();
         document.getElementById('pomo-lock-msg').classList.remove('show');
         setTimeout(()=>{ _scribbleInited=false; document.getElementById('pomo-overlay').classList.remove('open'); },1200);
         try{const ac=new(window.AudioContext||window.webkitAudioContext)();[0,0.35,0.7].forEach((t,i)=>{const osc=ac.createOscillator(),g=ac.createGain();osc.connect(g);g.connect(ac.destination);osc.frequency.value=[528,660,792][i];g.gain.value=0.2;osc.start(ac.currentTime+t);g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+t+0.9);osc.stop(ac.currentTime+t+0.9);});}catch(e){}
@@ -2613,16 +2856,17 @@ function toggleSidePanel(which){
   _panelVis[which]=!_panelVis[which];
   const pl=document.getElementById('panel-left');
   const pt=document.getElementById('panel-tasks');
-  const c1=_panelVis.left?'1fr':'0';
-  const c2=_panelVis.tasks?'1fr':'0';
-  document.body.style.gridTemplateColumns='36px '+c1+' '+c2+' 1.8fr';
-  // Force panels to collapse below their content minimum size
-  pl.style.width=_panelVis.left?'':'0';
-  pt.style.width=_panelVis.tasks?'':'0';
-  pl.style.minWidth='0'; pt.style.minWidth='0';
+  const c1=_panelVis.left?'1fr':'0px';
+  const c2=_panelVis.tasks?'1fr':'0px';
+  document.body.style.gridTemplateColumns='36px '+c1+' '+c2+' 1fr';
+  // Force panels to collapse below their content minimum
+  pl.style.width=_panelVis.left?'':'0px';
+  pt.style.width=_panelVis.tasks?'':'0px';
+  pl.style.minWidth='0'; pl.style.overflow=_panelVis.left?'hidden':'hidden';
+  pt.style.minWidth='0'; pt.style.overflow=_panelVis.tasks?'hidden':'hidden';
   document.getElementById('sbtn-cal').classList.toggle('on',_panelVis.left);
   document.getElementById('sbtn-tasks').classList.toggle('on',_panelVis.tasks);
-  setTimeout(drawCosmodex,200);
+  // Canvas will be redrawn by ResizeObserver when panel-chrono resizes
 }
 
 // ── INIT ──────────────────────────────────────────────
@@ -2632,6 +2876,13 @@ window.addEventListener('resize', () => {
   clearTimeout(window._cdxResizeT);
   window._cdxResizeT = setTimeout(drawCosmodex, 150);
 });
+// ResizeObserver ensures canvas redraws whenever the chrono panel changes size (panel collapse/expand)
+if(window.ResizeObserver){
+  new ResizeObserver(()=>{
+    clearTimeout(window._cdxResizeT);
+    window._cdxResizeT = setTimeout(drawCosmodex, 50);
+  }).observe(document.getElementById('panel-chrono'));
+}
 setInterval(async ()=>{
   if(!accessToken) return;
   await maybeRefreshToken();  // renew token if expiring soon
