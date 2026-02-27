@@ -46,7 +46,7 @@
 
 html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--ink); font-family:'Cormorant Garamond',serif; }
 html { height: 100dvh; }
-body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100dvh; }
+body { display:grid; grid-template-columns:36px 1fr 1fr 1.8fr; height:100dvh; }
 
 .panel { border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
 .panel:last-child { border-right:none; }
@@ -218,9 +218,32 @@ body { display:grid; grid-template-columns:1fr 1fr 1.8fr; height:100dvh; }
 /* Light mode */
 [data-theme="light"] .task-group-lbl { color:var(--accent); }
 
+/* ── SIDEBAR RAIL ── */
+#sidebar {
+  background:var(--surface); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; align-items:center;
+  padding:10px 0; gap:6px; z-index:10; overflow:hidden;
+}
+.sbtn {
+  width:30px; height:30px; border-radius:5px; background:none; border:none;
+  color:var(--ink-dim); cursor:pointer; display:flex; align-items:center;
+  justify-content:center; font-size:14px; flex-shrink:0;
+}
+.sbtn.on { color:var(--accent); background:var(--accent-dim); }
+.sbtn:hover { background:var(--ink-faint); }
+
+/* Subtask indent */
+.task-item.subtask { padding-left:38px; }
+.task-add-sub {
+  background:none; border:none; color:var(--ink-dim); cursor:pointer;
+  font-size:16px; padding:2px 5px; margin-left:auto; flex-shrink:0;
+  line-height:1; opacity:0; transition:opacity 0.15s;
+}
+.task-item:hover .task-add-sub { opacity:1; }
 
 /* ══ RESPONSIVE / MOBILE ══ */
 @media (max-width: 720px) {
+  #sidebar { display:none !important; }
   body {
     grid-template-columns: 1fr !important;
     grid-template-rows: 1fr;
@@ -453,6 +476,12 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
 </style>
 </head>
 <body>
+
+<!-- SIDEBAR RAIL -->
+<div id="sidebar">
+  <button class="sbtn on" id="sbtn-cal" title="Calendar" onclick="toggleSidePanel('left')">&#128197;</button>
+  <button class="sbtn on" id="sbtn-tasks" title="Tasks" onclick="toggleSidePanel('tasks')">&#9745;</button>
+</div>
 
 <!-- COL 1: CALENDAR -->
 <section class="panel" id="panel-left">
@@ -743,8 +772,9 @@ const SCOPES     = [
   'https://www.googleapis.com/auth/calendar.events',
   'https://www.googleapis.com/auth/tasks',
   'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/spreadsheets',
 ].join(' ');
-const SCOPE_VER  = 'v2-rw';  // bump this whenever scopes change to force re-auth
+const SCOPE_VER  = 'v3-rw';  // bumped: added spreadsheets scope
 
 // Local date helper — fixes UTC vs local timezone mismatch (critical for SGT UTC+8)
 function localDate(d){
@@ -764,6 +794,33 @@ function dtToLocal(apiStr){
 }
 const CAL_API    = 'https://www.googleapis.com/calendar/v3';
 const TASKS_API  = 'https://www.googleapis.com/tasks/v1';
+const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets';
+let   SHEETS_ID  = localStorage.getItem('cosmodex_sheets_id') || '';
+
+async function ensureSheet(){
+  if(SHEETS_ID) return SHEETS_ID;
+  try{
+    const res=await apiPost(SHEETS_API,{
+      properties:{title:'Cosmodex Trends'},
+      sheets:[{properties:{title:'Tasks',index:0}},{properties:{title:'Events',index:1}}]
+    });
+    SHEETS_ID=res.spreadsheetId;
+    localStorage.setItem('cosmodex_sheets_id',SHEETS_ID);
+    return SHEETS_ID;
+  }catch(e){ return null; }
+}
+async function logToSheet(sheetName,row){
+  if(!accessToken) return;
+  try{
+    const sid=await ensureSheet();
+    if(!sid) return;
+    await fetch(`${SHEETS_API}/${sid}/values/${sheetName}!A1:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,{
+      method:'POST',
+      headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+      body:JSON.stringify({values:[row]}),
+    });
+  }catch(e){ console.warn('Sheet log failed:',e); }
+}
 
 // ── DATA ──────────────────────────────────────────────
 let EVENTS       = [];  // all events
@@ -964,13 +1021,13 @@ async function fetchTasks(){
   const all=[];
   await Promise.all(TASK_LISTS.map(async tl=>{
     try{
-      const r=await apiFetch(TASKS_API+'/lists/'+tl.id+'/tasks',{showCompleted:'false',showHidden:'false',maxResults:'100',fields:'items(id,title,due,status)'});
+      const r=await apiFetch(TASKS_API+'/lists/'+tl.id+'/tasks',{showCompleted:'false',showHidden:'true',maxResults:'100',fields:'items(id,title,due,status,parent)'});
       (r.items||[]).forEach(t=>{
         if(!t.title||!t.title.trim()) return;
         const due=t.due?t.due.slice(0,10):null;
         const d=due?(new Date(due)-new Date(today))/86400000:null;
         const priority=d===null?'low':d<=0?'high':d<=2?'high':d<=7?'med':'low';
-        all.push({title:t.title.replace(/</g,'&lt;'),due,done:false,priority,_id:t.id,_list:tl.id,_listName:tl.title});
+        all.push({title:t.title.replace(/</g,'&lt;'),due,done:false,priority,_id:t.id,_list:tl.id,_listName:tl.title,_parent:t.parent||null});
       });
     }catch(e){}
   }));
@@ -1722,7 +1779,12 @@ overlay.addEventListener('click',e=>{
     const em=new Date(ev.endISO).getHours()*60+new Date(ev.endISO).getMinutes();
     return sm<=tapMin+30&&tapMin<=em+30;
   });
-  if(!near.length){closePicker();return;}
+  if(!near.length){
+    closePicker();
+    // Tap on empty petal → open Add Event modal pre-filled to that hour
+    openAddEvent(localDate(), H_START+slotI);
+    return;
+  }
   if(near.length===1){openPomo(near[0]);return;}
   showPicker(near,e.clientX,e.clientY);
 });
@@ -1782,12 +1844,15 @@ function buildTasks(){
     if(!items.length)return;
     const gl=document.createElement('div');gl.className='task-group-lbl';gl.textContent=lbl;list.appendChild(gl);
     items.forEach(task=>{
-      const item=document.createElement('div');item.className='task-item'+(task.done?' done':'');
-      item.draggable=true;
-      item.innerHTML='<div class="drag-hint">\u2630</div><div class="task-pri pri-'+task.priority+'"></div><div class="task-check"></div><div class="task-body"><div class="task-title">'+task.title+'</div>'+(task.due?'<div class="task-meta '+(mc||'')+'">'+fmtDue(task.due,today)+(activeTaskTab==='all'?'  \u00b7 '+task._listName:'')+'</div>':'')+'</div>';
+      const isSubtask=!!task._parent;
+      const item=document.createElement('div');item.className='task-item'+(task.done?' done':'')+(isSubtask?' subtask':'');
+      item.draggable=!isSubtask;
+      item.innerHTML='<div class="drag-hint">\u2630</div><div class="task-pri pri-'+task.priority+'"></div><div class="task-check"></div><div class="task-body"><div class="task-title">'+(isSubtask?'\u2937 ':'')+task.title+'</div>'+(task.due?'<div class="task-meta '+(mc||'')+'">'+fmtDue(task.due,today)+(activeTaskTab==='all'?'  \u00b7 '+task._listName:'')+'</div>':'')+'</div>'+(isSubtask?'':'<button class="task-add-sub" title="Add subtask">&#43;</button>');
       item.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',JSON.stringify({taskTitle:task.title,taskId:task._id,listId:task._list}));item.classList.add('dragging');});
       item.addEventListener('dragend',()=>item.classList.remove('dragging'));
-      item.querySelector('.task-check').addEventListener('click',ev=>{ev.stopPropagation();completeTask(task);});
+      item.querySelector('.task-check').addEventListener('click',ev=>{ev.stopPropagation();toggleTask(task);});
+      const subBtn=item.querySelector('.task-add-sub');
+      if(subBtn) subBtn.addEventListener('click',ev=>{ev.stopPropagation();openAddSubtask(task);});
       list.appendChild(item);
     });
   }
@@ -1796,14 +1861,16 @@ function buildTasks(){
 }
 function fmtDue(due,today){ if(due===today)return'Today'; return new Date(due+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
 
-async function completeTask(task){
-  task.done=true; buildTasks();
+async function toggleTask(task){
+  const newDone=!task.done;
+  task.done=newDone; buildTasks();
   try{
     await fetch(TASKS_API+'/lists/'+task._list+'/tasks/'+task._id,{
       method:'PATCH', headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
-      body:JSON.stringify({status:'completed'}),
+      body:JSON.stringify({status:newDone?'completed':'needsAction'}),
     });
-  }catch(e){ task.done=false; buildTasks(); }
+    if(newDone) logToSheet('Tasks',[new Date().toISOString(),task.title.replace(/&lt;/g,'<'),task._listName||'','completed']);
+  }catch(e){ task.done=!newDone; buildTasks(); }
 }
 
 // ── ADD EVENT MODAL ───────────────────────────────────
@@ -1871,8 +1938,12 @@ document.getElementById('ev-save').addEventListener('click',async()=>{
 });
 
 // ── ADD TASK MODAL ────────────────────────────────────
+let _subtaskParent=null;
+
 function openAddTask(){
   if(!accessToken){showSyncBar('Sign in first','err');return;}
+  _subtaskParent=null;
+  document.querySelector('#modal-task .modal-title').textContent='Add Task';
   document.getElementById('tk-title').value='';
   document.getElementById('tk-date').value='';
   const sel=document.getElementById('tk-list'); sel.innerHTML='';
@@ -1884,7 +1955,26 @@ function openAddTask(){
   document.getElementById('modal-task').classList.add('open');
   setTimeout(()=>document.getElementById('tk-title').focus(),50);
 }
-function closeAddTask(){ document.getElementById('modal-task').classList.remove('open'); }
+function openAddSubtask(parentTask){
+  if(!accessToken){showSyncBar('Sign in first','err');return;}
+  _subtaskParent=parentTask;
+  document.querySelector('#modal-task .modal-title').textContent='Add Subtask \u2937';
+  document.getElementById('tk-title').value='';
+  document.getElementById('tk-date').value='';
+  const sel=document.getElementById('tk-list'); sel.innerHTML='';
+  TASK_LISTS.forEach(tl=>{
+    const o=document.createElement('option'); o.value=tl.id; o.textContent=tl.title;
+    if(tl.id===parentTask._list) o.selected=true;
+    sel.appendChild(o);
+  });
+  document.getElementById('modal-task').classList.add('open');
+  setTimeout(()=>document.getElementById('tk-title').focus(),50);
+}
+function closeAddTask(){
+  _subtaskParent=null;
+  document.querySelector('#modal-task .modal-title').textContent='Add Task';
+  document.getElementById('modal-task').classList.remove('open');
+}
 
 document.getElementById('add-task-btn').addEventListener('click',openAddTask);
 document.getElementById('modal-task-close').addEventListener('click',closeAddTask);
@@ -1903,10 +1993,13 @@ document.getElementById('tk-save').addEventListener('click',async()=>{
   document.getElementById('tk-saving').style.display='';
   document.getElementById('tk-save').disabled=true;
   try{
-    await apiPost(TASKS_API+'/lists/'+listId+'/tasks',body);
+    let url=TASKS_API+'/lists/'+listId+'/tasks';
+    const wasSubtask=!!_subtaskParent;
+    if(_subtaskParent) url+='?parent='+encodeURIComponent(_subtaskParent._id);
+    await apiPost(url,body);
     closeAddTask();
     await loadAllData();
-    showSyncBar('Task added \u2713','ok');
+    showSyncBar((wasSubtask?'Subtask':'Task')+' added \u2713','ok');
   }catch(err){
     showSyncBar('\u26a0 '+err.message,'err');
   }finally{
@@ -2321,6 +2414,18 @@ window.addEventListener('resize', ()=>{
     initMobileLayout();
   }
 });
+
+// ── SIDEBAR PANEL TOGGLES ────────────────────────────
+const _panelVis={left:true,tasks:true};
+function toggleSidePanel(which){
+  _panelVis[which]=!_panelVis[which];
+  const c1=_panelVis.left?'1fr':'0';
+  const c2=_panelVis.tasks?'1fr':'0';
+  document.body.style.gridTemplateColumns='36px '+c1+' '+c2+' 1.8fr';
+  document.getElementById('sbtn-cal').classList.toggle('on',_panelVis.left);
+  document.getElementById('sbtn-tasks').classList.toggle('on',_panelVis.tasks);
+  setTimeout(drawCosmodex,150);
+}
 
 // ── INIT ──────────────────────────────────────────────
 renderLeft(); buildTasks(); updateClock(); drawCosmodex(); buildTicks(); renderPomo(); initMobileLayout();
