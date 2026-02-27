@@ -46,13 +46,13 @@
 
 html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--ink); font-family:'Cormorant Garamond',serif; }
 html { height: 100dvh; }
-body { display:grid; grid-template-columns:36px 1fr 340px 340px; height:100dvh; }
+body { display:grid; grid-template-columns:36px 1fr 340px 340px; grid-template-rows:1fr; height:100dvh; }
 
-/* Explicit column placement so display:none on a panel doesn't shift others */
-#sidebar      { grid-column:1; }
-#panel-chrono { grid-column:2; }
-#panel-tasks  { grid-column:3; }
-#panel-left   { grid-column:4; }
+/* Explicit column+row placement — prevents auto-placement cursor from bumping panels to row 2 */
+#sidebar      { grid-column:1; grid-row:1; }
+#panel-chrono { grid-column:2; grid-row:1; }
+#panel-tasks  { grid-column:3; grid-row:1; }
+#panel-left   { grid-column:4; grid-row:1; }
 
 .panel { border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; min-width:0; }
 #panel-left { border-right:none; }
@@ -61,7 +61,7 @@ body { display:grid; grid-template-columns:36px 1fr 340px 340px; height:100dvh; 
 .panel-header { padding:9px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:5px; flex-shrink:0; }
 .panel-title { font-size:15px; letter-spacing:0.20em; text-transform:uppercase; color:var(--ink-dim); font-family:'JetBrains Mono',monospace; }
 #panel-chrono .panel-title { font-size:19px; font-weight:700; letter-spacing:0.18em; color:var(--accent); }
-.cosmodex-logo { width:22px; height:22px; flex-shrink:0; }
+.cosmodex-logo { width:22px; height:22px; flex-shrink:0; color:var(--accent); }
 .panel-accent { width:6px; height:6px; border-radius:50%; background:var(--gold); animation:pulse 3s ease-in-out infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
 
@@ -879,13 +879,13 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
 <section class="panel" id="panel-chrono">
   <div class="panel-header">
     <svg class="cosmodex-logo" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <circle cx="11" cy="11" r="9" stroke="var(--accent)" stroke-width="1.5" opacity="0.7"/>
-      <circle cx="11" cy="11" r="5.5" stroke="var(--accent)" stroke-width="1" opacity="0.5"/>
-      <circle cx="11" cy="11" r="1.5" fill="var(--accent)"/>
-      <line x1="11" y1="2" x2="11" y2="5" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/>
-      <line x1="11" y1="17" x2="11" y2="20" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
-      <line x1="2" y1="11" x2="5" y2="11" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
-      <line x1="17" y1="11" x2="20" y2="11" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+      <circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.5" opacity="0.7"/>
+      <circle cx="11" cy="11" r="5.5" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+      <circle cx="11" cy="11" r="1.5" fill="currentColor"/>
+      <line x1="11" y1="2" x2="11" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="11" y1="17" x2="11" y2="20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+      <line x1="2" y1="11" x2="5" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+      <line x1="17" y1="11" x2="20" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
     </svg>
     <span class="panel-title">Cosmodex</span>
     <div style="margin-left:auto;display:flex;gap:5px;align-items:center">
@@ -1130,13 +1130,12 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
             <div class="lifeos-field" style="flex:1">
               <label class="lifeos-lbl">Category</label>
               <select id="lifeos-det-cat" class="lifeos-inp">
-                <option value="Health">Health</option>
-                <option value="Career">Career</option>
-                <option value="Finance">Finance</option>
-                <option value="Personal">Personal</option>
-                <option value="Learning">Learning</option>
+                <option value="Mind">Mind</option>
+                <option value="Body">Body</option>
+                <option value="Soul">Soul</option>
+                <option value="Growth">Growth</option>
                 <option value="Relationships">Relationships</option>
-                <option value="Other">Other</option>
+                <option value="Cosmos">Cosmos</option>
               </select>
             </div>
             <div class="lifeos-field" style="flex:2">
@@ -3295,10 +3294,10 @@ const _gisWait=setInterval(()=>{
 const LIFEOS_PASS      = '101';
 const LIFEOS_SES_KEY   = 'lifeos_auth_v1';
 const LIFEOS_TAB       = 'LifeOS';
-const LIFEOS_CATS      = ['All','Health','Career','Finance','Personal','Learning','Relationships','Other'];
+const LIFEOS_CATS      = ['All','Mind','Body','Soul','Growth','Relationships','Cosmos'];
 const LIFEOS_CAT_COLORS = {
-  Health:'#46d4a0', Career:'#3db8ff', Finance:'#f0a030',
-  Personal:'#e058c0', Learning:'#8ccc60', Relationships:'#e05555', Other:'#7078f0'
+  Mind:'#3db8ff', Body:'#46d4a0', Soul:'#e058c0',
+  Growth:'#8ccc60', Relationships:'#e05555', Cosmos:'#7078f0'
 };
 
 let _losProjects   = [];      // [{id,title,category,notes,checklist,createdAt,updatedAt}]
@@ -3390,7 +3389,7 @@ function losRenderList(){
     list.innerHTML='<div style="padding:20px 14px;font-family:JetBrains Mono,monospace;font-size:12px;color:var(--ink-dim)">'+(_losProjects.length===0?'No projects yet. Click + Project.':'No matches.')+'</div>';
     return;
   }
-  const orderedCats=['Health','Career','Finance','Personal','Learning','Relationships','Other'];
+  const orderedCats=['Mind','Body','Soul','Growth','Relationships','Cosmos'];
   orderedCats.filter(c=>groups[c]).forEach(cat=>{
     const lbl=document.createElement('div');
     lbl.className='lifeos-proj-group-lbl';
@@ -3424,7 +3423,7 @@ function losSelect(id){
   const det=document.getElementById('lifeos-detail');
   det.style.display='flex';
   document.getElementById('lifeos-det-title').value=p.title;
-  document.getElementById('lifeos-det-cat').value=p.category||'Other';
+  document.getElementById('lifeos-det-cat').value=p.category||'Mind';
   document.getElementById('lifeos-det-notes').value=p.notes||'';
   const d=new Date(p.updatedAt||p.createdAt||losNow());
   document.getElementById('lifeos-det-updated').textContent='Updated '+d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
@@ -3473,7 +3472,7 @@ function losRenderChecklist(p){
 function losAddProject(){
   const p={
     id:losGenId(), title:'New Project',
-    category:_losCatFilter!=='All'?_losCatFilter:'Personal',
+    category:_losCatFilter!=='All'?_losCatFilter:'Mind',
     notes:'', checklist:[], createdAt:losNow(), updatedAt:losNow()
   };
   _losProjects.unshift(p);
