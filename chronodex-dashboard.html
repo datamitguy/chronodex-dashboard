@@ -94,8 +94,8 @@ body { display:grid; grid-template-columns:36px 1fr 340px 340px; grid-template-r
 /* HEADERS */
 .panel-header { padding:9px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:5px; flex-shrink:0; }
 .panel-title { font-size:15px; letter-spacing:0.20em; text-transform:uppercase; color:var(--ink-dim); font-family:'JetBrains Mono',monospace; }
-#panel-chrono .panel-title { font-size:19px; font-weight:700; letter-spacing:0.18em; color:var(--accent); }
-.cosmodex-logo { width:22px; height:22px; flex-shrink:0; color:var(--accent); }
+#panel-chrono .panel-title { font-size:38px; font-weight:700; letter-spacing:0.18em; color:var(--accent); }
+.cosmodex-logo { width:44px; height:44px; flex-shrink:0; color:var(--accent); }
 .panel-accent { width:6px; height:6px; border-radius:50%; background:var(--gold); animation:pulse 3s ease-in-out infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
 
@@ -275,7 +275,9 @@ body { display:grid; grid-template-columns:36px 1fr 340px 340px; grid-template-r
 .sbtn.on { color:var(--accent); background:var(--accent-dim); }
 .sbtn:hover { background:var(--ink-faint); }
 .sbtn-sep { width:22px; height:1px; background:var(--border); margin:4px 0; flex-shrink:0; }
-#sbtn-lifeos { color:var(--accent); }
+#sbtn-lifeos { color:var(--accent); font-size:22px; }
+#sbtn-tasks  { font-size:22px; }
+#sbtn-habits { color:var(--accent); font-size:22px; }
 
 /* Subtask indent */
 .task-item.subtask { padding-left:38px; }
@@ -1020,7 +1022,7 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
   <button class="sbtn on" id="sbtn-tasks" title="Tasks" onclick="toggleSidePanel('tasks')">&#9745;</button>
   <div class="sbtn-sep"></div>
   <button class="sbtn" id="sbtn-insights" title="Insights" onclick="openInsights()">&#128200;</button>
-  <button class="sbtn" id="sbtn-habits" title="Habits" onclick="openHabits()">&#9651;</button>
+  <button class="sbtn" id="sbtn-habits" title="Habits" onclick="openHabits()">&#9733;</button>
   <button class="sbtn" id="sbtn-lifeos" title="Life OS" onclick="openLifeOS()">&#10010;</button>
   <div style="flex:1"></div>
   <button class="sbtn" id="theme-btn" title="Toggle theme">&#9788;</button>
@@ -1029,9 +1031,9 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
 <!-- COL 1: CALENDAR -->
 <section class="panel" id="panel-left">
   <div class="panel-header">
-    <span class="panel-title" id="left-title" style="font-size:13px"></span>
-    <button class="add-btn" id="add-event-btn" title="Add event" style="margin-left:auto">+</button>
-    <div class="view-toggle" style="margin-left:8px">
+    <button class="add-btn" id="add-event-btn" title="Add event">+</button>
+    <span class="panel-title" id="left-title" style="font-size:13px;margin-left:6px"></span>
+    <div class="view-toggle" style="margin-left:auto">
       <button class="view-btn active" data-view="day">Day</button>
       <button class="view-btn" data-view="week">Week</button>
       <button class="view-btn" data-view="month">Mon</button>
@@ -1044,8 +1046,8 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
 <!-- COL 2: TASKS -->
 <section class="panel" id="panel-tasks">
   <div class="panel-header">
-    <span class="panel-title">Tasks</span>
-    <button class="add-btn" id="add-task-btn" title="Add task" style="margin-left:auto">+</button>
+    <button class="add-btn" id="add-task-btn" title="Add task">+</button>
+    <span class="panel-title" style="margin-left:6px">Tasks</span>
   </div>
   <div class="tab-bar" id="task-tab-bar" style="display:none"></div>
   <div class="tasks-list" id="tasks-list"></div>
@@ -1068,9 +1070,9 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
       <line x1="17" y1="11" x2="20" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
     </svg>
     <span class="panel-title">Cosmodex</span>
-    <div style="margin-left:auto;display:flex;gap:5px;align-items:center">
-      <button class="add-btn" id="notes-btn" title="Quick note" style="border-color:var(--accent);color:var(--accent);font-size:13px;padding:4px 10px">&#9998; Notes</button>
-      <button class="add-btn" id="pomo-open-btn" title="Focus timer" style="border-color:var(--accent);color:var(--accent);font-size:13px;padding:4px 10px">&#9650; Focus</button>
+    <div class="view-toggle" style="margin-left:auto">
+      <button class="view-btn" id="notes-btn" title="Quick note">&#9998; Notes</button>
+      <button class="view-btn" id="pomo-open-btn" title="Focus timer">&#9650; Focus</button>
     </div>
   </div>
   <div class="chrono-wrapper">
@@ -2316,8 +2318,8 @@ function drawCosmodex() {
   const dark    = isDark;
   const needleC = dark ? '#e05555' : '#c42b2b';
   const hubC    = dark ? '#3db8ff' : '#0b62c4';
-  const borderC = dark ? 'rgba(61,184,255,0.55)'  : 'rgba(11,98,196,0.50)';
-  const tickC   = dark ? 'rgba(61,184,255,0.45)'  : 'rgba(11,98,196,0.40)';
+  const borderC = dark ? 'rgba(61,184,255,0.55)'  : 'rgba(11,98,196,0.82)';
+  const tickC   = dark ? 'rgba(61,184,255,0.45)'  : 'rgba(11,98,196,0.65)';
   const elapsedC= dark ? 'rgba(61,184,255,0.65)'  : 'rgba(11,98,196,0.55)';
   const lblC    = dark ? '#d8eeff' : '#111c2d';
   const cx = LW*0.50, cy = LH/2;  // centred for equal label room on both sides
@@ -3500,7 +3502,8 @@ async function buildInsights(){
     gridDays.push(localDate(d));
   }
   // Fill grid left-to-right, top-to-bottom (row 1 = oldest 15, row 6 = newest 15)
-  gridDays.forEach((dateStr,idx)=>{
+  // Slice ensures exactly GRID_DAYS (90) cells regardless of DST edge cases
+  gridDays.slice(0,GRID_DAYS).forEach((dateStr,idx)=>{
     const hrs=dayFocus[dateStr]||0;
     const intensity=Math.min(hrs/MAX_HRS2,1);
     const cell=document.createElement('div');
