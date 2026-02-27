@@ -46,7 +46,7 @@
 
 html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--ink); font-family:'Cormorant Garamond',serif; }
 html { height: 100dvh; }
-body { display:grid; grid-template-columns:36px 300px 300px 1fr; height:100dvh; }
+body { display:grid; grid-template-columns:36px 340px 340px 1fr; height:100dvh; }
 
 /* Explicit column placement so display:none on a panel doesn't shift others */
 #sidebar      { grid-column:1; }
@@ -528,10 +528,10 @@ body { display:grid; grid-template-columns:36px 300px 300px 1fr; height:100dvh; 
   font-size:40px; font-weight:300; color:var(--accent); line-height:1;
 }
 .stat-card-unit { font-size:14px; color:var(--ink-dim); }
-.heatmap-wrap { display:flex; gap:5px; }
-.heatmap-col { display:flex; flex-direction:column; gap:5px; }
+.heatmap-wrap { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
+.heatmap-col { display:flex; flex-direction:column; gap:6px; }
 .heatmap-cell {
-  width:20px; height:20px; border-radius:3px; flex-shrink:0;
+  width:26px; height:26px; border-radius:4px; flex-shrink:0;
 }
 
 /* ── BREATHING RING ── */
@@ -784,7 +784,7 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
         </div>
         <div class="field">
           <label>Duration (min)</label>
-          <input type="number" id="t2e-dur" value="60" min="5" max="480" step="5">
+          <input type="number" id="t2e-dur" value="30" min="5" max="480" step="15">
         </div>
       </div>
     </div>
@@ -889,7 +889,7 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
         </div>
         <div class="field">
           <label>Duration (min)</label>
-          <input type="number" id="ev-dur" value="60" min="5" max="480" step="5">
+          <input type="number" id="ev-dur" value="30" min="5" max="480" step="15">
         </div>
       </div>
     </div>
@@ -1417,7 +1417,7 @@ function openTaskToEventModal(title, taskId, listId, dateStr, hour){
   document.getElementById('t2e-title').value = title;
   document.getElementById('t2e-date').value  = dateStr;
   document.getElementById('t2e-start').value = String(hour).padStart(2,'0')+':00';
-  document.getElementById('t2e-dur').value   = '60';
+  document.getElementById('t2e-dur').value   = '30';
   const sel = document.getElementById('t2e-cal'); sel.innerHTML='';
   CAL_LIST.forEach(cal=>{
     const o=document.createElement('option'); o.value=cal.id; o.textContent=cal.name;
@@ -1694,7 +1694,12 @@ function drawCosmodex() {
   const dpr = window.devicePixelRatio || 1;
   // Only re-init if needed (size changed or first draw)
   const container = cv.parentElement;
-  const lw = Math.max(container.clientWidth || 760, 120);
+  const panel = document.getElementById('panel-chrono');
+  const panelH = panel ? panel.clientHeight : 900;
+  const availH = Math.max(panelH - 220, 200); // subtract header + time display + next strip + padding
+  const maxLwByH = Math.round(availH * 760 / 500);
+  const rawLw = Math.max(container.clientWidth || 760, 120);
+  const lw = Math.min(rawLw, maxLwByH);
   const lh = Math.round(lw * 500 / 760);
   if (cv._lastLW !== lw || cv._lastDPR !== dpr) {
     cv.width  = lw * dpr;
@@ -1923,19 +1928,21 @@ function drawCosmodex() {
     ctx.restore();
 
     if(isMajor){
-      // Hour label just outside dot, rotated to read outward
+      // Hour label just outside dot — horizontal text aligned to position on circle
       let hLabel = hAbs===12?'12pm':hAbs<12?hAbs+'am':(hAbs-12)+'pm';
-      const labelR = ro + 18*sc;
+      const labelR = ro + 20*sc;
+      const lx = cx + labelR*Math.cos(a);
+      const ly = cy + labelR*Math.sin(a);
+      let tAlign = 'center';
+      if(Math.cos(a) > 0.2) tAlign = 'left';
+      else if(Math.cos(a) < -0.2) tAlign = 'right';
       ctx.save();
-      ctx.translate(cx+labelR*Math.cos(a), cy+labelR*Math.sin(a));
-      let rot = a + Math.PI/2;
-      if(Math.cos(a)<0) rot += Math.PI;
-      ctx.rotate(rot);
-      ctx.font = '10px "JetBrains Mono",monospace';
-      ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.shadowColor=dark?'rgba(0,0,0,1)':'rgba(255,255,255,1)'; ctx.shadowBlur=7;
-      ctx.fillStyle=dark?'rgba(180,220,255,0.70)':'rgba(20,45,80,0.70)';
-      ctx.fillText(hLabel, 0, 0);
+      ctx.font = `bold 12px "JetBrains Mono",monospace`;
+      ctx.textAlign = tAlign;
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor=dark?'rgba(0,0,0,1)':'rgba(255,255,255,1)'; ctx.shadowBlur=8;
+      ctx.fillStyle=dark?'rgba(180,220,255,0.80)':'rgba(20,45,80,0.80)';
+      ctx.fillText(hLabel, lx, ly);
       ctx.shadowBlur=0;
       ctx.restore();
     }
@@ -2187,7 +2194,7 @@ function openAddEvent(dateStr, startHour){
     document.getElementById('ev-start').value=String(h%24).padStart(2,'0')+':'+String(roundMin).padStart(2,'0');
   }
   document.getElementById('ev-title').value='';
-  document.getElementById('ev-dur').value='60';
+  document.getElementById('ev-dur').value='30';
   // Populate calendar selector
   const sel=document.getElementById('ev-cal'); sel.innerHTML='';
   const primaryCal = CAL_LIST.find(c=>c.isPrimary);
@@ -2828,7 +2835,7 @@ async function buildInsights(){
     const colEl=document.createElement('div');colEl.className='heatmap-col';
     col.forEach(cell=>{
       const d=document.createElement('div');d.className='heatmap-cell';
-      if(!cell){d.style.background='transparent';colEl.appendChild(d);return;}
+      if(!cell){d.style.opacity='0';colEl.appendChild(d);return;}
       const hrs=dayFocus[cell.date]||0;
       const intensity=Math.min(hrs/MAX_HRS,1);
       if(intensity===0){
@@ -2848,7 +2855,7 @@ async function buildInsights(){
   leg.innerHTML='';
   [0,0.25,0.5,0.75,1].forEach(v=>{
     const c=document.createElement('div');
-    c.style.cssText='width:20px;height:20px;border-radius:3px;';
+    c.style.cssText='width:26px;height:26px;border-radius:4px;';
     const alpha=v===0?0.08:(0.18+v*0.82);
     c.style.background=dark?`rgba(61,184,255,${alpha.toFixed(2)})`:`rgba(11,98,196,${alpha.toFixed(2)})`;
     leg.appendChild(c);
@@ -2894,8 +2901,8 @@ function toggleSidePanel(which){
   _panelVis[which]=!_panelVis[which];
   const pl=document.getElementById('panel-left');
   const pt=document.getElementById('panel-tasks');
-  const c1=_panelVis.left?'300px':'0px';
-  const c2=_panelVis.tasks?'300px':'0px';
+  const c1=_panelVis.left?'340px':'0px';
+  const c2=_panelVis.tasks?'340px':'0px';
   document.body.style.gridTemplateColumns='36px '+c1+' '+c2+' 1fr';
   pl.style.display=_panelVis.left?'flex':'none';
   pt.style.display=_panelVis.tasks?'flex':'none';
