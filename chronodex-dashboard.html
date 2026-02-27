@@ -102,6 +102,11 @@ body { display:grid; grid-template-columns:36px 1fr 340px 340px; grid-template-r
 /* Add button */
 .add-btn { background:none; border:2px solid var(--gold-dim); border-radius:5px; color:var(--gold); cursor:pointer; font-size:22px; line-height:1; padding:4px 10px; min-height:44px; min-width:44px; display:flex; align-items:center; justify-content:center; }
 .add-btn:active { background:var(--gold-dim); }
+/* Smaller + buttons in panel headers — half-size, flush with tab-bar left */
+#panel-tasks .panel-header .add-btn,
+#panel-left  .panel-header .add-btn  { font-size:13px; padding:2px 7px; min-height:26px; min-width:26px; border-width:1.5px; }
+#panel-tasks .panel-header,
+#panel-left  .panel-header           { padding-left:8px; }
 
 /* Theme toggle */
 .theme-btn { background:none; border:2px solid var(--border); border-radius:6px; padding:8px 14px; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:14px; letter-spacing:0.08em; color:var(--ink-dim); display:flex; align-items:center; gap:8px; min-height:44px; }
@@ -583,7 +588,7 @@ body { display:grid; grid-template-columns:36px 1fr 340px 340px; grid-template-r
   width:100%;
 }
 .ig-cell {
-  aspect-ratio:2/1;
+  aspect-ratio:4/1;
   border-radius:3px;
   border:1px solid var(--border);
   cursor:default;
@@ -1022,7 +1027,7 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
   <button class="sbtn on" id="sbtn-tasks" title="Tasks" onclick="toggleSidePanel('tasks')">&#9745;</button>
   <div class="sbtn-sep"></div>
   <button class="sbtn" id="sbtn-insights" title="Insights" onclick="openInsights()">&#128200;</button>
-  <button class="sbtn" id="sbtn-habits" title="Habits" onclick="openHabits()">&#9733;</button>
+  <button class="sbtn" id="sbtn-habits" title="Habits" onclick="openHabits()">&#129419;</button>
   <button class="sbtn" id="sbtn-lifeos" title="Life OS" onclick="openLifeOS()">&#10010;</button>
   <div style="flex:1"></div>
   <button class="sbtn" id="theme-btn" title="Toggle theme">&#9788;</button>
@@ -1116,9 +1121,9 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
             <button class="swipe-minus" id="sw-minus">−</button>
             <div class="swipe-track" id="sw-track">
               <div class="swipe-track-inner">
-                <div style="display:flex;align-items:baseline;justify-content:center;gap:6px;margin-bottom:2px">
+                <div style="position:relative;display:flex;align-items:baseline;justify-content:center;margin-bottom:2px">
                   <div class="swipe-val" id="sw-val">25</div>
-                  <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink-dim);padding-bottom:2px">min</div>
+                  <div style="position:absolute;left:calc(50% + 20px);bottom:0;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink-dim)">min</div>
                 </div>
                 <div class="swipe-ticks" id="sw-ticks"></div>
               </div>
@@ -1241,20 +1246,6 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
   </div>
   <div class="insights-body">
     <div>
-      <div class="insights-section-lbl">Focus Heatmap — Last 90 Days</div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-dim);margin-bottom:8px">Each cell = 1 day · full blue = 4h+ deep work</div>
-      <div id="heatmap-wrap" class="heatmap-wrap"></div>
-      <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-dim)">
-        <span>0h</span>
-        <div id="heatmap-legend" style="display:flex;gap:2px"></div>
-        <span>4h+</span>
-      </div>
-    </div>
-    <div>
-      <div class="insights-section-lbl">Focus Stats</div>
-      <div class="stat-grid" id="insights-stats"></div>
-    </div>
-    <div>
       <div class="insights-section-lbl">90-Day Focus Grid — 6 rows &times; 15 days</div>
       <div class="insights-grid-6x15" id="insights-grid-6x15"></div>
       <div style="display:flex;align-items:center;gap:6px;margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-dim)">
@@ -1263,13 +1254,17 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
         <span>4h+</span>
       </div>
     </div>
+    <div>
+      <div class="insights-section-lbl">Focus Stats</div>
+      <div class="stat-grid" id="insights-stats"></div>
+    </div>
   </div>
 </div>
 
 <!-- HABITS OVERLAY -->
 <div id="habits-overlay">
   <div class="habits-header">
-    <span class="habits-header-title">&#9651; Habits &middot; Routines &middot; Behaviours</span>
+    <span class="habits-header-title">&#129419; Habits &middot; Routines &middot; Behaviours</span>
     <button onclick="closeHabits()" style="margin-left:auto;background:none;border:2px solid var(--border);border-radius:5px;color:var(--ink-dim);cursor:pointer;font-size:16px;padding:5px 10px;min-height:44px;min-width:44px">&#10005;</button>
   </div>
   <!-- Tab bar -->
@@ -1564,7 +1559,7 @@ async function ensureSheet(){
   try{
     const res=await apiPost(SHEETS_API,{
       properties:{title:'Cosmodex Trends'},
-      sheets:[{properties:{title:'Tasks',index:0}},{properties:{title:'Events',index:1}}]
+      sheets:[{properties:{title:'Tasks',index:0}},{properties:{title:'Events',index:1}},{properties:{title:'HabitLog',index:2}}]
     });
     SHEETS_ID=res.spreadsheetId;
     localStorage.setItem('cosmodex_sheets_id',SHEETS_ID);
@@ -1990,15 +1985,26 @@ function buildDay(){
       evDiv.appendChild(line);
     }
 
-    evts.filter(e=>new Date(e.startISO).getHours()===hr).forEach(ev=>{
+    // Show events in every hour they span (not just start hour)
+    evts.filter(e=>{
+      const sm=new Date(e.startISO).getHours()*60+new Date(e.startISO).getMinutes();
+      const em=new Date(e.endISO).getHours()*60+new Date(e.endISO).getMinutes();
+      return sm<(hr+1)*60 && em>hr*60;
+    }).forEach(ev=>{
+      const evStartH=new Date(ev.startISO).getHours();
+      const evStartM=new Date(ev.startISO).getMinutes();
+      const isFirstHour=(evStartH===hr);
       const dur=Math.round((new Date(ev.endISO)-new Date(ev.startISO))/60000);
-      const startM=new Date(ev.startISO).getMinutes();
+      const startM=isFirstHour?evStartM:0;
       const el=document.createElement('div'); el.className='hour-event';
-      const topPct=(startM/60)*100;
-      const heightPct=Math.max(8,(dur/60)*100);
       el.style.cssText='border-color:'+ev.color+';background:'+ev.color+'28;position:relative;margin-top:'+Math.round(startM/60*40)+'px;';
-      const tStr=String(new Date(ev.startISO).getHours()).padStart(2,'0')+':'+String(startM).padStart(2,'0');
-      el.innerHTML='<span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--ink-dim)">'+tStr+'</span> '+ev.title+(dur>0?' <span style="color:var(--ink-dim);font-size:12px">'+dur+'m</span>':'')+'<button class="ev-del-btn" title="Delete event">✕</button>';
+      const tStr=String(evStartH).padStart(2,'0')+':'+String(evStartM).padStart(2,'0');
+      if(isFirstHour){
+        el.innerHTML='<span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--ink-dim)">'+tStr+'</span> '+ev.title+(dur>0?' <span style="color:var(--ink-dim);font-size:12px">'+dur+'m</span>':'')+'<button class="ev-del-btn" title="Delete event">✕</button>';
+      }else{
+        el.style.opacity='0.55';
+        el.innerHTML='<span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--ink-dim)">&#8597;</span> '+ev.title+'<button class="ev-del-btn" title="Delete event">✕</button>';
+      }
       el.querySelector('.ev-del-btn').addEventListener('click',e=>{e.stopPropagation();deleteEvent(ev);});
       el.addEventListener('click',()=>openPomo(ev)); evDiv.appendChild(el);
     });
@@ -3397,9 +3403,8 @@ function closeInsights(){
 
 async function buildInsights(){
   // Show loading state
-  document.getElementById('heatmap-wrap').innerHTML='<div style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--ink-dim)">Loading…</div>';
+  document.getElementById('insights-grid-6x15').innerHTML='<div style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--ink-dim)">Loading…</div>';
   document.getElementById('insights-stats').innerHTML='';
-  document.getElementById('insights-grid-6x15').innerHTML='';
 
   // Build 90-day map from spreadsheet
   const dayFocus={};   // date → hours of deep work
@@ -3419,61 +3424,15 @@ async function buildInsights(){
     }catch(e){}
   }
 
-  // ── Heatmap ──
-  const wrap=document.getElementById('heatmap-wrap');
-  wrap.innerHTML='';
-  const now=new Date(), DAYS=91;
-  // Build cells day by day
-  const cells=[];
-  for(let i=DAYS-1;i>=0;i--){
-    const d=new Date(now);d.setDate(now.getDate()-i);
-    cells.push({date:localDate(d),dow:d.getDay()});
-  }
-  // Group into columns of 7 starting from the first full week
-  const MAX_HRS=4;
+  // Build last-7-days array for "this week" stat
+  const now=new Date();
   const dark=isDark;
-  // pad so columns align to Monday (dow=1)
-  const firstDow=cells[0].dow; // 0=Sun, pad to make Mon=0
-  const padDays=(firstDow===0?6:firstDow-1);
-  for(let p=0;p<padDays;p++) cells.unshift(null); // null = empty pad cell
-  // pad end so last column is always a full 7-cell column
-  const rem=cells.length%7; if(rem!==0) for(let p=0;p<7-rem;p++) cells.push(null);
-  // Chunk into cols of 7
-  const cols=[];
-  for(let i=0;i<cells.length;i+=7) cols.push(cells.slice(i,i+7));
-  cols.forEach(col=>{
-    const colEl=document.createElement('div');colEl.className='heatmap-col';
-    col.forEach(cell=>{
-      const d=document.createElement('div');d.className='heatmap-cell';
-      if(!cell){d.style.opacity='0';colEl.appendChild(d);return;}
-      const hrs=dayFocus[cell.date]||0;
-      const intensity=Math.min(hrs/MAX_HRS,1);
-      if(intensity===0){
-        d.style.background=dark?'rgba(61,184,255,0.08)':'rgba(11,98,196,0.08)';
-      }else{
-        const alpha=0.18+intensity*0.82;
-        d.style.background=dark?`rgba(61,184,255,${alpha.toFixed(2)})`:`rgba(11,98,196,${alpha.toFixed(2)})`;
-      }
-      d.title=cell.date+' · '+(hrs>0?hrs.toFixed(1)+'h deep work':'no sessions');
-      colEl.appendChild(d);
-    });
-    wrap.appendChild(colEl);
-  });
-
-  // Legend
-  const leg=document.getElementById('heatmap-legend');
-  leg.innerHTML='';
-  [0,0.25,0.5,0.75,1].forEach(v=>{
-    const c=document.createElement('div');
-    c.style.cssText='width:36px;height:14px;border-radius:3px;';
-    const alpha=v===0?0.08:(0.18+v*0.82);
-    c.style.background=dark?`rgba(61,184,255,${alpha.toFixed(2)})`:`rgba(11,98,196,${alpha.toFixed(2)})`;
-    leg.appendChild(c);
-  });
+  const cells=[];
+  for(let i=6;i>=0;i--){ const d=new Date(now);d.setDate(now.getDate()-i);cells.push({date:localDate(d)}); }
 
   // ── Stats ──
   const totalHrs=Object.values(dayFocus).reduce((s,v)=>s+v,0);
-  const thisWeek=cells.slice(-7).filter(Boolean).reduce((s,c)=>s+(dayFocus[c.date]||0),0);
+  const thisWeek=cells.reduce((s,c)=>s+(dayFocus[c.date]||0),0);
   const bestEntry=Object.entries(dayFocus).sort((a,b)=>b[1]-a[1])[0];
   const statsEl=document.getElementById('insights-stats');
   statsEl.innerHTML=`
@@ -3813,6 +3772,22 @@ document.getElementById('lifeos-search').addEventListener('input',e=>{
 // Sheet: "LifeOS" tab in Cosmodex Trends spreadsheet
 // Columns: A=id, B=title, C=category, D=notes, E=checklist(JSON), F=progress%, G=createdAt, H=updatedAt
 
+// Ensure HabitLog tab exists in the spreadsheet (for existing users)
+async function ensureHabitLogTab(){
+  if(!SHEETS_ID||!accessToken) return;
+  try{
+    const meta=await apiFetch(`${SHEETS_API}/${SHEETS_ID}?fields=sheets.properties`);
+    const tabs=(meta.sheets||[]).map(s=>s.properties.title);
+    if(!tabs.includes('HabitLog')){
+      await fetch(`${SHEETS_API}/${SHEETS_ID}:batchUpdate`,{
+        method:'POST',
+        headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+        body:JSON.stringify({requests:[{addSheet:{properties:{title:'HabitLog'}}}]}),
+      });
+    }
+  }catch(e){}
+}
+
 async function losEnsureTab(){
   if(!accessToken) return null;
   const sid=await ensureSheet(); if(!sid) return null;
@@ -3912,6 +3887,8 @@ function last7Days(){
 function openHabits(){
   document.getElementById('habits-overlay').classList.add('open');
   switchHabitsTab('habits');
+  // Ensure HabitLog sheet tab exists for existing spreadsheets
+  if(SHEETS_ID && accessToken) ensureHabitLogTab();
 }
 function closeHabits(){
   document.getElementById('habits-overlay').classList.remove('open');
@@ -3979,10 +3956,13 @@ function habitToggle(hi, dateStr){
   if(!habits[hi]) return;
   const log = habits[hi].log||[];
   const idx = log.indexOf(dateStr);
+  const checked = idx<0; // will become checked
   if(idx>=0) log.splice(idx,1); else log.push(dateStr);
   habits[hi].log = log;
   habitsSave(habits);
   renderHabits();
+  // Sync to Google Sheets HabitLog tab
+  if(accessToken) logToSheet('HabitLog',[new Date().toISOString(),habits[hi].name,dateStr,checked?'done':'removed']);
 }
 
 function habitDelete(hi){
