@@ -599,6 +599,233 @@ body { display:grid; grid-template-columns:36px 340px 340px 1fr; height:100dvh; 
 body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:0.25; z-index:998;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); }
 [data-theme="light"] body::after { opacity:0.10; }
+
+/* ══ LIFE OS OVERLAY ══ */
+#lifeos-overlay {
+  display:none; position:fixed; inset:0; z-index:830;
+  background:rgba(3,5,8,0.97); backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px); flex-direction:column;
+}
+#lifeos-overlay.open { display:flex; }
+[data-theme="light"] #lifeos-overlay { background:rgba(232,240,250,0.97); }
+
+/* Password gate */
+#lifeos-gate {
+  position:absolute; inset:0; z-index:10; display:flex;
+  align-items:center; justify-content:center; background:inherit;
+}
+#lifeos-gate.hidden { display:none; }
+.lifeos-gate-inner {
+  display:flex; flex-direction:column; align-items:center; gap:16px;
+  background:var(--surface); border:2px solid var(--border);
+  border-radius:12px; padding:44px 52px; min-width:300px;
+}
+.lifeos-gate-icon { font-size:44px; opacity:0.60; }
+.lifeos-gate-title {
+  font-family:'JetBrains Mono',monospace; font-size:18px;
+  letter-spacing:0.22em; text-transform:uppercase; color:var(--ink);
+}
+.lifeos-gate-sub {
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  color:var(--ink-dim); letter-spacing:0.10em;
+}
+#lifeos-pin {
+  background:var(--ink-faint); border:2px solid var(--border); border-radius:6px;
+  color:var(--ink); font-size:24px; letter-spacing:0.5em; padding:12px 20px;
+  text-align:center; width:100%; outline:none;
+  font-family:'JetBrains Mono',monospace;
+}
+#lifeos-pin:focus { border-color:var(--accent); }
+.lifeos-gate-err {
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  color:var(--red); min-height:16px; text-align:center;
+}
+.lifeos-gate-btn {
+  background:var(--accent-dim); border:2px solid var(--accent); border-radius:6px;
+  color:var(--accent); cursor:pointer; font-family:'JetBrains Mono',monospace;
+  font-size:13px; letter-spacing:0.12em; text-transform:uppercase;
+  padding:12px 0; min-height:46px; width:100%;
+}
+.lifeos-gate-btn:active { background:var(--accent); color:var(--bg); }
+@keyframes lifeos-shake {
+  0%,100%{transform:translateX(0)} 20%{transform:translateX(-10px)}
+  40%{transform:translateX(10px)} 60%{transform:translateX(-7px)} 80%{transform:translateX(7px)}
+}
+.lifeos-gate-inner.shake { animation:lifeos-shake 0.45s ease; }
+
+/* Header */
+.lifeos-header {
+  padding:11px 16px; border-bottom:2px solid var(--border);
+  display:flex; align-items:center; gap:10px; flex-shrink:0;
+  background:var(--surface);
+}
+.lifeos-header-title {
+  font-family:'JetBrains Mono',monospace; font-size:13px;
+  letter-spacing:0.18em; text-transform:uppercase; color:var(--accent);
+}
+.lifeos-hbtn {
+  background:var(--accent-dim); border:2px solid var(--accent); border-radius:5px;
+  color:var(--accent); cursor:pointer; font-family:'JetBrains Mono',monospace;
+  font-size:12px; letter-spacing:0.10em; text-transform:uppercase;
+  padding:6px 14px; min-height:36px; white-space:nowrap;
+}
+.lifeos-hbtn:active { background:var(--accent); color:var(--bg); }
+.lifeos-hclose {
+  margin-left:auto; background:none; border:2px solid var(--border); border-radius:5px;
+  color:var(--ink-dim); cursor:pointer; font-family:'JetBrains Mono',monospace;
+  font-size:12px; letter-spacing:0.08em; padding:6px 14px; min-height:36px;
+}
+.lifeos-hclose:active { background:var(--ink-faint); }
+
+/* Body layout */
+.lifeos-body { flex:1; display:flex; overflow:hidden; }
+
+/* Left column */
+.lifeos-left {
+  width:300px; flex-shrink:0; border-right:2px solid var(--border);
+  display:flex; flex-direction:column; overflow:hidden; background:var(--surface);
+}
+.lifeos-search-row {
+  padding:10px 12px; border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.lifeos-search-row input {
+  width:100%; background:var(--ink-faint); border:2px solid var(--border);
+  border-radius:5px; color:var(--ink); font-family:'JetBrains Mono',monospace;
+  font-size:13px; padding:8px 12px; outline:none;
+}
+.lifeos-search-row input:focus { border-color:var(--accent); }
+.lifeos-cat-chips {
+  display:flex; flex-wrap:wrap; gap:4px; padding:8px 12px;
+  border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.lifeos-chip {
+  font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.10em;
+  text-transform:uppercase; background:none; border:1.5px solid var(--border);
+  border-radius:20px; color:var(--ink-dim); cursor:pointer; padding:3px 10px; min-height:26px;
+}
+.lifeos-chip.active { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+.lifeos-proj-list { flex:1; overflow-y:auto; scrollbar-width:none; }
+.lifeos-proj-list::-webkit-scrollbar { display:none; }
+.lifeos-proj-group-lbl {
+  font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.18em;
+  text-transform:uppercase; color:var(--ink-dim); padding:10px 14px 4px;
+}
+.lifeos-proj-item {
+  display:flex; align-items:center; gap:10px; padding:10px 14px;
+  border-bottom:1px solid var(--ink-faint); cursor:pointer;
+  border-left:3px solid transparent;
+}
+.lifeos-proj-item.active { background:var(--accent-dim); border-left-color:var(--accent); }
+.lifeos-proj-item:hover:not(.active) { background:var(--ink-faint); }
+.lifeos-proj-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.lifeos-proj-info { flex:1; min-width:0; }
+.lifeos-proj-name {
+  font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.3;
+}
+.lifeos-proj-meta {
+  font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--ink-dim); margin-top:2px;
+}
+.lifeos-proj-mini-bar {
+  width:36px; height:4px; background:var(--border); border-radius:2px; flex-shrink:0; overflow:hidden;
+}
+.lifeos-proj-mini-fill { height:100%; background:var(--accent); border-radius:2px; }
+
+/* Right column */
+.lifeos-right {
+  flex:1; display:flex; flex-direction:column; overflow:hidden;
+  background:var(--bg); position:relative;
+}
+.lifeos-empty {
+  flex:1; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:12px;
+}
+.lifeos-empty-icon { font-size:40px; opacity:0.25; }
+.lifeos-empty-text {
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  letter-spacing:0.12em; color:var(--ink-dim);
+}
+#lifeos-detail {
+  flex:1; overflow-y:auto; scrollbar-width:none;
+  padding:24px 32px; display:flex; flex-direction:column; gap:20px;
+}
+#lifeos-detail::-webkit-scrollbar { display:none; }
+.lifeos-field { display:flex; flex-direction:column; gap:6px; }
+.lifeos-lbl {
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-dim);
+}
+.lifeos-inp {
+  background:var(--ink-faint); border:2px solid var(--border); border-radius:5px;
+  color:var(--ink); font-family:'JetBrains Mono',monospace;
+  font-size:14px; padding:10px 12px; outline:none; width:100%; appearance:none;
+}
+.lifeos-inp:focus { border-color:var(--accent); }
+textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant Garamond',serif; font-size:16px; line-height:1.6; }
+.lifeos-title-inp {
+  background:none; border:none; border-bottom:2px solid var(--border);
+  color:var(--ink); font-family:'Cormorant Garamond',serif; font-size:28px;
+  font-weight:300; padding:4px 0 8px; outline:none; width:100%;
+}
+.lifeos-title-inp:focus { border-bottom-color:var(--accent); }
+
+/* Progress */
+.lifeos-prog-wrap { display:flex; align-items:center; gap:10px; }
+.lifeos-prog-bar { flex:1; height:8px; background:var(--border); border-radius:4px; overflow:hidden; }
+.lifeos-prog-fill { height:100%; background:var(--accent); border-radius:4px; transition:width 0.25s; }
+.lifeos-prog-pct {
+  font-family:'JetBrains Mono',monospace; font-size:13px;
+  color:var(--accent); min-width:40px; text-align:right;
+}
+
+/* Checklist */
+.lifeos-checklist { display:flex; flex-direction:column; gap:4px; margin-bottom:6px; }
+.lifeos-ci {
+  display:flex; align-items:center; gap:8px; padding:7px 10px;
+  background:var(--ink-faint); border-radius:4px; border:1px solid transparent;
+}
+.lifeos-ci:hover { border-color:var(--border); }
+.lifeos-ci.done .lifeos-ci-txt { text-decoration:line-through; opacity:0.40; }
+.lifeos-ci-box {
+  width:17px; height:17px; border:2px solid var(--border); border-radius:3px;
+  flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  font-size:10px; cursor:pointer;
+}
+.lifeos-ci.done .lifeos-ci-box { background:var(--accent-dim); border-color:var(--accent); color:var(--accent); }
+.lifeos-ci-txt-inp {
+  flex:1; background:none; border:none; color:var(--ink);
+  font-family:'JetBrains Mono',monospace; font-size:13px; outline:none; padding:0;
+}
+.lifeos-ci.done .lifeos-ci-txt-inp { text-decoration:line-through; opacity:0.40; }
+.lifeos-ci-del {
+  background:none; border:none; color:var(--ink-dim); cursor:pointer;
+  font-size:12px; padding:2px 5px; opacity:0.25; transition:opacity 0.15s;
+}
+.lifeos-ci:hover .lifeos-ci-del { opacity:0.60; }
+.lifeos-ci-del:hover { color:var(--red); opacity:1 !important; }
+.lifeos-check-add { display:flex; gap:6px; align-items:center; }
+.lifeos-check-add-btn {
+  background:var(--accent-dim); border:2px solid var(--accent); border-radius:4px;
+  color:var(--accent); cursor:pointer; font-size:18px; line-height:1;
+  width:36px; height:36px; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.lifeos-check-add-btn:active { background:var(--accent); color:var(--bg); }
+
+/* Footer */
+.lifeos-det-footer {
+  padding-top:12px; border-top:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  flex-shrink:0;
+}
+.lifeos-det-updated {
+  font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--ink-dim);
+  letter-spacing:0.08em;
+}
+.lifeos-del-btn {
+  background:none; border:2px solid var(--red); border-radius:5px;
+  color:var(--red); cursor:pointer; font-family:'JetBrains Mono',monospace;
+  font-size:12px; letter-spacing:0.10em; padding:8px 18px; min-height:38px;
+}
+.lifeos-del-btn:active { background:rgba(224,85,85,0.15); }
 </style>
 </head>
 <body>
@@ -609,6 +836,7 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
   <button class="sbtn on" id="sbtn-tasks" title="Tasks" onclick="toggleSidePanel('tasks')">&#9745;</button>
   <div class="sbtn-sep"></div>
   <button class="sbtn" id="sbtn-insights" title="Insights" onclick="openInsights()">&#128200;</button>
+  <button class="sbtn" id="sbtn-lifeos" title="Life OS" onclick="openLifeOS()">&#10010;</button>
   <div style="flex:1"></div>
   <button class="sbtn" id="theme-btn" title="Toggle theme">&#9788;</button>
 </div>
@@ -833,6 +1061,103 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
     </div>
   </div>
 </div>
+
+<!-- LIFE OS OVERLAY -->
+<div id="lifeos-overlay">
+
+  <!-- Password gate -->
+  <div id="lifeos-gate">
+    <div class="lifeos-gate-inner">
+      <div class="lifeos-gate-icon">&#10010;</div>
+      <div class="lifeos-gate-title">Life OS</div>
+      <div class="lifeos-gate-sub">Enter PIN to access</div>
+      <input type="password" id="lifeos-pin" maxlength="10" placeholder="&#9679;&#9679;&#9679;&#9679;" autocomplete="off" inputmode="numeric">
+      <div class="lifeos-gate-err" id="lifeos-gate-err"></div>
+      <button class="lifeos-gate-btn" id="lifeos-pin-submit">Unlock</button>
+    </div>
+  </div>
+
+  <!-- Main panel (shown after auth) -->
+  <div id="lifeos-main" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+
+    <!-- Header -->
+    <div class="lifeos-header">
+      <span class="lifeos-header-title">&#10010; Life OS</span>
+      <button class="lifeos-hbtn" id="lifeos-add-btn">+ Project</button>
+      <button class="lifeos-hbtn" id="lifeos-sync-btn">&#8635; Sync</button>
+      <button class="lifeos-hclose" id="lifeos-close-btn">&#10005; Close</button>
+    </div>
+
+    <!-- Body -->
+    <div class="lifeos-body">
+
+      <!-- LEFT: project list -->
+      <div class="lifeos-left">
+        <div class="lifeos-search-row">
+          <input type="text" id="lifeos-search" placeholder="Search projects&#8230;" autocomplete="off">
+        </div>
+        <div class="lifeos-cat-chips" id="lifeos-cat-chips"></div>
+        <div class="lifeos-proj-list" id="lifeos-proj-list"></div>
+      </div>
+
+      <!-- RIGHT: project detail -->
+      <div class="lifeos-right">
+        <div class="lifeos-empty" id="lifeos-empty">
+          <div class="lifeos-empty-icon">&#128203;</div>
+          <div class="lifeos-empty-text">Select a project or click + Project</div>
+        </div>
+        <div id="lifeos-detail" style="display:none;">
+          <!-- Title -->
+          <div class="lifeos-field">
+            <input type="text" class="lifeos-title-inp" id="lifeos-det-title" placeholder="Project title&#8230;" autocomplete="off">
+          </div>
+          <!-- Category + meta row -->
+          <div style="display:flex;gap:12px;align-items:center;">
+            <div class="lifeos-field" style="flex:1">
+              <label class="lifeos-lbl">Category</label>
+              <select id="lifeos-det-cat" class="lifeos-inp">
+                <option value="Health">Health</option>
+                <option value="Career">Career</option>
+                <option value="Finance">Finance</option>
+                <option value="Personal">Personal</option>
+                <option value="Learning">Learning</option>
+                <option value="Relationships">Relationships</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="lifeos-field" style="flex:2">
+              <label class="lifeos-lbl">Progress</label>
+              <div class="lifeos-prog-wrap">
+                <div class="lifeos-prog-bar"><div class="lifeos-prog-fill" id="lifeos-prog-fill" style="width:0%"></div></div>
+                <span class="lifeos-prog-pct" id="lifeos-prog-pct">0%</span>
+              </div>
+            </div>
+          </div>
+          <!-- Notes -->
+          <div class="lifeos-field">
+            <label class="lifeos-lbl">Notes &amp; Context</label>
+            <textarea id="lifeos-det-notes" class="lifeos-inp" rows="4" placeholder="Add notes, links, ideas&#8230;"></textarea>
+          </div>
+          <!-- Checklist -->
+          <div class="lifeos-field">
+            <label class="lifeos-lbl">Checklist &amp; Plan</label>
+            <div class="lifeos-checklist" id="lifeos-checklist"></div>
+            <div class="lifeos-check-add">
+              <input type="text" id="lifeos-check-inp" class="lifeos-inp" placeholder="Add item&#8230;" autocomplete="off" style="flex:1">
+              <button class="lifeos-check-add-btn" id="lifeos-check-add-btn">+</button>
+            </div>
+          </div>
+          <!-- Footer -->
+          <div class="lifeos-det-footer">
+            <span class="lifeos-det-updated" id="lifeos-det-updated"></span>
+            <button class="lifeos-del-btn" id="lifeos-det-delete">&#128465; Delete Project</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /lifeos-body -->
+  </div><!-- /lifeos-main -->
+</div><!-- /lifeos-overlay -->
 
 <!-- SIGN-IN OVERLAY -->
 <div id="signin-overlay">
@@ -2946,6 +3271,321 @@ const _gisWait=setInterval(()=>{
     }
   }
 },150);
+
+// ══════════════════════════════════════════════════════
+//  LIFE OS — Project & Initiative Manager
+// ══════════════════════════════════════════════════════
+const LIFEOS_PASS      = '3128';
+const LIFEOS_SES_KEY   = 'lifeos_auth_v1';
+const LIFEOS_TAB       = 'LifeOS';
+const LIFEOS_CATS      = ['All','Health','Career','Finance','Personal','Learning','Relationships','Other'];
+const LIFEOS_CAT_COLORS = {
+  Health:'#46d4a0', Career:'#3db8ff', Finance:'#f0a030',
+  Personal:'#e058c0', Learning:'#8ccc60', Relationships:'#e05555', Other:'#7078f0'
+};
+
+let _losProjects   = [];      // [{id,title,category,notes,checklist,createdAt,updatedAt}]
+let _losSelected   = null;    // active project id
+let _losCatFilter  = 'All';
+let _losSearch     = '';
+let _losSaveTimer  = null;
+let _losLoaded     = false;
+
+// ── Helpers ────────────────────────────────────────────
+function losGenId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function losProg(p){ if(!p.checklist||!p.checklist.length)return 0; return Math.round(p.checklist.filter(c=>c.done).length/p.checklist.length*100); }
+function losNow(){ return new Date().toISOString(); }
+function losSafeJSON(s,fb){ try{return JSON.parse(s);}catch(e){return fb;} }
+
+// ── Open / Close ───────────────────────────────────────
+function openLifeOS(){
+  document.getElementById('lifeos-overlay').classList.add('open');
+  if(sessionStorage.getItem(LIFEOS_SES_KEY)==='1'){
+    losShowMain();
+  } else {
+    document.getElementById('lifeos-gate').classList.remove('hidden');
+    document.getElementById('lifeos-main').style.display='none';
+    document.getElementById('lifeos-pin').value='';
+    document.getElementById('lifeos-gate-err').textContent='';
+    setTimeout(()=>document.getElementById('lifeos-pin').focus(),80);
+  }
+}
+function closeLifeOS(){ document.getElementById('lifeos-overlay').classList.remove('open'); }
+
+function losShowMain(){
+  document.getElementById('lifeos-gate').classList.add('hidden');
+  const m=document.getElementById('lifeos-main');
+  m.style.display='flex'; m.style.flexDirection='column'; m.style.flex='1'; m.style.overflow='hidden';
+  if(!_losLoaded) losLoad();
+  else { losBuildChips(); losRenderList(); }
+}
+
+// ── Password gate ──────────────────────────────────────
+document.getElementById('lifeos-pin-submit').addEventListener('click', losCheckPin);
+document.getElementById('lifeos-pin').addEventListener('keydown', e=>{ if(e.key==='Enter') losCheckPin(); });
+function losCheckPin(){
+  if(document.getElementById('lifeos-pin').value===LIFEOS_PASS){
+    sessionStorage.setItem(LIFEOS_SES_KEY,'1');
+    document.getElementById('lifeos-gate-err').textContent='';
+    document.getElementById('lifeos-pin').value='';
+    losShowMain();
+  } else {
+    document.getElementById('lifeos-gate-err').textContent='Incorrect PIN';
+    document.getElementById('lifeos-pin').value='';
+    const inner=document.querySelector('.lifeos-gate-inner');
+    inner.classList.remove('shake'); void inner.offsetWidth;
+    inner.classList.add('shake');
+    setTimeout(()=>inner.classList.remove('shake'),500);
+    document.getElementById('lifeos-pin').focus();
+  }
+}
+
+document.getElementById('lifeos-close-btn').addEventListener('click', closeLifeOS);
+document.getElementById('lifeos-add-btn').addEventListener('click', losAddProject);
+document.getElementById('lifeos-sync-btn').addEventListener('click', ()=>losLoad(true));
+
+// ── Category chips ─────────────────────────────────────
+function losBuildChips(){
+  const wrap=document.getElementById('lifeos-cat-chips');
+  wrap.innerHTML='';
+  LIFEOS_CATS.forEach(cat=>{
+    const b=document.createElement('button');
+    b.className='lifeos-chip'+(cat===_losCatFilter?' active':'');
+    b.textContent=cat;
+    b.addEventListener('click',()=>{ _losCatFilter=cat; losBuildChips(); losRenderList(); });
+    wrap.appendChild(b);
+  });
+}
+
+// ── Project list ───────────────────────────────────────
+function losRenderList(){
+  const list=document.getElementById('lifeos-proj-list');
+  list.innerHTML='';
+  const q=_losSearch.toLowerCase();
+  const filtered=_losProjects.filter(p=>
+    (_losCatFilter==='All'||p.category===_losCatFilter)&&
+    (!q||p.title.toLowerCase().includes(q)||(p.notes||'').toLowerCase().includes(q))
+  );
+  // Group by category
+  const groups={};
+  filtered.forEach(p=>{ if(!groups[p.category])groups[p.category]=[]; groups[p.category].push(p); });
+  if(!filtered.length){
+    list.innerHTML='<div style="padding:20px 14px;font-family:JetBrains Mono,monospace;font-size:12px;color:var(--ink-dim)">'+(_losProjects.length===0?'No projects yet. Click + Project.':'No matches.')+'</div>';
+    return;
+  }
+  const orderedCats=['Health','Career','Finance','Personal','Learning','Relationships','Other'];
+  orderedCats.filter(c=>groups[c]).forEach(cat=>{
+    const lbl=document.createElement('div');
+    lbl.className='lifeos-proj-group-lbl';
+    lbl.innerHTML='<span style="color:'+(LIFEOS_CAT_COLORS[cat]||'var(--accent)')+';margin-right:5px">●</span>'+cat;
+    list.appendChild(lbl);
+    groups[cat].forEach(p=>{
+      const pct=losProg(p);
+      const color=LIFEOS_CAT_COLORS[p.category]||'var(--accent)';
+      const item=document.createElement('div');
+      item.className='lifeos-proj-item'+(p.id===_losSelected?' active':'');
+      item.innerHTML=
+        '<div class="lifeos-proj-dot" style="background:'+color+'"></div>'+
+        '<div class="lifeos-proj-info">'+
+          '<div class="lifeos-proj-name">'+(p.title||'(Untitled)').replace(/</g,'&lt;')+'</div>'+
+          '<div class="lifeos-proj-meta">'+p.category+' · '+pct+'% done</div>'+
+        '</div>'+
+        '<div class="lifeos-proj-mini-bar"><div class="lifeos-proj-mini-fill" style="width:'+pct+'%"></div></div>';
+      item.addEventListener('click',()=>losSelect(p.id));
+      list.appendChild(item);
+    });
+  });
+}
+
+// ── Project detail ─────────────────────────────────────
+function losSelect(id){
+  _losSelected=id;
+  losRenderList();
+  const p=_losProjects.find(x=>x.id===id);
+  if(!p){ losShowEmpty(); return; }
+  document.getElementById('lifeos-empty').style.display='none';
+  const det=document.getElementById('lifeos-detail');
+  det.style.display='flex';
+  document.getElementById('lifeos-det-title').value=p.title;
+  document.getElementById('lifeos-det-cat').value=p.category||'Other';
+  document.getElementById('lifeos-det-notes').value=p.notes||'';
+  const d=new Date(p.updatedAt||p.createdAt||losNow());
+  document.getElementById('lifeos-det-updated').textContent='Updated '+d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  losRenderChecklist(p);
+  losUpdateProgress(p);
+}
+function losShowEmpty(){
+  document.getElementById('lifeos-empty').style.display='flex';
+  document.getElementById('lifeos-detail').style.display='none';
+  _losSelected=null;
+}
+
+function losUpdateProgress(p){
+  const pct=losProg(p);
+  document.getElementById('lifeos-prog-fill').style.width=pct+'%';
+  document.getElementById('lifeos-prog-pct').textContent=pct+'%';
+}
+
+function losRenderChecklist(p){
+  const wrap=document.getElementById('lifeos-checklist');
+  wrap.innerHTML='';
+  (p.checklist||[]).forEach((item,i)=>{
+    const row=document.createElement('div');
+    row.className='lifeos-ci'+(item.done?' done':'');
+    row.innerHTML=
+      '<div class="lifeos-ci-box">'+(item.done?'&#10003;':'')+'</div>'+
+      '<input class="lifeos-ci-txt-inp'+(item.done?' done':'')+'" value="'+item.text.replace(/"/g,'&quot;').replace(/</g,'&lt;')+'" placeholder="Item…">'+
+      '<button class="lifeos-ci-del" title="Remove">&#10005;</button>';
+    row.querySelector('.lifeos-ci-box').addEventListener('click',()=>{
+      p.checklist[i].done=!p.checklist[i].done;
+      p.updatedAt=losNow();
+      losRenderChecklist(p); losUpdateProgress(p); losRenderList(); losDebouncedSave();
+    });
+    row.querySelector('.lifeos-ci-txt-inp').addEventListener('input',e=>{
+      p.checklist[i].text=e.target.value; p.updatedAt=losNow(); losDebouncedSave();
+    });
+    row.querySelector('.lifeos-ci-del').addEventListener('click',()=>{
+      p.checklist.splice(i,1); p.updatedAt=losNow();
+      losRenderChecklist(p); losUpdateProgress(p); losRenderList(); losDebouncedSave();
+    });
+    wrap.appendChild(row);
+  });
+}
+
+// ── Add project ────────────────────────────────────────
+function losAddProject(){
+  const p={
+    id:losGenId(), title:'New Project',
+    category:_losCatFilter!=='All'?_losCatFilter:'Personal',
+    notes:'', checklist:[], createdAt:losNow(), updatedAt:losNow()
+  };
+  _losProjects.unshift(p);
+  _losCatFilter='All'; losBuildChips();
+  losRenderList(); losSelect(p.id);
+  setTimeout(()=>{ const t=document.getElementById('lifeos-det-title'); if(t){t.focus();t.select();} },50);
+  losDebouncedSave();
+}
+
+// ── Delete project ─────────────────────────────────────
+document.getElementById('lifeos-det-delete').addEventListener('click',()=>{
+  if(!_losSelected) return;
+  const p=_losProjects.find(x=>x.id===_losSelected);
+  if(!p||!confirm('Delete "'+p.title.replace(/&lt;/g,'<')+'"?\nThis cannot be undone.')) return;
+  _losProjects=_losProjects.filter(x=>x.id!==_losSelected);
+  losShowEmpty(); losRenderList(); losDebouncedSave();
+});
+
+// ── Checklist add ──────────────────────────────────────
+document.getElementById('lifeos-check-add-btn').addEventListener('click',losAddCheckItem);
+document.getElementById('lifeos-check-inp').addEventListener('keydown',e=>{ if(e.key==='Enter') losAddCheckItem(); });
+function losAddCheckItem(){
+  if(!_losSelected) return;
+  const inp=document.getElementById('lifeos-check-inp');
+  const text=inp.value.trim(); if(!text) return;
+  const p=_losProjects.find(x=>x.id===_losSelected); if(!p) return;
+  if(!p.checklist) p.checklist=[];
+  p.checklist.push({text,done:false});
+  p.updatedAt=losNow(); inp.value='';
+  losRenderChecklist(p); losUpdateProgress(p); losRenderList(); losDebouncedSave();
+}
+
+// ── Live field change listeners ────────────────────────
+['lifeos-det-title','lifeos-det-cat','lifeos-det-notes'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',()=>{
+    if(!_losSelected) return;
+    const p=_losProjects.find(x=>x.id===_losSelected); if(!p) return;
+    p.title    = document.getElementById('lifeos-det-title').value;
+    p.category = document.getElementById('lifeos-det-cat').value;
+    p.notes    = document.getElementById('lifeos-det-notes').value;
+    p.updatedAt= losNow();
+    losRenderList(); losDebouncedSave();
+  });
+});
+
+// ── Search ─────────────────────────────────────────────
+document.getElementById('lifeos-search').addEventListener('input',e=>{
+  _losSearch=e.target.value; losRenderList();
+});
+
+// ══ SHEETS SYNC ════════════════════════════════════════
+// Sheet: "LifeOS" tab in Cosmodex Trends spreadsheet
+// Columns: A=id, B=title, C=category, D=notes, E=checklist(JSON), F=progress%, G=createdAt, H=updatedAt
+
+async function losEnsureTab(){
+  if(!accessToken) return null;
+  const sid=await ensureSheet(); if(!sid) return null;
+  try{
+    const meta=await apiFetch(`${SHEETS_API}/${sid}?fields=sheets.properties`);
+    const tabs=(meta.sheets||[]).map(s=>s.properties.title);
+    if(!tabs.includes(LIFEOS_TAB)){
+      await fetch(`${SHEETS_API}/${sid}:batchUpdate`,{
+        method:'POST',
+        headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+        body:JSON.stringify({requests:[{addSheet:{properties:{title:LIFEOS_TAB}}}]}),
+      });
+      // Write header row
+      await fetch(`${SHEETS_API}/${sid}/values/${LIFEOS_TAB}!A1:H1?valueInputOption=RAW`,{
+        method:'PUT',
+        headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+        body:JSON.stringify({values:[['id','title','category','notes','checklist','progress%','createdAt','updatedAt']]}),
+      });
+    }
+  }catch(e){ console.warn('LifeOS tab ensure failed:',e); return null; }
+  return sid;
+}
+
+async function losLoad(showFeedback){
+  if(!accessToken) return;
+  if(showFeedback) showSyncBar('Loading Life OS…','syncing');
+  try{
+    const sid=await losEnsureTab(); if(!sid) return;
+    const res=await apiFetch(`${SHEETS_API}/${sid}/values/${LIFEOS_TAB}!A2:H`);
+    const rows=res.values||[];
+    _losProjects=rows.filter(r=>r[0]&&r[1]).map(r=>({
+      id:r[0]||'', title:r[1]||'', category:r[2]||'Other',
+      notes:r[3]||'', checklist:losSafeJSON(r[4]||'[]',[]),
+      createdAt:r[6]||losNow(), updatedAt:r[7]||losNow(),
+    }));
+    _losLoaded=true;
+    losBuildChips(); losRenderList();
+    if(_losSelected&&_losProjects.find(x=>x.id===_losSelected)) losSelect(_losSelected);
+    else losShowEmpty();
+    if(showFeedback) showSyncBar('Life OS synced ✓','ok');
+  }catch(e){
+    _losLoaded=true;
+    losBuildChips(); losRenderList(); losShowEmpty();
+    if(showFeedback) showSyncBar('⚠ Life OS sync failed','err');
+  }
+}
+
+async function losSave(){
+  if(!accessToken) return;
+  try{
+    const sid=await losEnsureTab(); if(!sid) return;
+    // Clear data rows then rewrite all
+    await fetch(`${SHEETS_API}/${sid}/values/${LIFEOS_TAB}!A2:H:clear`,{
+      method:'POST', headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'}, body:'{}',
+    });
+    if(_losProjects.length){
+      await fetch(`${SHEETS_API}/${sid}/values/${LIFEOS_TAB}!A2:H?valueInputOption=RAW`,{
+        method:'PUT',
+        headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+        body:JSON.stringify({values:_losProjects.map(p=>[
+          p.id, p.title, p.category, p.notes,
+          JSON.stringify(p.checklist||[]),
+          losProg(p),
+          p.createdAt||losNow(), p.updatedAt||losNow(),
+        ])}),
+      });
+    }
+    showSyncBar('Life OS saved ✓','ok');
+  }catch(e){ showSyncBar('⚠ Life OS save failed','err'); }
+}
+
+function losDebouncedSave(){
+  clearTimeout(_losSaveTimer);
+  _losSaveTimer=setTimeout(losSave, 1200);
+}
 </script>
 
 <!-- MOBILE BOTTOM NAV -->
