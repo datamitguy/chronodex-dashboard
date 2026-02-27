@@ -129,9 +129,9 @@ body { display:grid; grid-template-columns:36px 340px 340px 1fr; height:100dvh; 
 .month-cell.weekend-start { border-left:2px solid rgba(196,75,58,0.35) !important; }
 .month-cell.today { border-color:var(--gold); background:rgba(61,184,255,0.08); }
 .month-cell.other-month { opacity:0.22; }
-.month-day-num { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); line-height:1.3; }
+.month-day-num { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); line-height:1.3; text-align:center; }
 .month-cell.today .month-day-num { color:var(--gold); font-weight:400; }
-.month-dots { display:flex; flex-wrap:wrap; gap:2px; margin-top:2px; }
+.month-dots { display:flex; flex-wrap:wrap; gap:2px; margin-top:2px; justify-content:center; }
 .month-dot { width:6px; height:6px; border-radius:50%; }
 
 /* CHRONODEX */
@@ -503,12 +503,12 @@ body { display:grid; grid-template-columns:36px 340px 340px 1fr; height:100dvh; 
   display:flex; align-items:center; gap:10px; flex-shrink:0;
 }
 .insights-body {
-  flex:1; overflow-y:auto; padding:28px 32px; scrollbar-width:none;
+  flex:1; overflow-y:auto; padding:28px 48px; scrollbar-width:none;
   display:flex; flex-direction:column; gap:32px;
-  align-items:center;
+  align-items:stretch; max-width:960px; margin:0 auto; width:100%;
 }
 .insights-body > * {
-  width:100%; max-width:900px;
+  width:100%;
 }
 .insights-body::-webkit-scrollbar { display:none; }
 .insights-section-lbl {
@@ -528,10 +528,10 @@ body { display:grid; grid-template-columns:36px 340px 340px 1fr; height:100dvh; 
   font-size:40px; font-weight:300; color:var(--accent); line-height:1;
 }
 .stat-card-unit { font-size:14px; color:var(--ink-dim); }
-.heatmap-wrap { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
-.heatmap-col { display:flex; flex-direction:column; gap:6px; }
+.heatmap-wrap { display:flex; gap:4px; justify-content:center; }
+.heatmap-col { display:flex; flex-direction:column; gap:4px; }
 .heatmap-cell {
-  width:26px; height:26px; border-radius:4px; flex-shrink:0;
+  width:36px; height:14px; border-radius:3px; flex-shrink:0;
 }
 
 /* ── BREATHING RING ── */
@@ -633,7 +633,6 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:
   <div class="panel-header">
     <span class="panel-title">Tasks</span>
     <button class="add-btn" id="add-task-btn" title="Add task" style="margin-left:auto">+</button>
-    <div class="panel-accent" style="margin-left:8px"></div>
   </div>
   <div class="tab-bar" id="task-tab-bar" style="display:none"></div>
   <div class="tasks-list" id="tasks-list"></div>
@@ -1329,8 +1328,6 @@ document.querySelectorAll('.view-btn').forEach(btn=>{
   });
 });
 function renderLeft(){
-  const _n=new Date(); document.getElementById('left-title').textContent=
-    _n.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
   ({day:buildDay,week:buildWeek,month:buildMonth})[currentView]();
 }
 
@@ -1696,7 +1693,7 @@ function drawCosmodex() {
   const container = cv.parentElement;
   const panel = document.getElementById('panel-chrono');
   const panelH = panel ? panel.clientHeight : 900;
-  const availH = Math.max(panelH - 220, 200); // subtract header + time display + next strip + padding
+  const availH = Math.max(panelH - 300, 180); // subtract header + time display + next strip + padding + gaps
   const maxLwByH = Math.round(availH * 760 / 500);
   const rawLw = Math.max(container.clientWidth || 760, 120);
   const lw = Math.min(rawLw, maxLwByH);
@@ -1758,29 +1755,34 @@ function drawCosmodex() {
     ctx.stroke();
   }
 
-  // ── 1b. Evening/rest tints: alternating green+orange on empty petals 8pm–midnight ──
-  const eveningStartI = 20 - H_START; // petal index for 8pm (=15)
-  for(let i = eveningStartI; i < CHOURS; i++){
-    const hMin = (H_START+i)*60, hMax = (H_START+i+1)*60;
-    const hasEv = te.some(ev=>{
-      const sm=new Date(ev.startISO).getHours()*60+new Date(ev.startISO).getMinutes();
-      const em=new Date(ev.endISO).getHours()*60+new Date(ev.endISO).getMinutes();
-      return sm<hMax && em>hMin;
-    });
-    if(hasEv) continue;
-    const ri=petalRI(), ro=petalRO(i);
-    const a0=hourAngle(i,0), a1=hourAngle(i,1);
-    const col=(i-eveningStartI)%2===0?'#46d4a0':'#f0a030';
-    ctx.save();
-    ctx.globalAlpha=0.10;
-    ctx.beginPath();
-    ctx.arc(cx,cy,ro,a0+GAP,a1-GAP);
-    ctx.arc(cx,cy,ri,a1-GAP,a0+GAP,true);
-    ctx.closePath();
-    ctx.fillStyle=col;
-    ctx.fill();
-    ctx.restore();
+  // ── 1b. Rest tints: alternating green+orange on empty petals (5–8am and 8pm–midnight) ──
+  function drawRestTints(startI, endI, offset){
+    for(let i = startI; i < endI; i++){
+      const hMin = (H_START+i)*60, hMax = (H_START+i+1)*60;
+      const hasEv = te.some(ev=>{
+        const sm=new Date(ev.startISO).getHours()*60+new Date(ev.startISO).getMinutes();
+        const em=new Date(ev.endISO).getHours()*60+new Date(ev.endISO).getMinutes();
+        return sm<hMax && em>hMin;
+      });
+      if(hasEv) continue;
+      const ri=petalRI(), ro=petalRO(i);
+      const a0=hourAngle(i,0), a1=hourAngle(i,1);
+      const col=(i-offset)%2===0?'#46d4a0':'#f0a030';
+      ctx.save();
+      ctx.globalAlpha=0.06;
+      ctx.beginPath();
+      ctx.arc(cx,cy,ro,a0+GAP,a1-GAP);
+      ctx.arc(cx,cy,ri,a1-GAP,a0+GAP,true);
+      ctx.closePath();
+      ctx.fillStyle=col;
+      ctx.fill();
+      ctx.restore();
+    }
   }
+  // Morning: 5am–8am (petals 0–2)
+  drawRestTints(0, 8 - H_START, 0);
+  // Evening: 8pm–midnight (petals 15–18)
+  drawRestTints(20 - H_START, CHOURS, 0);
 
   // ── 2. Elapsed time fill — subtle glow on past petals ──
   for(let i=0;i<CHOURS;i++){
@@ -2253,9 +2255,12 @@ function openAddTask(){
   document.getElementById('tk-title').value='';
   document.getElementById('tk-date').value='';
   const sel=document.getElementById('tk-list'); sel.innerHTML='';
+  // Default priority: active tab > "Other Reminders" > first list
+  const otherReminders = TASK_LISTS.find(tl=>tl.title.toLowerCase().includes('other'));
   TASK_LISTS.forEach(tl=>{
     const o=document.createElement('option'); o.value=tl.id; o.textContent=tl.title;
     if(activeTaskTab!=='all'&&activeTaskTab===tl.id) o.selected=true;
+    else if(activeTaskTab==='all'&&otherReminders&&tl.id===otherReminders.id) o.selected=true;
     sel.appendChild(o);
   });
   document.getElementById('modal-task').classList.add('open');
@@ -2855,7 +2860,7 @@ async function buildInsights(){
   leg.innerHTML='';
   [0,0.25,0.5,0.75,1].forEach(v=>{
     const c=document.createElement('div');
-    c.style.cssText='width:26px;height:26px;border-radius:4px;';
+    c.style.cssText='width:36px;height:14px;border-radius:3px;';
     const alpha=v===0?0.08:(0.18+v*0.82);
     c.style.background=dark?`rgba(61,184,255,${alpha.toFixed(2)})`:`rgba(11,98,196,${alpha.toFixed(2)})`;
     leg.appendChild(c);
