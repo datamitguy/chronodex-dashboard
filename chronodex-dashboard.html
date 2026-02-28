@@ -30,22 +30,20 @@
   --pomo-bg:#060a12;
 }
 [data-theme="light"] {
-  --bg:#f0f4f8; --surface:#ffffff; --border:#7090b8;
-  --ink:#0a1a35; --ink-dim:#0b62c4; --ink-faint:#dde6f0;
-  --accent:#0b62c4;
-  --accent-dim:#b0ccec;
-  --accent-glow:rgba(11,98,196,0.09);
-  --gold:#0b62c4; --gold-dim:#b0ccec;
+  --bg:#f2f5f9; --surface:#ffffff; --border:#c8d8ea;
+  --ink:#0d1e36; --ink-dim:#4a6a8a; --ink-faint:#e4ecf4;
+  --accent:#1160c0;
+  --accent-dim:#ccddf5;
+  --accent-glow:rgba(17,96,192,0.10);
+  --gold:#1160c0; --gold-dim:#ccddf5;
   --red:#c42b2b;
-  --blue:#0b62c4;
-  --green:#0b62c4;
-  --amber:#0b62c4;
-  --lotus:#0b62c4;
-  --pomo-bg:#e8eef6;
+  --blue:#1160c0;
+  --green:#1160c0;
+  --amber:#1160c0;
+  --lotus:#1160c0;
+  --pomo-bg:#eaf0f8;
 }
-/* Light mode — force all secondary/dim text to readable dark blue */
-[data-theme="light"] .task-group-lbl,
-[data-theme="light"] .panel-title,
+/* Light mode — secondary text uses ink-dim (grey-blue); accent only for truly highlighted items */
 [data-theme="light"] .tab:not(.active),
 [data-theme="light"] .view-btn:not(.active),
 [data-theme="light"] .time-date,
@@ -53,34 +51,19 @@
 [data-theme="light"] .next-time,
 [data-theme="light"] .task-meta:not(.overdue):not(.today-due),
 [data-theme="light"] .tasks-count,
-[data-theme="light"] .task-check,
 [data-theme="light"] .swipe-lbl,
 [data-theme="light"] .pomo-phase,
 [data-theme="light"] .pomo-ev-label,
-[data-theme="light"] .pomo-header-title,
-[data-theme="light"] .pomo-overlay-title,
-[data-theme="light"] .scribble-title,
-[data-theme="light"] .scribble-btn,
-[data-theme="light"] .pen-size-btn,
-[data-theme="light"] .picker-label,
-[data-theme="light"] .picker-time,
-[data-theme="light"] .picker-cancel,
+[data-theme="light"] .daily-title-sub { color: var(--ink-dim); }
+
+[data-theme="light"] .task-group-lbl,
 [data-theme="light"] .insights-section-lbl,
-[data-theme="light"] .stat-card-lbl,
-[data-theme="light"] .stat-card-unit,
-[data-theme="light"] .breath-hint,
-[data-theme="light"] .focus-check-lbl,
-[data-theme="light"] .modal-btn:not(.primary),
-[data-theme="light"] .modal-saving,
-[data-theme="light"] .nav-arrow,
-[data-theme="light"] .sbtn:not(.on),
 [data-theme="light"] .lifeos-det-updated,
-[data-theme="light"] .daily-title-sub,
 [data-theme="light"] .month-day-num { color: var(--accent); }
 
 html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--ink); font-family:'Cormorant Garamond',serif; }
 html { height: 100dvh; }
-body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:44px 1fr; height:100dvh; }
+body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:46px 1fr; height:100dvh; }
 
 /* Explicit column+row placement */
 #app-header   { grid-column:1/-1; grid-row:1; }
@@ -90,15 +73,27 @@ body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:4
 
 /* ── APP HEADER ── */
 #app-header {
-  background:var(--surface); border-bottom:2px solid var(--border);
-  display:flex; align-items:center; padding:0 8px; gap:3px;
+  background:var(--surface); border-bottom:1px solid var(--border);
+  box-shadow:0 1px 0 var(--border);
+  display:flex; align-items:center; padding:0 10px; gap:2px;
   overflow:hidden; z-index:100;
 }
-.ah-sep { width:1px; height:20px; background:var(--border); margin:0 5px; flex-shrink:0; }
-.ah-lbl { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-dim); white-space:nowrap; flex-shrink:0; }
-#app-header .view-btn  { min-height:28px; min-width:auto; padding:3px 9px; font-size:11px; }
-#app-header .add-btn   { font-size:13px; padding:2px 7px; min-height:26px; min-width:26px; border-width:1.5px; }
-#app-header .sbtn      { width:28px; height:28px; font-size:15px; }
+.ah-sep { width:1px; height:18px; background:var(--border); margin:0 6px; flex-shrink:0; opacity:0.7; }
+.ah-lbl { font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-dim); white-space:nowrap; flex-shrink:0; }
+/* View-toggle group in header (DAY/WEEK/MON) */
+#app-header .view-toggle { background:var(--ink-faint); border-radius:5px; padding:2px; }
+#app-header .view-btn    { min-height:26px; min-width:auto; padding:2px 10px; font-size:11px; letter-spacing:0.07em; }
+/* Action button group (Notes/Focus/Ask Cosmos) — slightly different tint */
+#header-actions          { display:flex; align-items:center; background:var(--ink-faint); border-radius:5px; padding:2px; gap:0; }
+#header-actions .view-btn { min-height:26px; min-width:auto; padding:2px 10px; font-size:11px; letter-spacing:0.07em; }
+/* Cosmos button gets accent highlight */
+#cosmos-btn              { color:var(--accent) !important; border:none !important; }
+#cosmos-btn:hover        { background:var(--accent-dim) !important; }
+/* Compact + and sbtn */
+#app-header .add-btn     { font-size:14px; padding:1px 7px; min-height:24px; min-width:24px; border-width:1.5px; }
+#app-header .sbtn        { width:26px; height:26px; font-size:14px; }
+/* Brand label */
+#header-brand            { font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.22em; text-transform:uppercase; color:var(--accent); white-space:nowrap; margin-left:5px; font-weight:400; }
 
 .panel { border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; min-width:0; }
 #panel-left { border-right:none; }
@@ -125,26 +120,28 @@ body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:4
 .theme-btn:active { background:var(--ink-faint); }
 
 /* View toggle */
-.view-toggle { display:flex; gap:3px; background:var(--ink-faint); border-radius:6px; padding:3px; margin-left:auto; }
-.view-btn { font-family:'JetBrains Mono',monospace; font-size:14px; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-dim); background:none; border:none; padding:8px 14px; border-radius:4px; cursor:pointer; min-height:44px; min-width:56px; }
-.view-btn.active { background:var(--border); color:var(--gold); }
+.view-toggle { display:flex; gap:0; background:var(--ink-faint); border-radius:5px; padding:2px; margin-left:auto; }
+.view-btn { font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-dim); background:none; border:none; padding:7px 13px; border-radius:3px; cursor:pointer; min-height:40px; min-width:52px; transition:background 0.12s,color 0.12s; }
+.view-btn.active { background:var(--surface); color:var(--gold); box-shadow:0 1px 3px rgba(0,0,0,0.18); }
+.view-btn:not(.active):hover { background:rgba(255,255,255,0.06); }
+[data-theme="light"] .view-btn.active { box-shadow:0 1px 4px rgba(0,0,0,0.12); }
 
-/* Nav arrows */
-.nav-arrow { background:none; border:2px solid var(--border); border-radius:5px; color:var(--ink-dim); cursor:pointer; font-size:22px; padding:6px 12px; line-height:1; min-height:44px; min-width:48px; }
-.nav-arrow:active { background:var(--ink-faint); }
+/* Nav arrows — smaller, less dominant */
+.nav-arrow { background:none; border:1.5px solid var(--border); border-radius:4px; color:var(--ink-dim); cursor:pointer; font-size:18px; padding:4px 10px; line-height:1; min-height:34px; min-width:34px; transition:background 0.12s; }
+.nav-arrow:active,.nav-arrow:hover { background:var(--ink-faint); }
 
 /* ── TABS (shared by calendar + tasks panels) ── */
-.tab-bar { display:flex; gap:0; border-bottom:2px solid var(--border); flex-shrink:0; overflow-x:auto; scrollbar-width:none; }
+.tab-bar { display:flex; gap:0; border-bottom:1px solid var(--border); background:var(--surface); flex-shrink:0; overflow-x:auto; scrollbar-width:none; }
 .tab-bar::-webkit-scrollbar { display:none; }
-.tab { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-dim); background:none; border:none; border-bottom:3px solid transparent; padding:9px 14px; cursor:pointer; white-space:nowrap; flex-shrink:0; min-height:40px; }
+.tab { font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-dim); background:none; border:none; border-bottom:2px solid transparent; padding:8px 13px; cursor:pointer; white-space:nowrap; flex-shrink:0; min-height:36px; transition:color 0.12s; }
 .tab.active { color:var(--gold); border-bottom-color:var(--gold); }
 .tab-dot { display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:6px; vertical-align:middle; }
 
 /* DAY VIEW */
 .daily-view { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-.daily-top { display:flex; align-items:center; justify-content:space-between; padding:8px 14px; border-bottom:2px solid var(--ink-faint); flex-shrink:0; }
-.daily-title-num { font-size:34px; font-weight:300; line-height:1; }
-.daily-title-sub { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); letter-spacing:0.08em; margin-top:2px; }
+.daily-top { display:flex; align-items:center; justify-content:space-between; padding:6px 12px; border-bottom:1px solid var(--border); flex-shrink:0; }
+.daily-title-num { font-size:28px; font-weight:300; line-height:1; }
+.daily-title-sub { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim); letter-spacing:0.08em; margin-top:3px; }
 .daily-timeline { flex:1; overflow-y:auto; scrollbar-width:none; }
 .daily-timeline::-webkit-scrollbar { display:none; }
 .hour-row { display:flex; min-height:40px; border-bottom:1.5px solid var(--ink-faint); }
@@ -671,7 +668,7 @@ body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:4
 /* ── ASK CLAUDE PANEL ── */
 #claude-fab { display:none !important; }
 #claude-panel {
-  position:fixed; top:48px; right:8px; bottom:auto; z-index:860;
+  position:fixed; top:50px; right:8px; bottom:auto; z-index:860;
   width:380px; max-height:560px; background:var(--surface);
   border:2px solid var(--border); border-radius:12px;
   display:none; flex-direction:column;
@@ -1109,33 +1106,31 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
     <line x1="2" y1="11" x2="5" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
     <line x1="17" y1="11" x2="20" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
   </svg>
-  <span class="ah-lbl" style="color:var(--accent);font-size:11px;letter-spacing:0.22em;margin-left:4px">Cosmodex</span>
+  <span id="header-brand">Cosmodex</span>
   <div class="ah-sep"></div>
-  <!-- Tasks controls -->
-  <button class="sbtn on" id="sbtn-tasks" title="Toggle tasks panel" onclick="toggleSidePanel('tasks')">&#9745;</button>
-  <button class="add-btn" id="add-task-btn" title="Add task">+</button>
-  <span class="ah-lbl">Tasks</span>
+  <!-- Tasks -->
+  <button class="sbtn on" id="sbtn-tasks" title="Toggle tasks" onclick="toggleSidePanel('tasks')">&#9745;</button>
+  <button class="add-btn" id="add-task-btn" title="Add task" style="margin-left:3px">+</button>
   <div class="ah-sep"></div>
-  <!-- Calendar controls -->
-  <button class="sbtn on" id="sbtn-cal" title="Toggle calendar panel" onclick="toggleSidePanel('left')">&#128197;</button>
-  <button class="add-btn" id="add-event-btn" title="Add event">+</button>
-  <span class="ah-lbl" id="left-title"></span>
-  <div class="view-toggle" style="margin-left:4px">
+  <!-- Calendar -->
+  <button class="sbtn on" id="sbtn-cal" title="Toggle calendar" onclick="toggleSidePanel('left')">&#128197;</button>
+  <button class="add-btn" id="add-event-btn" title="Add event" style="margin-left:3px">+</button>
+  <span class="ah-lbl" id="left-title" style="margin-left:5px;max-width:120px;overflow:hidden;text-overflow:ellipsis"></span>
+  <div class="view-toggle" style="margin-left:6px">
     <button class="view-btn active" data-view="day">Day</button>
     <button class="view-btn" data-view="week">Week</button>
     <button class="view-btn" data-view="month">Mon</button>
   </div>
   <!-- Spacer -->
   <div style="flex:1"></div>
-  <!-- Action buttons -->
-  <div class="ah-sep"></div>
-  <div class="view-toggle">
+  <!-- Actions: Notes / Focus / Ask Cosmos -->
+  <div id="header-actions">
     <button class="view-btn" id="notes-btn" title="Quick note">&#9998; Notes</button>
     <button class="view-btn" id="pomo-open-btn" title="Focus timer">&#9650; Focus</button>
     <button class="view-btn" id="cosmos-btn" title="Ask Cosmos AI">&#9670; Ask Cosmos</button>
   </div>
   <div class="ah-sep"></div>
-  <!-- Utility buttons -->
+  <!-- Utility -->
   <button class="sbtn" id="sbtn-insights" title="Insights" onclick="openInsights()">&#128200;</button>
   <button class="sbtn" id="sbtn-habits" title="Habits" onclick="openHabits()">&#129419;</button>
   <button class="sbtn" id="sbtn-lifeos" title="Life OS" onclick="openLifeOS()">&#10010;</button>
@@ -1937,7 +1932,7 @@ async function loadAllData({silent=false}={}){
 function buildCalTabs(){
   const bar=document.getElementById('cal-tab-bar');
   bar.style.display='flex';
-  bar.style.cssText='display:flex;align-items:center;padding:3px 8px;border-bottom:2px solid var(--border);flex-shrink:0;gap:6px;';
+  bar.style.cssText='display:flex;align-items:center;padding:2px 8px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;gap:6px;';
   bar.innerHTML='';
   const isFiltered=activeCalTab!=='all';
   // "All" button — dimmed when a calendar is selected
@@ -1979,7 +1974,7 @@ function buildCalTabs(){
 function buildTaskTabs(){
   const bar=document.getElementById('task-tab-bar');
   bar.style.display='flex';
-  bar.style.cssText='display:flex;align-items:center;padding:3px 8px;border-bottom:2px solid var(--border);flex-shrink:0;gap:6px;';
+  bar.style.cssText='display:flex;align-items:center;padding:2px 8px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;gap:6px;';
   bar.innerHTML='';
   const isFiltered=activeTaskTab!=='all';
   const allBtn=document.createElement('button');
@@ -3860,8 +3855,9 @@ function losShowMain(){
   document.getElementById('lifeos-gate').classList.add('hidden');
   const m=document.getElementById('lifeos-main');
   m.style.display='flex'; m.style.flexDirection='column'; m.style.flex='1'; m.style.overflow='hidden';
-  if(!_losLoaded) losLoad();
-  else { losBuildChips(); losRenderList(); }
+  // Always fetch from Sheets so changes on other devices appear immediately
+  if(_losLoaded){ losBuildChips(); losRenderList(); } // render cached data instantly...
+  losLoad(); // ...then refresh from Sheets in background
 }
 
 // ── Password gate ──────────────────────────────────────
@@ -4112,7 +4108,7 @@ async function losLoad(showFeedback){
     else losShowEmpty();
     if(showFeedback) showSyncBar('Life OS synced ✓','ok');
   }catch(e){
-    _losLoaded=true;
+    // Do NOT set _losLoaded=true on failure — allow retry on next open
     losBuildChips(); losRenderList(); losShowEmpty();
     if(showFeedback) showSyncBar('⚠ Life OS sync failed','err');
   }
