@@ -1442,11 +1442,23 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
   <div id="lifeos-main" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
 
     <!-- Header -->
-    <div class="lifeos-header">
+    <div class="lifeos-header" style="position:relative">
       <span class="lifeos-header-title">&#10010; Life OS</span>
       <button class="lifeos-hbtn" id="lifeos-add-btn">+ Project</button>
       <button class="lifeos-hbtn" id="lifeos-sync-btn">&#8635; Sync</button>
+      <button class="lifeos-hbtn" id="lifeos-sheet-btn" title="Link Google Sheet (required on new devices)">&#128202; Sheet</button>
       <button class="lifeos-hclose" id="lifeos-close-btn">&#10005; Close</button>
+      <!-- Sheet link popup -->
+      <div id="lifeos-sheet-pop" style="display:none;position:absolute;top:44px;right:60px;z-index:50;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:16px;width:360px;box-shadow:0 6px 24px rgba(0,0,0,0.35)">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:8px">Google Sheet</div>
+        <a id="lifeos-sheet-link" href="#" target="_blank" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);word-break:break-all;display:block;margin-bottom:12px;text-decoration:none">(not linked)</a>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-dim);margin-bottom:6px;letter-spacing:0.10em">ON A NEW DEVICE — paste the Sheet URL below:</div>
+        <input id="lifeos-sheet-inp" type="text" placeholder="https://docs.google.com/spreadsheets/d/…" autocomplete="off" style="width:100%;background:var(--ink-faint);border:1.5px solid var(--border);border-radius:4px;color:var(--ink);font-family:'JetBrains Mono',monospace;font-size:11px;padding:7px 9px;outline:none;margin-bottom:10px">
+        <div style="display:flex;gap:8px">
+          <button id="lifeos-sheet-set" style="flex:1;background:var(--accent-dim);border:1.5px solid var(--accent);border-radius:4px;color:var(--accent);cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;padding:7px;letter-spacing:0.08em;text-transform:uppercase">Link &amp; Sync</button>
+          <button id="lifeos-sheet-pop-close" style="background:none;border:1.5px solid var(--border);border-radius:4px;color:var(--ink-dim);cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;padding:7px 12px">Cancel</button>
+        </div>
+      </div>
     </div>
 
     <!-- Body -->
@@ -3919,6 +3931,41 @@ document.getElementById('lifeos-close-btn').addEventListener('click', closeLifeO
 document.getElementById('lifeos-add-btn').addEventListener('click', losAddProject);
 document.getElementById('lifeos-sync-btn').addEventListener('click', ()=>losLoad(true));
 
+// ── Sheet link popup ────────────────────────────────────
+document.getElementById('lifeos-sheet-btn').addEventListener('click', ()=>{
+  const pop  = document.getElementById('lifeos-sheet-pop');
+  const link = document.getElementById('lifeos-sheet-link');
+  const open = pop.style.display === 'none';
+  if(open){
+    if(SHEETS_ID){
+      const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}`;
+      link.href = url; link.textContent = url;
+    } else {
+      link.href = '#'; link.textContent = '(not linked on this device)';
+    }
+    pop.style.display = 'block';
+  } else {
+    pop.style.display = 'none';
+  }
+});
+document.getElementById('lifeos-sheet-pop-close').addEventListener('click', ()=>{
+  document.getElementById('lifeos-sheet-pop').style.display = 'none';
+});
+document.getElementById('lifeos-sheet-set').addEventListener('click', ()=>{
+  const raw = (document.getElementById('lifeos-sheet-inp').value||'').trim();
+  if(!raw){ showSyncBar('⚠ Paste a Sheet URL first','err'); return; }
+  // Accept full URL or raw ID
+  const m = raw.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  const id = m ? m[1] : raw;
+  if(id.length < 20){ showSyncBar('⚠ That doesn\'t look like a valid Sheet ID','err'); return; }
+  SHEETS_ID = id;
+  localStorage.setItem('cosmodex_sheets_id', SHEETS_ID);
+  document.getElementById('lifeos-sheet-pop').style.display = 'none';
+  document.getElementById('lifeos-sheet-inp').value = '';
+  _losLoaded = false;
+  losLoad(true); // re-sync with the newly linked sheet
+});
+
 // ── Category chips ─────────────────────────────────────
 function losBuildChips(){
   const wrap=document.getElementById('lifeos-cat-chips');
@@ -4126,10 +4173,18 @@ async function losEnsureTab(){
 }
 
 async function losLoad(showFeedback){
-  if(!accessToken) return;
+  if(!accessToken){
+    if(showFeedback) showSyncBar('⚠ Not signed in — please sign in first','err');
+    return;
+  }
   if(showFeedback) showSyncBar('Loading Life OS…','syncing');
   try{
-    const sid=await losEnsureTab(); if(!sid) return;
+    const sid=await losEnsureTab();
+    if(!sid){
+      if(showFeedback) showSyncBar('⚠ Cannot access spreadsheet — use Sheet button to link your Sheet','err');
+      losBuildChips(); losRenderList(); losShowEmpty();
+      return;
+    }
     const res=await apiFetch(`${SHEETS_API}/${sid}/values/${LIFEOS_TAB}!A2:H`);
     const rows=res.values||[];
     _losProjects=rows.filter(r=>r[0]&&r[1]).map(r=>({
@@ -4141,11 +4196,11 @@ async function losLoad(showFeedback){
     losBuildChips(); losRenderList();
     if(_losSelected&&_losProjects.find(x=>x.id===_losSelected)) losSelect(_losSelected);
     else losShowEmpty();
-    if(showFeedback) showSyncBar('Life OS synced ✓','ok');
+    if(showFeedback) showSyncBar('Life OS synced · '+_losProjects.length+' projects','ok');
   }catch(e){
     // Do NOT set _losLoaded=true on failure — allow retry on next open
     losBuildChips(); losRenderList(); losShowEmpty();
-    if(showFeedback) showSyncBar('⚠ Life OS sync failed','err');
+    if(showFeedback) showSyncBar('⚠ Life OS sync failed: '+(e.message||e),'err');
   }
 }
 
