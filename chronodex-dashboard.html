@@ -424,6 +424,8 @@ body { display:grid; grid-template-columns:36px 1fr 340px 340px; grid-template-r
 .modal-btn { font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0.10em; text-transform:uppercase; padding:12px 22px; border-radius:4px; cursor:pointer; border:2px solid var(--border); background:none; color:var(--ink-dim); min-height:46px; }
 .modal-btn.primary { background:var(--gold-dim); border-color:var(--gold); color:var(--gold); }
 .modal-btn.primary:active { background:var(--gold); color:var(--bg); }
+.modal-btn.danger { border-color:var(--red); color:var(--red); }
+.modal-btn.danger:active { background:rgba(224,85,85,0.14); }
 .modal-btn:active { background:var(--ink-faint); }
 .modal-saving { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-dim); align-self:center; }
 
@@ -1175,6 +1177,7 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
 <div id="pomo-overlay">
   <div class="pomo-overlay-header">
     <span class="pomo-overlay-title">&#9650; Focus</span>
+    <button class="pomo-close-btn" id="pomo-del-event" title="Delete this calendar event" style="border-color:var(--red);color:var(--red);display:none">&#128465; Delete Event</button>
     <button class="pomo-close-btn" id="pomo-close" style="margin-left:auto">✕</button>
   </div>
   <div class="pomo-overlay-inner">
@@ -1195,7 +1198,7 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
             <button class="swipe-minus" id="sw-minus">−</button>
             <div class="swipe-track" id="sw-track">
               <div class="swipe-track-inner">
-                <div style="position:relative;display:flex;align-items:baseline;justify-content:center;margin-bottom:2px">
+                <div style="position:relative;display:flex;align-items:baseline;justify-content:center;margin-bottom:10px">
                   <div class="swipe-val" id="sw-val">25</div>
                   <div style="position:absolute;left:calc(50% + 20px);bottom:0;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink-dim)">min</div>
                 </div>
@@ -1256,6 +1259,22 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
 </div>
 
 </section>
+
+<!-- IN-APP CONFIRM DIALOG -->
+<div class="modal-backdrop" id="modal-confirm">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <span class="modal-title" id="confirm-title">Confirm</span>
+    </div>
+    <div class="modal-body">
+      <p id="confirm-msg" style="font-family:'JetBrains Mono',monospace;font-size:14px;line-height:1.65;color:var(--ink)"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn" id="confirm-cancel-btn">Cancel</button>
+      <button class="modal-btn danger" id="confirm-ok-btn">Delete</button>
+    </div>
+  </div>
+</div>
 
 <!-- TASK→EVENT MODAL -->
 <div class="modal-backdrop" id="modal-task2event">
@@ -2118,9 +2137,11 @@ function buildDay(){
 
 // Create a calendar event from a dragged task
 let _t2eSourceListId = null; // track source task-list for Schedule logging
+let _t2eSourceTaskId = null; // track source task ID for calendar badge
 
 function openTaskToEventModal(title, taskId, listId, dateStr, hour){
-  _t2eSourceListId = listId; // store so t2e-save can log pillar name
+  _t2eSourceListId = listId;
+  _t2eSourceTaskId = taskId;
   document.getElementById('t2e-title').value = title;
   document.getElementById('t2e-date').value  = dateStr;
   document.getElementById('t2e-start').value = String(hour).padStart(2,'0')+':00';
@@ -2163,6 +2184,14 @@ document.getElementById('t2e-save').addEventListener('click',async()=>{
       new Date().toISOString(), title, sList?sList.title:'',
       'added_to_calendar', date, start, sDay, sHol?'Yes':'No', sHol||''
     ]);
+    // Store calendar badge so task list can show "📅 Scheduled" tag
+    if(_t2eSourceTaskId){
+      try{
+        const tags=JSON.parse(localStorage.getItem('cdx_cal_tags')||'{}');
+        tags[_t2eSourceTaskId]={date,start};
+        localStorage.setItem('cdx_cal_tags',JSON.stringify(tags));
+      }catch(e){}
+    }
     await loadAllData();
   }catch(err){ showSyncBar('⚠ '+err.message,'err'); }
   finally{
@@ -2542,11 +2571,15 @@ function drawCosmodex() {
       const f0 = (os - hMin) / 60, f1 = (oe - hMin) / 60;
       const ri = petalRI() + 2*sc, ro = petalRO(i) - 2*sc;
       const a0 = hourAngle(i, f0), a1 = hourAngle(i, f1);
+      // Clamp gap so very short events (<3 min) don't cause arc reversal
+      const arcGap = Math.min(GAP * 0.4, (a1 - a0) * 0.15);
+      if(a1 - a0 < 0.001) continue; // absolute minimum, skip zero-span
+      const arcA0 = a0 + arcGap, arcA1 = a1 - arcGap;
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.beginPath();
-      ctx.arc(cx, cy, ro, a0 + GAP * 0.4, a1 - GAP * 0.4);
-      ctx.arc(cx, cy, ri, a1 - GAP * 0.4, a0 + GAP * 0.4, true);
+      ctx.arc(cx, cy, ro, arcA0, arcA1);
+      ctx.arc(cx, cy, ri, arcA1, arcA0, true);
       ctx.closePath();
       ctx.fillStyle = fillC;
       ctx.fill();
@@ -2801,11 +2834,18 @@ function buildTasks(){
     item.draggable=true;
     item.dataset.taskId=task._id;
     const metaHtml=task.due?'<div class="task-meta '+(mc||'')+'">'+fmtDue(task.due,today)+(activeTaskTab==='all'?' \u00b7 '+task._listName:'')+'</div>':'';
+    // Calendar badge — shown if task was scheduled via drag-to-calendar
+    let calBadge='';
+    try{
+      const calTagMap=JSON.parse(localStorage.getItem('cdx_cal_tags')||'{}');
+      const ct=calTagMap[task._id];
+      if(ct) calBadge='<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--accent);margin-top:3px;letter-spacing:0.06em;opacity:0.80">&#128197; '+ct.date+' \u00b7 '+ct.start+'</div>';
+    }catch(e){}
     item.innerHTML=
       '<div class="drag-hint">\u2630</div>'+
       '<div class="task-pri pri-'+task.priority+'"></div>'+
       '<div class="task-check"></div>'+
-      '<div class="task-body"><div class="task-title">'+(isSubtask?'\u2937 ':'')+task.title+'</div>'+metaHtml+'</div>'+
+      '<div class="task-body"><div class="task-title">'+(isSubtask?'\u2937 ':'')+task.title+'</div>'+metaHtml+calBadge+'</div>'+
       (!isSubtask?'<button class="task-add-sub" title="Add subtask">+</button>':'')+
       '<button class="task-del-btn" title="Delete task">\u2715</button>';
 
@@ -2852,8 +2892,24 @@ function buildTasks(){
   document.getElementById('tasks-count').textContent=allTasks.filter(t=>!t.done).length+' remaining';
 }
 
+// ── IN-APP CONFIRM ───────────────────────────────────
+function showConfirm(msg, okLabel='Delete', title='Confirm'){
+  return new Promise(resolve=>{
+    document.getElementById('confirm-title').textContent=title;
+    document.getElementById('confirm-msg').textContent=msg;
+    document.getElementById('confirm-ok-btn').textContent=okLabel;
+    document.getElementById('modal-confirm').classList.add('open');
+    const ok=document.getElementById('confirm-ok-btn');
+    const cn=document.getElementById('confirm-cancel-btn');
+    function cleanup(){ document.getElementById('modal-confirm').classList.remove('open'); ok.removeEventListener('click',onOk); cn.removeEventListener('click',onNo); }
+    function onOk(){ cleanup(); resolve(true); }
+    function onNo(){ cleanup(); resolve(false); }
+    ok.addEventListener('click',onOk); cn.addEventListener('click',onNo);
+  });
+}
+
 async function deleteTask(task){
-  if(!confirm('Delete "'+task.title.replace(/&lt;/g,'<')+'"?')) return;
+  if(!await showConfirm('Delete "'+task.title.replace(/&lt;/g,'<')+'"?','Delete','Delete Task')) return;
   try{
     await fetch(TASKS_API+'/lists/'+task._list+'/tasks/'+task._id,{
       method:'DELETE', headers:{Authorization:'Bearer '+accessToken}
@@ -2865,7 +2921,7 @@ async function deleteTask(task){
 }
 
 async function deleteEvent(ev){
-  if(!confirm('Delete "'+ev.title.replace(/&lt;/g,'<')+'"\n'+ev.startISO.slice(0,16).replace('T',' ')+'?')) return;
+  if(!await showConfirm('Delete "'+ev.title.replace(/&lt;/g,'<')+'"\n'+ev.startISO.slice(0,16).replace('T',' ')+'?','Delete','Delete Event')) return;
   try{
     await fetch(CAL_API+'/calendars/'+encodeURIComponent(ev.calId)+'/events/'+ev.evId,{
       method:'DELETE', headers:{Authorization:'Bearer '+accessToken}
@@ -3096,13 +3152,41 @@ document.getElementById('focus-check-input').addEventListener('keydown',e=>{
   if(e.key==='Enter') document.getElementById('focus-check-add-btn').click();
 });
 
+let _pomoCurrentEvent = null;
 function openPomo(ev){
-  if(!pomo.running) document.getElementById('pomo-ev-title').textContent = ev ? ev.title : 'Focus Session';
+  _pomoCurrentEvent = ev || null;
+  if(!pomo.running){
+    document.getElementById('pomo-ev-title').textContent = ev ? ev.title.replace(/&lt;/g,'<') : 'Focus Session';
+    // Pre-set timer to event duration (clamped to valid pomo range)
+    if(ev && ev.startISO && ev.endISO){
+      const durMin = Math.round((new Date(ev.endISO) - new Date(ev.startISO)) / 60000);
+      if(durMin >= PMIN && durMin <= PMAX) setDuration(durMin);
+    }
+  }
+  // Show delete button only when there's a real calendar event
+  const delBtn = document.getElementById('pomo-del-event');
+  if(delBtn) delBtn.style.display = (ev && ev.evId) ? '' : 'none';
   document.getElementById('pomo-overlay').classList.add('open');
   initScribble();
   startBreathing();
   drawPomoRing(); renderPomo(); buildTicks();
 }
+document.getElementById('pomo-del-event').addEventListener('click', async ()=>{
+  if(!_pomoCurrentEvent) return;
+  const confirmed = await showConfirm(
+    'Delete event "'+(_pomoCurrentEvent.title||'').replace(/&lt;/g,'<')+'"\n'+(_pomoCurrentEvent.startISO||'').slice(0,16).replace('T',' ')+'?',
+    'Delete','Delete Event'
+  );
+  if(!confirmed) return;
+  // Close pomo first, then delete
+  clearInterval(pomo.interval); pomo.running=false;
+  stopBreathing();
+  document.getElementById('pomo-lock-msg').classList.remove('show');
+  document.getElementById('pomo-overlay').classList.remove('open');
+  _scribbleInited=false;
+  await deleteEvent(_pomoCurrentEvent);
+  _pomoCurrentEvent=null;
+});
 document.getElementById('pomo-open-btn').addEventListener('click', ()=>openPomo(null));
 document.getElementById('pomo-close').addEventListener('click', ()=>{
   if(pomo.running){
@@ -3851,10 +3935,10 @@ function losAddProject(){
 }
 
 // ── Delete project ─────────────────────────────────────
-document.getElementById('lifeos-det-delete').addEventListener('click',()=>{
+document.getElementById('lifeos-det-delete').addEventListener('click',async()=>{
   if(!_losSelected) return;
   const p=_losProjects.find(x=>x.id===_losSelected);
-  if(!p||!confirm('Delete "'+p.title.replace(/&lt;/g,'<')+'"?\nThis cannot be undone.')) return;
+  if(!p||!await showConfirm('Delete "'+p.title.replace(/&lt;/g,'<')+'"\nThis cannot be undone.','Delete','Delete Project')) return;
   _losProjects=_losProjects.filter(x=>x.id!==_losSelected);
   losShowEmpty(); losRenderList(); losDebouncedSave();
 });
