@@ -1651,8 +1651,9 @@ const SCOPES     = [
   'https://www.googleapis.com/auth/tasks',
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/spreadsheets',
+  'https://www.googleapis.com/auth/drive.metadata.readonly', // needed to find existing sheet by name on new devices
 ].join(' ');
-const SCOPE_VER  = 'v3-rw';  // bumped: added spreadsheets scope
+const SCOPE_VER  = 'v4-rw';  // bumped: added drive.metadata.readonly
 
 // Local date helper — fixes UTC vs local timezone mismatch (critical for SGT UTC+8)
 function localDate(d){
@@ -1677,6 +1678,17 @@ let   SHEETS_ID  = localStorage.getItem('cosmodex_sheets_id') || '';
 
 async function ensureSheet(){
   if(SHEETS_ID) return SHEETS_ID;
+  // 1. Search Drive for the existing spreadsheet by name (works across devices)
+  try{
+    const q=encodeURIComponent("name='Cosmodex Trends' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
+    const driveRes=await apiFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)&pageSize=1`);
+    if(driveRes.files&&driveRes.files.length){
+      SHEETS_ID=driveRes.files[0].id;
+      localStorage.setItem('cosmodex_sheets_id',SHEETS_ID);
+      return SHEETS_ID;
+    }
+  }catch(e){ console.warn('Drive search failed, will create new sheet:',e); }
+  // 2. Not found — create a fresh spreadsheet
   try{
     const res=await apiPost(SHEETS_API,{
       properties:{title:'Cosmodex Trends'},
@@ -1726,7 +1738,12 @@ try {
   }
 } catch(e){}
 
-function saveSession(){ try{ localStorage.setItem('cdx_tok', JSON.stringify({token:accessToken,expiry:tokenExpiry,user:currentUser,sv:SCOPE_VER})); }catch(e){} }
+function saveSession(){
+  try{
+    localStorage.setItem('cdx_tok', JSON.stringify({token:accessToken,expiry:tokenExpiry,user:currentUser,sv:SCOPE_VER}));
+    if(currentUser) localStorage.setItem('cdx_user_hint', currentUser); // persists even after sign-out for auto-retry
+  }catch(e){}
+}
 function clearSession(){ accessToken=null;tokenExpiry=0;currentUser=''; try{localStorage.removeItem('cdx_tok');}catch(e){} }
 
 function initGIS(){
@@ -1741,9 +1758,22 @@ function initGIS(){
       document.getElementById('sync-user').textContent = currentUser;
       await loadAllData();
     },
-    // Use no-prompt for silent re-auth
     error_callback: ()=>{},
   });
+
+  // Auto-sign-in for returning users: if no valid cached token but a previous email hint exists,
+  // silently attempt a new token using the browser's active Google session (no popup shown).
+  // Falls back to the sign-in button if the Google session has also expired.
+  if(!accessToken){
+    const hint = localStorage.getItem('cdx_user_hint');
+    if(hint){
+      setTimeout(()=>{
+        try{
+          tokenClient.requestAccessToken({ prompt: '', login_hint: hint });
+        }catch(e){}
+      }, 200); // small delay to let GIS finish initialising
+    }
+  }
 }
 
 // Proactive silent token renewal — called every 5 min
@@ -1784,7 +1814,12 @@ async function fetchUserInfo(){
   try{ const r=await apiFetch('https://www.googleapis.com/oauth2/v2/userinfo'); currentUser=r.email||''; }catch(e){}
 }
 
-function requestToken(){ if(!tokenClient){showSyncBar('GIS loading — try again shortly','err');return;} tokenClient.requestAccessToken({prompt:'consent'}); }
+function requestToken(){
+  if(!tokenClient){showSyncBar('GIS loading — try again shortly','err');return;}
+  const hint=localStorage.getItem('cdx_user_hint')||'';
+  // prompt:'' = use existing account/consent; only shows picker if multiple accounts
+  tokenClient.requestAccessToken({prompt:'', login_hint:hint});
+}
 
 function signOut(){
   if(accessToken) try{google.accounts.oauth2.revoke(accessToken,()=>{});}catch(e){}
