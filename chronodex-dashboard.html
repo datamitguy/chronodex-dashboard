@@ -657,6 +657,80 @@ body { display:grid; grid-template-columns:36px 1fr 340px 340px; grid-template-r
   flex-shrink:0;
 }
 
+/* ── ASK CLAUDE PANEL ── */
+#claude-fab {
+  position:fixed; bottom:24px; right:24px; z-index:860;
+  background:var(--accent-dim); border:2px solid var(--accent); border-radius:50px;
+  color:var(--accent); cursor:pointer; font-family:'JetBrains Mono',monospace;
+  font-size:12px; letter-spacing:0.10em; padding:9px 16px;
+  display:flex; align-items:center; gap:6px; min-height:40px;
+  box-shadow:0 4px 20px rgba(61,184,255,0.18); transition:box-shadow 0.2s;
+}
+#claude-fab:hover { box-shadow:0 4px 32px rgba(61,184,255,0.40); }
+[data-theme="light"] #claude-fab { box-shadow:0 4px 20px rgba(11,98,196,0.14); }
+#claude-panel {
+  position:fixed; bottom:74px; right:24px; z-index:860;
+  width:380px; max-height:560px; background:var(--surface);
+  border:2px solid var(--border); border-radius:12px;
+  display:none; flex-direction:column;
+  box-shadow:0 8px 40px rgba(0,0,0,0.38);
+}
+#claude-panel.open { display:flex; }
+.cp-header {
+  padding:11px 14px; border-bottom:2px solid var(--border);
+  display:flex; align-items:center; gap:8px; flex-shrink:0;
+}
+.cp-title { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:var(--accent); }
+.cp-icon-btn {
+  background:none; border:1.5px solid var(--border); border-radius:4px;
+  color:var(--ink-dim); cursor:pointer; font-size:13px; padding:3px 7px; min-height:28px;
+}
+.cp-icon-btn:hover { border-color:var(--accent); color:var(--accent); }
+#claude-chat {
+  flex:1; overflow-y:auto; padding:12px; display:flex;
+  flex-direction:column; gap:10px; scrollbar-width:none; min-height:80px;
+}
+#claude-chat::-webkit-scrollbar { display:none; }
+.c-msg { font-family:'JetBrains Mono',monospace; font-size:12px; line-height:1.65; border-radius:6px; padding:9px 11px; }
+.c-msg.user { background:var(--accent-dim); border:1px solid var(--accent); color:var(--accent); align-self:flex-end; max-width:88%; }
+.c-msg.assistant { background:var(--ink-faint); border:1px solid var(--border); color:var(--ink); align-self:flex-start; max-width:96%; white-space:pre-wrap; }
+.c-msg.sys { color:var(--ink-dim); font-size:11px; text-align:center; background:none; border:none; padding:3px 0; }
+#claude-key-area {
+  padding:14px; display:none; flex-direction:column; gap:8px; border-bottom:2px solid var(--border);
+}
+#claude-key-area p { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim); line-height:1.6; }
+#claude-api-key-inp {
+  width:100%; background:var(--ink-faint); border:2px solid var(--border); border-radius:5px;
+  color:var(--ink); font-family:'JetBrains Mono',monospace; font-size:12px; padding:8px 10px; outline:none;
+}
+#claude-api-key-inp:focus { border-color:var(--accent); }
+.cp-key-btns { display:flex; gap:6px; }
+.cp-key-btn {
+  background:var(--accent-dim); border:2px solid var(--accent); border-radius:4px;
+  color:var(--accent); cursor:pointer; font-family:'JetBrains Mono',monospace;
+  font-size:11px; letter-spacing:0.08em; padding:6px 12px; min-height:32px;
+}
+.cp-key-btn:active { background:var(--accent); color:var(--bg); }
+.cp-key-btn.secondary { background:none; border-color:var(--border); color:var(--ink-dim); }
+#claude-input-area {
+  padding:10px 12px; border-top:2px solid var(--border); flex-shrink:0; display:flex; flex-direction:column; gap:6px;
+}
+#claude-input {
+  width:100%; background:var(--ink-faint); border:2px solid var(--border); border-radius:5px;
+  color:var(--ink); font-family:'JetBrains Mono',monospace; font-size:12px;
+  padding:8px 10px; outline:none; resize:none; min-height:56px; line-height:1.5;
+}
+#claude-input:focus { border-color:var(--accent); }
+.cp-send-row { display:flex; gap:6px; align-items:center; }
+#claude-send {
+  background:var(--accent-dim); border:2px solid var(--accent); border-radius:5px;
+  color:var(--accent); cursor:pointer; font-family:'JetBrains Mono',monospace;
+  font-size:11px; letter-spacing:0.08em; padding:7px 14px; min-height:32px; white-space:nowrap; margin-left:auto;
+}
+#claude-send:disabled { opacity:0.38; cursor:default; }
+#claude-send:not(:disabled):active { background:var(--accent); color:var(--bg); }
+#claude-ctx-hint { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--ink-dim); }
+
 /* Paper grain */
 body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:0.25; z-index:998;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); }
@@ -1522,6 +1596,31 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
 
 <script>
 // ══════════════════════════════════════════════════════
+//  HONG KONG PUBLIC HOLIDAYS (2025 – 2026)
+// ══════════════════════════════════════════════════════
+const HK_HOLIDAYS = {
+  '2025-01-01':"New Year's Day",'2025-01-29':"Lunar New Year's Day",
+  '2025-01-30':"Second Day of Lunar New Year",'2025-01-31':"Third Day of Lunar New Year",
+  '2025-04-04':"Ching Ming Festival",'2025-04-18':"Good Friday",
+  '2025-04-19':"Day following Good Friday",'2025-04-21':"Easter Monday",
+  '2025-05-01':"Labour Day",'2025-05-05':"Birthday of the Buddha",
+  '2025-06-02':"Tuen Ng Festival (Dragon Boat Festival)",
+  '2025-07-01':"HK SAR Establishment Day",'2025-10-01':"National Day",
+  '2025-10-07':"Day following Mid-Autumn Festival",'2025-10-29':"Chung Yeung Festival",
+  '2025-12-25':"Christmas Day",'2025-12-26':"First Weekday after Christmas",
+  '2026-01-01':"New Year's Day",'2026-02-17':"Lunar New Year's Day",
+  '2026-02-18':"Second Day of Lunar New Year",'2026-02-19':"Third Day of Lunar New Year",
+  '2026-04-03':"Good Friday",'2026-04-04':"Day following Good Friday",
+  '2026-04-05':"Ching Ming Festival",'2026-04-06':"Easter Monday",
+  '2026-05-01':"Labour Day",'2026-05-25':"Birthday of the Buddha",
+  '2026-06-19':"Tuen Ng Festival (Dragon Boat Festival)",
+  '2026-07-01':"HK SAR Establishment Day",'2026-10-01':"National Day",
+  '2026-10-03':"Day following Mid-Autumn Festival",'2026-10-17':"Chung Yeung Festival",
+  '2026-12-25':"Christmas Day",'2026-12-26':"Boxing Day",
+};
+function getHkHoliday(dateStr){ return HK_HOLIDAYS[dateStr]||null; }
+
+// ══════════════════════════════════════════════════════
 //  GOOGLE API — Calendar + Tasks (read + write)
 // ══════════════════════════════════════════════════════
 const CLIENT_ID  = '663470287783-ljsv9gr282m780ue4mlbu6qoqulenk7u.apps.googleusercontent.com';
@@ -1559,7 +1658,7 @@ async function ensureSheet(){
   try{
     const res=await apiPost(SHEETS_API,{
       properties:{title:'Cosmodex Trends'},
-      sheets:[{properties:{title:'Tasks',index:0}},{properties:{title:'Events',index:1}},{properties:{title:'HabitLog',index:2}}]
+      sheets:[{properties:{title:'Tasks',index:0}},{properties:{title:'Events',index:1}},{properties:{title:'HabitLog',index:2}},{properties:{title:'Schedule',index:3}}]
     });
     SHEETS_ID=res.spreadsheetId;
     localStorage.setItem('cosmodex_sheets_id',SHEETS_ID);
@@ -2018,7 +2117,10 @@ function buildDay(){
 }
 
 // Create a calendar event from a dragged task
+let _t2eSourceListId = null; // track source task-list for Schedule logging
+
 function openTaskToEventModal(title, taskId, listId, dateStr, hour){
+  _t2eSourceListId = listId; // store so t2e-save can log pillar name
   document.getElementById('t2e-title').value = title;
   document.getElementById('t2e-date').value  = dateStr;
   document.getElementById('t2e-start').value = String(hour).padStart(2,'0')+':00';
@@ -2053,6 +2155,14 @@ document.getElementById('t2e-save').addEventListener('click',async()=>{
     });
     document.getElementById('modal-task2event').classList.remove('open');
     showSyncBar('Added to calendar ✓','ok');
+    // Log to Schedule sheet: title | source task-list (pillar) | status | date | time | day | holiday
+    const sDay=new Date(date+'T'+start).toLocaleDateString('en-US',{weekday:'long'});
+    const sHol=getHkHoliday(date);
+    const sList=TASK_LISTS.find(l=>l.id===_t2eSourceListId);
+    logToSheet('Schedule',[
+      new Date().toISOString(), title, sList?sList.title:'',
+      'added_to_calendar', date, start, sDay, sHol?'Yes':'No', sHol||''
+    ]);
     await loadAllData();
   }catch(err){ showSyncBar('⚠ '+err.message,'err'); }
   finally{
@@ -2786,7 +2896,20 @@ async function toggleTask(task){
       method:'PATCH', headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
       body:JSON.stringify({status:newDone?'completed':'needsAction'}),
     });
-    if(newDone) logToSheet('Tasks',[new Date().toISOString(),task.title.replace(/&lt;/g,'<'),task._listName||'','completed']);
+    if(newDone){
+      const cDate=localDate(); const cDay=new Date().toLocaleDateString('en-US',{weekday:'long'});
+      const cHol=getHkHoliday(cDate);
+      logToSheet('Tasks',[
+        new Date().toISOString(),
+        task.title.replace(/&lt;/g,'<'),
+        task._listName||'',
+        'completed',
+        cDate,
+        cDay,
+        cHol?'Yes':'No',
+        cHol||''
+      ]);
+    }
   }catch(e){ task.done=!newDone; buildTasks(); }
 }
 
@@ -4072,6 +4195,233 @@ function behavKeystoneDelete(i){
   (data.keystone||[]).splice(i,1);
   behavSaveStore(data); renderBehaviours();
 }
+
+/* ── ASK CLAUDE PANEL ─────────────────────────────────────── */
+const CLAUDE_KEY_LS = 'cdx_claude_key_v1';
+const CLAUDE_MODEL  = 'claude-opus-4-5';
+
+function claudeGetKey(){ return localStorage.getItem(CLAUDE_KEY_LS)||''; }
+function claudeSetKey(k){ localStorage.setItem(CLAUDE_KEY_LS, k.trim()); }
+function claudeClearKey(){ localStorage.removeItem(CLAUDE_KEY_LS); }
+
+function buildDashboardContext(){
+  const lines = [];
+  const today = localDate();
+  lines.push('=== COSMODEX DASHBOARD CONTEXT ===');
+  lines.push('Date: '+today+' ('+new Date().toLocaleDateString('en-US',{weekday:'long'})+')');
+  const hol = getHkHoliday(today);
+  if(hol) lines.push('Today is a HK public holiday: '+hol);
+
+  // Today's calendar events
+  const todayEvts = (EVENTS||[]).filter(e=>e.startISO&&e.startISO.startsWith(today));
+  if(todayEvts.length){
+    lines.push('\n-- Today\'s Events ('+todayEvts.length+') --');
+    todayEvts.sort((a,b)=>a.startISO>b.startISO?1:-1).forEach(e=>{
+      const dur = e.endISO&&e.startISO ? Math.round((new Date(e.endISO)-new Date(e.startISO))/60000) : 0;
+      lines.push('  '+e.startISO.slice(11,16)+' '+e.title+(dur?' ('+dur+'m)':''));
+    });
+  } else {
+    lines.push('\n-- No events scheduled today --');
+  }
+
+  // Tasks
+  if(TASK_LISTS&&TASK_LISTS.length){
+    lines.push('\n-- Task Lists --');
+    TASK_LISTS.forEach(lst=>{
+      const tasks = (TASKS[lst.id]||[]);
+      const pending = tasks.filter(t=>!t.completed);
+      const done = tasks.filter(t=>t.completed);
+      lines.push('  ['+lst.title+'] '+pending.length+' pending, '+done.length+' done');
+      pending.slice(0,5).forEach(t=>lines.push('    • '+t.title));
+      if(pending.length>5) lines.push('    … and '+(pending.length-5)+' more');
+    });
+  }
+
+  // Habits
+  try{
+    const hData = behavLoad();
+    const todayStr = today;
+    const habs = hData.habits||[];
+    if(habs.length){
+      lines.push('\n-- Habits Today --');
+      habs.forEach(h=>{
+        const checked = (h.log||{})[todayStr]||false;
+        lines.push('  ['+(checked?'✓':' ')+'] '+h.name+(h.streak?' ('+h.streak+'d streak)':''));
+      });
+    }
+    if((hData.keystone||[]).length){
+      lines.push('\n-- Keystone Goals --');
+      (hData.keystone||[]).forEach(k=>lines.push('  ★ '+k));
+    }
+  } catch(e){}
+
+  // Life OS projects
+  try{
+    const los = _losProjects||[];
+    if(los.length){
+      lines.push('\n-- Life OS Pillars --');
+      los.slice(0,6).forEach(p=>{
+        const pct = p.krs&&p.krs.length ? Math.round(p.krs.reduce((s,k)=>s+(k.progress||0),0)/p.krs.length) : 0;
+        lines.push('  '+p.name+' — '+pct+'% overall');
+      });
+    }
+  } catch(e){}
+
+  // Pomodoro session
+  try{
+    const pomoEl = document.getElementById('pomo-count');
+    if(pomoEl&&pomoEl.textContent!='0'){
+      lines.push('\n-- Pomodoro Sessions Today: '+pomoEl.textContent+' --');
+    }
+  } catch(e){}
+
+  lines.push('\n=== END CONTEXT ===');
+  return lines.join('\n');
+}
+
+function claudeAddMsg(role, text){
+  const chat = document.getElementById('claude-chat');
+  if(!chat) return;
+  const div = document.createElement('div');
+  div.className = 'c-msg '+(role==='user'?'user':role==='error'?'error':'assistant');
+  div.textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+async function claudeSend(){
+  const inp    = document.getElementById('claude-input');
+  const sendBtn= document.getElementById('claude-send');
+  const userQ  = (inp.value||'').trim();
+  if(!userQ) return;
+  const key = claudeGetKey();
+  if(!key){
+    claudeAddMsg('error','Please save your Anthropic API key first (⚙ button).');
+    return;
+  }
+  inp.value = '';
+  claudeAddMsg('user', userQ);
+  sendBtn.disabled = true;
+  sendBtn.textContent = '…';
+  const ctx = buildDashboardContext();
+  const systemPrompt = `You are an AI productivity coach embedded inside the Cosmodex personal dashboard. You have access to the user's current dashboard state including their calendar events, tasks, habits, and life goals. Be concise, actionable, and encouraging. Reference specific items from their data when relevant.
+
+Current dashboard context:
+${ctx}`;
+  try{
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'content-type':'application/json',
+        'x-api-key': key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body: JSON.stringify({
+        model: CLAUDE_MODEL,
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages:[{role:'user',content:userQ}]
+      })
+    });
+    if(!resp.ok){
+      const errData = await resp.json().catch(()=>({}));
+      throw new Error((errData.error&&errData.error.message)||'API error '+resp.status);
+    }
+    const data = await resp.json();
+    const answer = (data.content&&data.content[0]&&data.content[0].text)||'(no response)';
+    claudeAddMsg('assistant', answer);
+  } catch(err){
+    if(err.message&&(err.message.includes('Failed to fetch')||err.message.includes('CORS')||err.message.includes('NetworkError'))){
+      // CORS fallback: copy context + question to clipboard, open claude.ai
+      try{
+        const fallbackText = systemPrompt+'\n\nUser question: '+userQ;
+        await navigator.clipboard.writeText(fallbackText);
+        claudeAddMsg('error','Direct API blocked by browser CORS policy.\n\nYour question + dashboard context have been copied to clipboard.\n\nOpening Claude.ai — paste there to get your answer.');
+        setTimeout(()=>window.open('https://claude.ai/new','_blank'),800);
+      } catch(ce){
+        claudeAddMsg('error','CORS error and clipboard unavailable. Error: '+err.message);
+      }
+    } else {
+      claudeAddMsg('error','Error: '+err.message);
+    }
+  } finally {
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Ask →';
+  }
+}
+
+(function initClaudePanel(){
+  function updateKeyAreaVisibility(){
+    const key = claudeGetKey();
+    const ka  = document.getElementById('claude-key-area');
+    const ia  = document.getElementById('claude-input-area');
+    const hint= document.getElementById('claude-ctx-hint');
+    if(!ka||!ia) return;
+    if(key){
+      ka.style.display  = 'none';
+      ia.style.display  = 'flex';
+      if(hint) hint.textContent = 'Context: events, tasks, habits';
+    } else {
+      ka.style.display  = 'block';
+      ia.style.display  = 'none';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    const fab      = document.getElementById('claude-fab');
+    const panel    = document.getElementById('claude-panel');
+    const closeBtn = document.getElementById('claude-panel-close');
+    const keyBtn   = document.getElementById('claude-key-btn');
+    const keySave  = document.getElementById('claude-key-save');
+    const keyClear = document.getElementById('claude-key-clear');
+    const clearChat= document.getElementById('claude-clear-chat');
+    const sendBtn  = document.getElementById('claude-send');
+    const inp      = document.getElementById('claude-input');
+
+    if(fab) fab.addEventListener('click',()=>{
+      if(!panel) return;
+      const open = panel.classList.toggle('open');
+      if(open){ updateKeyAreaVisibility(); }
+    });
+    if(closeBtn) closeBtn.addEventListener('click',()=>panel&&panel.classList.remove('open'));
+
+    if(keyBtn) keyBtn.addEventListener('click',()=>{
+      const ka = document.getElementById('claude-key-area');
+      if(!ka) return;
+      ka.style.display = ka.style.display==='none'?'block':'none';
+    });
+
+    if(keySave) keySave.addEventListener('click',()=>{
+      const ki = document.getElementById('claude-api-key-inp');
+      if(!ki) return;
+      const val = ki.value.trim();
+      if(!val){ claudeAddMsg('error','Please enter a valid API key.'); return; }
+      claudeSetKey(val); ki.value='';
+      claudeAddMsg('sys','API key saved. Start asking questions!');
+      updateKeyAreaVisibility();
+    });
+
+    if(keyClear) keyClear.addEventListener('click',()=>{
+      claudeClearKey();
+      claudeAddMsg('sys','API key cleared.');
+      updateKeyAreaVisibility();
+    });
+
+    if(clearChat) clearChat.addEventListener('click',()=>{
+      const chat = document.getElementById('claude-chat');
+      if(chat) chat.innerHTML='';
+    });
+
+    if(sendBtn) sendBtn.addEventListener('click', claudeSend);
+
+    if(inp) inp.addEventListener('keydown',e=>{
+      if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); claudeSend(); }
+    });
+
+    updateKeyAreaVisibility();
+  });
+})();
 </script>
 
 <!-- MOBILE BOTTOM NAV -->
@@ -4088,6 +4438,38 @@ function behavKeystoneDelete(i){
     <span class="mob-nav-icon">&#11044;</span>
     <span>Cosmodex</span>
   </button>
+</div>
+
+<!-- ASK CLAUDE FLOATING BUTTON -->
+<button id="claude-fab" title="Ask Claude AI for suggestions">◆ Ask Claude</button>
+
+<!-- CLAUDE AI PANEL -->
+<div id="claude-panel">
+  <div class="cp-header">
+    <span class="cp-title">◆ Ask Claude</span>
+    <button class="cp-icon-btn" id="claude-key-btn" title="API Key settings">⚙</button>
+    <button class="cp-icon-btn" id="claude-clear-chat" title="Clear chat">⟳</button>
+    <button class="cp-icon-btn" id="claude-panel-close" style="margin-left:auto">✕</button>
+  </div>
+  <!-- API key setup area (shown when no key) -->
+  <div id="claude-key-area">
+    <p>Enter your Anthropic API key to enable AI suggestions. The key is stored locally in your browser only.</p>
+    <input type="password" id="claude-api-key-inp" placeholder="sk-ant-api03-…" autocomplete="off">
+    <div class="cp-key-btns">
+      <button class="cp-key-btn" id="claude-key-save">Save Key</button>
+      <button class="cp-key-btn secondary" id="claude-key-clear">Clear</button>
+    </div>
+  </div>
+  <!-- Chat messages -->
+  <div id="claude-chat"></div>
+  <!-- Input area -->
+  <div id="claude-input-area">
+    <textarea id="claude-input" placeholder="Ask about your day, schedule, focus patterns, habits… (Enter to send, Shift+Enter for newline)"></textarea>
+    <div class="cp-send-row">
+      <span id="claude-ctx-hint"></span>
+      <button id="claude-send">Ask →</button>
+    </div>
+  </div>
 </div>
 
 </body>
