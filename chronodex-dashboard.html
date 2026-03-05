@@ -11,7 +11,49 @@
 <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Cosmodex%22,%22short_name%22:%22Cosmodex%22,%22display%22:%22fullscreen%22,%22background_color%22:%22%23030508%22,%22theme_color%22:%22%23030508%22,%22orientation%22:%22any%22}">
 <title>Cosmodex</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<!-- Google Identity Services — needed for Calendar + Tasks OAuth token -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp }
+    from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
+  import { getAuth, signInWithCredential, onAuthStateChanged, GoogleAuthProvider }
+    from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+  import {
+    initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+    doc, collection,
+    getDoc, getDocs, setDoc, updateDoc, addDoc, deleteDoc,
+    onSnapshot, writeBatch, serverTimestamp, deleteField,
+    query, where, orderBy, limit
+  } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyCg5lL_Xga0ZiSqZovx4V1ccL3WF-8sVqw",
+    authDomain:        "cosmodex-fffbe.firebaseapp.com",
+    projectId:         "cosmodex-fffbe",
+    storageBucket:     "cosmodex-fffbe.firebasestorage.app",
+    messagingSenderId: "756256258932",
+    appId:             "1:756256258932:web:688b03b04009b7d505ca21"
+  };
+
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  // Persistent offline cache — reads/writes survive network loss and page reload
+  const db   = initializeFirestore(app, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+  });
+
+  // Expose to the rest of the page (non-module scripts can access via window.CDX_*)
+  window.CDX_DB   = db;
+  window.CDX_AUTH = auth;
+  window.CDX_FB = {
+    doc, collection, getDoc, getDocs, setDoc, updateDoc,
+    addDoc, deleteDoc, onSnapshot, writeBatch, serverTimestamp, deleteField,
+    query, where, orderBy, limit,
+    signInWithCredential, onAuthStateChanged, GoogleAuthProvider
+  };
+</script>
+
 <style>
 *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
 
@@ -353,6 +395,97 @@ body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:4
   .pomo-col { width: 100%; border-right: none; }
   .scribble-col { display: none; } /* hide scribble on narrow screens */
   .pomo-overlay-inner { flex-direction: column; }
+
+  /* ── Mobile panel toolbars (hidden on desktop) ── */
+  .mob-panel-bar {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .mob-panel-bar .view-toggle { margin-left: 0; background: var(--ink-faint); border-radius: 5px; padding: 2px; display:flex; }
+  .mob-panel-bar .view-btn    { min-height: 32px; min-width: 44px; padding: 4px 10px; font-size: 11px; }
+  .mob-panel-bar .mob-bar-title {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-dim);
+    flex: 1;
+  }
+  .mob-panel-bar .add-btn { font-size: 14px; padding: 2px 9px; min-height: 32px; min-width: 32px; border-width: 1.5px; margin-left: auto; }
+
+  /* ── FAB — contextual primary action ── */
+  #mob-fab {
+    display: flex !important;
+    position: fixed;
+    right: 16px;
+    bottom: 68px; /* above mobile nav */
+    z-index: 700;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 28px;
+    padding: 10px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(61,184,255,0.35);
+    align-items: center;
+    gap: 6px;
+    font-weight: 400;
+    transition: opacity 0.15s, transform 0.15s;
+  }
+  #mob-fab.hidden { opacity: 0; pointer-events: none; transform: scale(0.85); }
+
+  /* ── More drawer ── */
+  #mob-more-backdrop {
+    display: none;
+    position: fixed; inset: 0; z-index: 800;
+    background: rgba(0,0,0,0.55);
+  }
+  #mob-more-backdrop.open { display: block; }
+  #mob-more-drawer {
+    position: fixed;
+    bottom: 56px; left: 0; right: 0;
+    z-index: 801;
+    background: var(--surface);
+    border-top: 2px solid var(--border);
+    border-radius: 14px 14px 0 0;
+    padding: 8px 0 6px;
+    transform: translateY(100%);
+    transition: transform 0.22s ease;
+  }
+  #mob-more-drawer.open { transform: translateY(0); }
+  .mob-drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    color: var(--ink);
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+  }
+  .mob-drawer-item:active { background: var(--ink-faint); }
+  .mob-drawer-item .mob-drawer-icon { font-size: 20px; width: 28px; text-align: center; flex-shrink: 0; }
+  .mob-drawer-sep { height: 1px; background: var(--border); margin: 4px 16px; }
+  #mob-more-nav-btn { color: var(--accent); }
+}
+
+/* Mobile-only elements — hidden on desktop, shown via @media above */
+.mob-panel-bar { display: none; }
+#mob-fab       { display: none; }
+#mob-more-backdrop { display: none; }
+#mob-more-drawer   { display: none; }
+@media (max-width: 720px) {
+  #mob-more-drawer { display: block; } /* block so transform works; visibility controlled by .open */
 }
 
 /* Mobile bottom navigation */
@@ -1140,12 +1273,26 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
 
 <!-- COL 1: CALENDAR -->
 <section class="panel" id="panel-left">
+  <!-- Mobile-only toolbar: view toggle + add event (hidden on desktop via CSS) -->
+  <div class="mob-panel-bar" id="mob-cal-bar">
+    <div class="view-toggle">
+      <button class="view-btn active" data-view="day">Day</button>
+      <button class="view-btn" data-view="week">Week</button>
+      <button class="view-btn" data-view="month">Mon</button>
+    </div>
+    <button class="add-btn" id="mob-add-event-btn" title="Add event">+</button>
+  </div>
   <div class="tab-bar" id="cal-tab-bar" style="display:none"></div>
   <div id="left-content" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>
 </section>
 
 <!-- COL 2: TASKS -->
 <section class="panel" id="panel-tasks">
+  <!-- Mobile-only toolbar: tasks label + add task (hidden on desktop via CSS) -->
+  <div class="mob-panel-bar" id="mob-task-bar">
+    <span class="mob-bar-title">Tasks</span>
+    <button class="add-btn" id="mob-add-task-btn" title="Add task">+</button>
+  </div>
   <div class="tab-bar" id="task-tab-bar" style="display:none"></div>
   <div class="tasks-list" id="tasks-list"></div>
   <div class="tasks-footer">
@@ -1662,10 +1809,8 @@ const SCOPES     = [
   'https://www.googleapis.com/auth/calendar.events',
   'https://www.googleapis.com/auth/tasks',
   'https://www.googleapis.com/auth/userinfo.email',
-  'https://www.googleapis.com/auth/spreadsheets',
-  'https://www.googleapis.com/auth/drive.metadata.readonly', // needed to find existing sheet by name on new devices
 ].join(' ');
-const SCOPE_VER  = 'v4-rw';  // bumped: added drive.metadata.readonly
+const SCOPE_VER  = 'v5-firebase';  // bumped: removed Sheets/Drive, added Firebase
 
 // Local date helper — fixes UTC vs local timezone mismatch (critical for SGT UTC+8)
 function localDate(d){
@@ -1685,44 +1830,13 @@ function dtToLocal(apiStr){
 }
 const CAL_API    = 'https://www.googleapis.com/calendar/v3';
 const TASKS_API  = 'https://www.googleapis.com/tasks/v1';
-const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets';
-let   SHEETS_ID  = localStorage.getItem('cosmodex_sheets_id') || '';
 
-async function ensureSheet(){
-  if(SHEETS_ID) return SHEETS_ID;
-  // 1. Search Drive for the existing spreadsheet by name (works across devices)
-  try{
-    const q=encodeURIComponent("name='Cosmodex Trends' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
-    const driveRes=await apiFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)&pageSize=1`);
-    if(driveRes.files&&driveRes.files.length){
-      SHEETS_ID=driveRes.files[0].id;
-      localStorage.setItem('cosmodex_sheets_id',SHEETS_ID);
-      return SHEETS_ID;
-    }
-  }catch(e){ console.warn('Drive search failed, will create new sheet:',e); }
-  // 2. Not found — create a fresh spreadsheet
-  try{
-    const res=await apiPost(SHEETS_API,{
-      properties:{title:'Cosmodex Trends'},
-      sheets:[{properties:{title:'Tasks',index:0}},{properties:{title:'Events',index:1}},{properties:{title:'HabitLog',index:2}},{properties:{title:'Schedule',index:3}}]
-    });
-    SHEETS_ID=res.spreadsheetId;
-    localStorage.setItem('cosmodex_sheets_id',SHEETS_ID);
-    return SHEETS_ID;
-  }catch(e){ return null; }
-}
-async function logToSheet(sheetName,row){
-  if(!accessToken) return;
-  try{
-    const sid=await ensureSheet();
-    if(!sid) return;
-    await fetch(`${SHEETS_API}/${sid}/values/${sheetName}!A1:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,{
-      method:'POST',
-      headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
-      body:JSON.stringify({values:[row]}),
-    });
-  }catch(e){ console.warn('Sheet log failed:',e); }
-}
+// ── SHEETS STUBS — replaced by Firebase (kept so call sites don't crash during migration) ──
+const SHEETS_API = '';   // no longer used
+let   SHEETS_ID  = '';   // no longer used
+async function ensureSheet(){ return null; }           // no-op: LifeOS Phase 2 replaces this
+async function logToSheet(){ }                         // no-op: Firebase writes added per phase
+async function ensureHabitLogTab(){ }                  // no-op: Firebase habits Phase 1
 
 // ── DATA ──────────────────────────────────────────────
 let EVENTS       = [];  // all events
@@ -1739,6 +1853,7 @@ const GCAL_COLORS = {'1':'#58a8f0','2':'#46d4a0','3':'#8ccc60','4':'#38c8d8','5'
 
 // ── AUTH ──────────────────────────────────────────────
 let accessToken = null, tokenExpiry = 0, tokenClient = null, currentUser = '';
+let fbUid = null;   // Firebase UID — set after sign-in; used as Firestore path: users/{fbUid}/
 
 try {
   const s = JSON.parse(localStorage.getItem('cdx_tok') || 'null');
@@ -1766,6 +1881,7 @@ function initGIS(){
       accessToken = resp.access_token;
       tokenExpiry  = Date.now() + (resp.expires_in - 60)*1000;
       await fetchUserInfo(); saveSession();
+      await fbSignInWithGoogleToken(accessToken);   // sign into Firebase with same Google token
       document.getElementById('signin-overlay').classList.add('hidden');
       document.getElementById('sync-user').textContent = currentUser;
       await loadAllData();
@@ -1835,6 +1951,16 @@ function requestToken(){
 
 function signOut(){
   if(accessToken) try{google.accounts.oauth2.revoke(accessToken,()=>{});}catch(e){}
+  if(window.CDX_AUTH) try{ window.CDX_AUTH.signOut(); }catch(e){}
+  // Tear down all Firestore listeners
+  if(_habitsUnsub)    { _habitsUnsub();    _habitsUnsub    = null; }
+  if(_habitLogsUnsub) { _habitLogsUnsub(); _habitLogsUnsub = null; }
+  if(_losUnsub)       { _losUnsub();       _losUnsub       = null; }
+  if(_routinesUnsub)  { _routinesUnsub();  _routinesUnsub  = null; }
+  if(_behavUnsub)     { _behavUnsub();     _behavUnsub     = null; }
+  // Reset in-memory state
+  fbUid=null; _habits=[]; _habitLogs={}; _losProjects=[]; _losLoaded=false;
+  _routines={morning:[],evening:[]}; _behav={identity:'',keystone:[],notes:''};
   clearSession(); EVENTS=[];TASKS=[];CAL_LIST=[];TASK_LISTS=[];
   renderLeft();buildTasks();updateClock();drawCosmodex();
   document.getElementById('signin-overlay').classList.remove('hidden');
@@ -1843,6 +1969,42 @@ function signOut(){
 
 document.getElementById('signin-btn').addEventListener('click', requestToken);
 document.getElementById('signout-btn').addEventListener('click', signOut);
+
+// ── FIREBASE AUTH HELPERS ─────────────────────────────
+// Called after GIS gives us a Google access token.
+// Signs into Firebase using that same token so Firestore is available.
+async function fbSignInWithGoogleToken(googleAccessToken){
+  if(!window.CDX_AUTH || !window.CDX_FB) return;
+  try{
+    const { signInWithCredential, GoogleAuthProvider } = window.CDX_FB;
+    const credential = GoogleAuthProvider.credential(null, googleAccessToken);
+    const result     = await signInWithCredential(window.CDX_AUTH, credential);
+    fbUid = result.user.uid;
+    // Create/update the user profile doc (merge:true never overwrites existing fields)
+    const { doc, setDoc, serverTimestamp } = window.CDX_FB;
+    await setDoc(doc(window.CDX_DB, 'users', fbUid),
+      { email: currentUser, updatedAt: serverTimestamp() },
+      { merge: true }
+    );
+    console.log('Firebase signed in — uid:', fbUid);
+    habitsSubscribe();    // Phase 1: habits + habitLogs
+    losSubscribe();       // Phase 2: projects
+    routinesSubscribe();  // Phase 3: routines
+    behavSubscribe();     // Phase 3: behaviours
+  }catch(e){
+    console.warn('Firebase sign-in failed:', e.message);
+  }
+}
+
+// Restore fbUid on page reload if Firebase session is still active.
+// (Google OAuth access token is NOT restored here — user must sign in again for Calendar/Tasks.)
+window.addEventListener('DOMContentLoaded', () => {
+  if(!window.CDX_AUTH || !window.CDX_FB) return;
+  window.CDX_FB.onAuthStateChanged(window.CDX_AUTH, user => {
+    if(user){ fbUid = user.uid; console.log('Firebase session restored — uid:', fbUid); habitsSubscribe(); losSubscribe(); routinesSubscribe(); behavSubscribe(); }
+    else    { fbUid = null; }
+  });
+});
 
 // ── SYNC BAR ──────────────────────────────────────────
 let _st=null;
@@ -2206,7 +2368,7 @@ document.getElementById('t2e-save').addEventListener('click',async()=>{
   document.getElementById('t2e-saving').style.display='';
   document.getElementById('t2e-save').disabled=true;
   try{
-    await apiPost(CAL_API+'/calendars/'+encodeURIComponent(calId)+'/events',{
+    const newEv=await apiPost(CAL_API+'/calendars/'+encodeURIComponent(calId)+'/events',{
       summary:title,
       start:{dateTime:startDT.toISOString()},
       end:{dateTime:endDT.toISOString()},
@@ -2221,12 +2383,16 @@ document.getElementById('t2e-save').addEventListener('click',async()=>{
       new Date().toISOString(), title, sList?sList.title:'',
       'added_to_calendar', date, start, sDay, sHol?'Yes':'No', sHol||''
     ]);
-    // Store calendar badge so task list can show "📅 Scheduled" tag
+    // Store calendar badge (includes evId so delete-event can find this task)
     if(_t2eSourceTaskId){
       try{
         const tags=JSON.parse(localStorage.getItem('cdx_cal_tags')||'{}');
-        tags[_t2eSourceTaskId]={date,start,dur:parseInt(document.getElementById('t2e-dur').value)||30};
+        tags[_t2eSourceTaskId]={date,start,dur:parseInt(document.getElementById('t2e-dur').value)||30,evId:newEv.id,calId};
         localStorage.setItem('cdx_cal_tags',JSON.stringify(tags));
+        // Reverse index: evId → {taskId, listId} for fast lookup on delete
+        const evMap=JSON.parse(localStorage.getItem('cdx_ev_task')||'{}');
+        evMap[newEv.id]={taskId:_t2eSourceTaskId, listId:_t2eSourceListId};
+        localStorage.setItem('cdx_ev_task',JSON.stringify(evMap));
       }catch(e){}
     }
     await loadAllData();
@@ -2966,8 +3132,29 @@ async function deleteEventDirect(ev){
     await fetch(CAL_API+'/calendars/'+encodeURIComponent(ev.calId)+'/events/'+ev.evId,{
       method:'DELETE', headers:{Authorization:'Bearer '+accessToken}
     });
+
+    // Delete linked task (if any) — covers both t2e flow and ev-save auto-task
+    try{
+      const evMap=JSON.parse(localStorage.getItem('cdx_ev_task')||'{}');
+      const link=evMap[ev.evId];
+      if(link&&link.taskId&&link.listId){
+        await fetch(TASKS_API+'/lists/'+encodeURIComponent(link.listId)+'/tasks/'+encodeURIComponent(link.taskId),{
+          method:'DELETE', headers:{Authorization:'Bearer '+accessToken}
+        });
+        delete evMap[ev.evId];
+        localStorage.setItem('cdx_ev_task',JSON.stringify(evMap));
+        // Also clean the calendar badge if it exists
+        try{
+          const tags=JSON.parse(localStorage.getItem('cdx_cal_tags')||'{}');
+          const badgeEntry=Object.entries(tags).find(([,b])=>b.evId===ev.evId);
+          if(badgeEntry){ delete tags[badgeEntry[0]]; localStorage.setItem('cdx_cal_tags',JSON.stringify(tags)); }
+        }catch(e){}
+        TASKS=TASKS.filter(t=>t.id!==link.taskId);
+      }
+    }catch(te){ console.warn('Linked task delete failed:',te); }
+
     EVENTS=EVENTS.filter(e=>e.evId!==ev.evId);
-    renderLeft(); drawCosmodex();
+    renderLeft(); buildTasks(); drawCosmodex();
     showSyncBar('Event deleted','ok');
   }catch(e){ showSyncBar('\u26a0 Delete failed','err'); }
 }
@@ -3081,6 +3268,7 @@ function closeAddEvent(){
 }
 
 document.getElementById('add-event-btn').addEventListener('click',openAddEvent);
+document.getElementById('mob-add-event-btn').addEventListener('click',openAddEvent);
 document.getElementById('modal-event-close').addEventListener('click',closeAddEvent);
 document.getElementById('ev-cancel').addEventListener('click',closeAddEvent);
 document.getElementById('modal-event').addEventListener('click',e=>{ if(e.target===document.getElementById('modal-event'))closeAddEvent(); });
@@ -3116,8 +3304,8 @@ document.getElementById('ev-save').addEventListener('click',async()=>{
       }
       showSyncBar('Event updated \u2713','ok');
     }else{
-      // Create new event
-      await apiPost(CAL_API+'/calendars/'+encodeURIComponent(calId)+'/events',{
+      // Create new event — keep the response so we can store the link
+      const createdEv=await apiPost(CAL_API+'/calendars/'+encodeURIComponent(calId)+'/events',{
         summary:title, start:{dateTime:toISO(startDT)}, end:{dateTime:toISO(endDT)},
       });
       // Auto-create a matching task in Other Reminders so it can be tracked & completed
@@ -3125,11 +3313,17 @@ document.getElementById('ev-save').addEventListener('click',async()=>{
         const otherList=TASK_LISTS.find(tl=>tl.title.toLowerCase().includes('other reminders'))
           ||TASK_LISTS.find(tl=>tl.title.toLowerCase().includes('other'))
           ||TASK_LISTS[0];
-        if(otherList&&accessToken){
-          await apiPost(TASKS_API+'/lists/'+otherList.id+'/tasks',{
+        if(otherList&&accessToken&&createdEv.id){
+          const createdTask=await apiPost(TASKS_API+'/lists/'+otherList.id+'/tasks',{
             title,
             due:new Date(date+'T00:00:00').toISOString(),
           });
+          // Store reverse link: evId → {taskId, listId} so delete-event can clean up the task
+          try{
+            const evMap=JSON.parse(localStorage.getItem('cdx_ev_task')||'{}');
+            evMap[createdEv.id]={taskId:createdTask.id, listId:otherList.id};
+            localStorage.setItem('cdx_ev_task',JSON.stringify(evMap));
+          }catch(me){}
         }
       }catch(te){ console.warn('Auto-task for event failed:',te); }
       showSyncBar('Event added \u2713','ok');
@@ -3187,6 +3381,7 @@ function closeAddTask(){
 }
 
 document.getElementById('add-task-btn').addEventListener('click',openAddTask);
+document.getElementById('mob-add-task-btn').addEventListener('click',openAddTask);
 document.getElementById('modal-task-close').addEventListener('click',closeAddTask);
 document.getElementById('tk-cancel').addEventListener('click',closeAddTask);
 document.getElementById('modal-task').addEventListener('click',e=>{ if(e.target===document.getElementById('modal-task'))closeAddTask(); });
@@ -3384,6 +3579,7 @@ document.getElementById('pomo-start').addEventListener('click',()=>{
       pomo.remainSecs=Math.max(0,Math.round((pomo._endTarget-Date.now())/1000));
       if(pomo.remainSecs<=0){
         clearInterval(pomo.interval);pomo.running=false;pomo.remainSecs=0;pomo.sessions=Math.min(4,pomo.sessions+1);
+        logFocusSession(); // Phase 4: write completed session to Firestore
         stopBreathing();
         document.getElementById('pomo-lock-msg').classList.remove('show');
         setTimeout(()=>{ _scribbleInited=false; document.getElementById('pomo-overlay').classList.remove('open'); },1200);
@@ -3398,6 +3594,24 @@ document.getElementById('pomo-reset').addEventListener('click',()=>{
   clearInterval(pomo.interval);pomo.running=false;pomo.totalSecs=pomoDuration*60;pomo.remainSecs=pomoDuration*60;renderPomo();
 });
 
+
+// ── FOCUS SESSION LOGGER ──────────────────────────────
+async function logFocusSession(){
+  if(!fbUid || !window.CDX_DB) return;
+  const { collection, addDoc, serverTimestamp } = window.CDX_FB;
+  try {
+    await addDoc(collection(window.CDX_DB, 'users', fbUid, 'focusSessions'), {
+      durationMin:  pomoDuration,
+      taskTitle:    _pomoCurrentEvent ? (_pomoCurrentEvent.title||'Focus Session') : 'Focus Session',
+      eventTitle:   _pomoCurrentEvent ? (_pomoCurrentEvent.title||'') : '',
+      listName:     '',
+      date:         localDate(),
+      completedAt:  serverTimestamp(),
+      taskId:       '',
+      eventId:      _pomoCurrentEvent ? (_pomoCurrentEvent.evId||'') : '',
+    });
+  } catch(e){ console.warn('logFocusSession error:', e); }
+}
 
 // ── SCRIBBLE BOARD ────────────────────────────────────
 let _scribbleInited = false;
@@ -3694,19 +3908,59 @@ function initScribble() {
 
 // ── MOBILE NAV ───────────────────────────────────────
 function isMobile(){ return window.innerWidth <= 720; }
+
+let _mobActivePanel = 'panel-left';
+
 function mobileSwitchPanel(id, btn){
   if(!isMobile()) return;
+  _mobActivePanel = id;
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('mobile-active'));
   document.getElementById(id).classList.add('mobile-active');
   document.querySelectorAll('.mob-nav-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+  if(btn) btn.classList.add('active');
   // Redraw cosmodex if switching to it
   if(id==='panel-chrono') setTimeout(drawCosmodex, 80);
+  // Update FAB context
+  mobFabUpdate(id);
 }
+
+// FAB: shows +Event on calendar, +Task on tasks, hidden elsewhere
+let _mobFabFn = null;
+function mobFabUpdate(panelId){
+  const fab = document.getElementById('mob-fab');
+  if(!fab) return;
+  const icon  = document.getElementById('mob-fab-icon');
+  const label = document.getElementById('mob-fab-label');
+  if(panelId === 'panel-left'){
+    icon.textContent = '+'; label.textContent = 'Event';
+    _mobFabFn = () => openAddEvent();
+    fab.classList.remove('hidden');
+  } else if(panelId === 'panel-tasks'){
+    icon.textContent = '+'; label.textContent = 'Task';
+    _mobFabFn = () => openAddTask();
+    fab.classList.remove('hidden');
+  } else {
+    fab.classList.add('hidden');
+    _mobFabFn = null;
+  }
+}
+function mobFabAction(){ if(_mobFabFn) _mobFabFn(); }
+
+// More drawer
+function mobDrawerOpen(){
+  document.getElementById('mob-more-backdrop').classList.add('open');
+  document.getElementById('mob-more-drawer').classList.add('open');
+}
+function mobDrawerClose(){
+  document.getElementById('mob-more-backdrop').classList.remove('open');
+  document.getElementById('mob-more-drawer').classList.remove('open');
+}
+
 function initMobileLayout(){
   if(!isMobile()) return;
   // Default: show calendar panel
-  document.getElementById('panel-left').classList.add('mobile-active');
+  const calBtn = document.querySelector('.mob-nav-btn[data-panel="panel-left"]');
+  mobileSwitchPanel('panel-left', calBtn);
 }
 window.addEventListener('resize', ()=>{
   if(!isMobile()){
@@ -3730,23 +3984,25 @@ async function buildInsights(){
   document.getElementById('insights-grid-6x15').innerHTML='<div style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--ink-dim)">Loading…</div>';
   document.getElementById('insights-stats').innerHTML='';
 
-  // Build 90-day map from spreadsheet
+  // Build 90-day map from Firestore focusSessions
   const dayFocus={};   // date → hours of deep work
   const sessions=[];   // [{date,title,hrs}]
 
-  if(SHEETS_ID && accessToken){
+  if(fbUid && window.CDX_DB){
     try{
-      // Read Tasks sheet: only rows with status 'completed_scheduled' feed insights
-      const res=await apiFetch(`${SHEETS_API}/${SHEETS_ID}/values/Tasks!A:I`);
-      (res.values||[]).forEach(row=>{
-        if(row[3]==='completed_scheduled'){
-          const date=row[4]||(row[0]||'').slice(0,10);  // col E = completion date
-          const hrs=parseFloat(row[8])||0.5;             // col I = scheduled hours
-          if(date){ dayFocus[date]=(dayFocus[date]||0)+hrs; }
-          sessions.push({date,title:row[1]||'',hrs});
-        }
+      const { collection, query, where, getDocs } = window.CDX_FB;
+      const d90 = new Date(); d90.setDate(d90.getDate()-89);
+      const since = localDate(d90);
+      const snap = await getDocs(
+        query(collection(window.CDX_DB,'users',fbUid,'focusSessions'), where('date','>=',since))
+      );
+      snap.docs.forEach(d=>{
+        const s = d.data();
+        const hrs = (s.durationMin||25)/60;
+        if(s.date){ dayFocus[s.date]=(dayFocus[s.date]||0)+hrs; }
+        sessions.push({date:s.date||'',title:s.taskTitle||'',hrs});
       });
-    }catch(e){}
+    }catch(e){ console.warn('buildInsights error:',e); }
   }
 
   // Build last-7-days array for "this week" stat
@@ -3876,6 +4132,7 @@ let _losCatFilter  = 'All';
 let _losSearch     = '';
 let _losSaveTimer  = null;
 let _losLoaded     = false;
+let _losUnsub      = null;
 
 // ── Helpers ────────────────────────────────────────────
 function losGenId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
@@ -3902,9 +4159,8 @@ function losShowMain(){
   document.getElementById('lifeos-gate').classList.add('hidden');
   const m=document.getElementById('lifeos-main');
   m.style.display='flex'; m.style.flexDirection='column'; m.style.flex='1'; m.style.overflow='hidden';
-  // Always fetch from Sheets so changes on other devices appear immediately
-  if(_losLoaded){ losBuildChips(); losRenderList(); } // render cached data instantly...
-  losLoad(); // ...then refresh from Sheets in background
+  if(_losLoaded){ losBuildChips(); losRenderList(); } // render cached data instantly
+  losSubscribe(); // ensure live Firestore listener is active (no-op if already running)
 }
 
 // ── Password gate ──────────────────────────────────────
@@ -3929,20 +4185,20 @@ function losCheckPin(){
 
 document.getElementById('lifeos-close-btn').addEventListener('click', closeLifeOS);
 document.getElementById('lifeos-add-btn').addEventListener('click', losAddProject);
-document.getElementById('lifeos-sync-btn').addEventListener('click', ()=>losLoad(true));
+document.getElementById('lifeos-sync-btn').addEventListener('click', ()=>{
+  showSyncBar('Life OS · '+_losProjects.length+' projects · live sync','ok');
+});
 
-// ── Sheet link popup ────────────────────────────────────
+// ── Firebase Console link (replaces old Sheet link popup) ─────────
 document.getElementById('lifeos-sheet-btn').addEventListener('click', ()=>{
   const pop  = document.getElementById('lifeos-sheet-pop');
   const link = document.getElementById('lifeos-sheet-link');
   const open = pop.style.display === 'none';
   if(open){
-    if(SHEETS_ID){
-      const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}`;
-      link.href = url; link.textContent = url;
-    } else {
-      link.href = '#'; link.textContent = '(not linked on this device)';
-    }
+    const url = fbUid
+      ? `https://console.firebase.google.com/project/cosmodex-fffbe/firestore/data/~2Fusers~2F${fbUid}~2Fprojects`
+      : 'https://console.firebase.google.com/project/cosmodex-fffbe/firestore';
+    link.href = url; link.textContent = 'Open Firebase Console →';
     pop.style.display = 'block';
   } else {
     pop.style.display = 'none';
@@ -3952,18 +4208,7 @@ document.getElementById('lifeos-sheet-pop-close').addEventListener('click', ()=>
   document.getElementById('lifeos-sheet-pop').style.display = 'none';
 });
 document.getElementById('lifeos-sheet-set').addEventListener('click', ()=>{
-  const raw = (document.getElementById('lifeos-sheet-inp').value||'').trim();
-  if(!raw){ showSyncBar('⚠ Paste a Sheet URL first','err'); return; }
-  // Accept full URL or raw ID
-  const m = raw.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-  const id = m ? m[1] : raw;
-  if(id.length < 20){ showSyncBar('⚠ That doesn\'t look like a valid Sheet ID','err'); return; }
-  SHEETS_ID = id;
-  localStorage.setItem('cosmodex_sheets_id', SHEETS_ID);
   document.getElementById('lifeos-sheet-pop').style.display = 'none';
-  document.getElementById('lifeos-sheet-inp').value = '';
-  _losLoaded = false;
-  losLoad(true); // re-sync with the newly linked sheet
 });
 
 // ── Category chips ─────────────────────────────────────
@@ -4076,25 +4321,32 @@ function losRenderChecklist(p){
 
 // ── Add project ────────────────────────────────────────
 function losAddProject(){
+  if(!fbUid){ showSyncBar('Sign in to add projects','err'); return; }
   const p={
     id:losGenId(), title:'New Project',
     category:_losCatFilter!=='All'?_losCatFilter:'Mind',
-    notes:'', checklist:[], createdAt:losNow(), updatedAt:losNow()
+    notes:'', checklist:[], createdAt:losNow(), updatedAt:losNow(), _v:1
   };
   _losProjects.unshift(p);
   _losCatFilter='All'; losBuildChips();
   losRenderList(); losSelect(p.id);
   setTimeout(()=>{ const t=document.getElementById('lifeos-det-title'); if(t){t.focus();t.select();} },50);
-  losDebouncedSave();
+  losWriteProject(p); // immediate write — no debounce for new docs
 }
 
 // ── Delete project ─────────────────────────────────────
 document.getElementById('lifeos-det-delete').addEventListener('click',async()=>{
-  if(!_losSelected) return;
+  if(!_losSelected || !fbUid) return;
   const p=_losProjects.find(x=>x.id===_losSelected);
   if(!p||!await showConfirm('Delete "'+p.title.replace(/&lt;/g,'<')+'"\nThis cannot be undone.','Delete','Delete Project')) return;
-  _losProjects=_losProjects.filter(x=>x.id!==_losSelected);
-  losShowEmpty(); losRenderList(); losDebouncedSave();
+  const { doc, deleteDoc } = window.CDX_FB;
+  try {
+    await deleteDoc(doc(window.CDX_DB, 'users', fbUid, 'projects', _losSelected));
+    losShowEmpty(); // onSnapshot will refresh _losProjects
+  } catch(e){
+    console.warn('losDelete error:', e);
+    showSyncBar('Could not delete project','err');
+  }
 });
 
 // ── Checklist add ──────────────────────────────────────
@@ -4129,122 +4381,142 @@ document.getElementById('lifeos-search').addEventListener('input',e=>{
   _losSearch=e.target.value; losRenderList();
 });
 
-// ══ SHEETS SYNC ════════════════════════════════════════
-// Sheet: "LifeOS" tab in Cosmodex Trends spreadsheet
-// Columns: A=id, B=title, C=category, D=notes, E=checklist(JSON), F=progress%, G=createdAt, H=updatedAt
+// ══ LIFE OS PERSISTENCE — Firestore ════════════════════
 
-// Ensure HabitLog tab exists in the spreadsheet (for existing users)
-async function ensureHabitLogTab(){
-  if(!SHEETS_ID||!accessToken) return;
-  try{
-    const meta=await apiFetch(`${SHEETS_API}/${SHEETS_ID}?fields=sheets.properties`);
-    const tabs=(meta.sheets||[]).map(s=>s.properties.title);
-    if(!tabs.includes('HabitLog')){
-      await fetch(`${SHEETS_API}/${SHEETS_ID}:batchUpdate`,{
-        method:'POST',
-        headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
-        body:JSON.stringify({requests:[{addSheet:{properties:{title:'HabitLog'}}}]}),
-      });
-    }
-  }catch(e){}
-}
-
-async function losEnsureTab(){
-  if(!accessToken) return null;
-  const sid=await ensureSheet(); if(!sid) return null;
-  try{
-    const meta=await apiFetch(`${SHEETS_API}/${sid}?fields=sheets.properties`);
-    const tabs=(meta.sheets||[]).map(s=>s.properties.title);
-    if(!tabs.includes(LIFEOS_TAB)){
-      await fetch(`${SHEETS_API}/${sid}:batchUpdate`,{
-        method:'POST',
-        headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
-        body:JSON.stringify({requests:[{addSheet:{properties:{title:LIFEOS_TAB}}}]}),
-      });
-      // Write header row
-      await fetch(`${SHEETS_API}/${sid}/values/${LIFEOS_TAB}!A1:H1?valueInputOption=RAW`,{
-        method:'PUT',
-        headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
-        body:JSON.stringify({values:[['id','title','category','notes','checklist','progress%','createdAt','updatedAt']]}),
-      });
-    }
-  }catch(e){ console.warn('LifeOS tab ensure failed:',e); return null; }
-  return sid;
-}
-
-async function losLoad(showFeedback){
-  if(!accessToken){
-    if(showFeedback) showSyncBar('⚠ Not signed in — please sign in first','err');
-    return;
+async function losWriteProject(p){
+  if(!fbUid || !window.CDX_DB) return;
+  const { doc, setDoc } = window.CDX_FB;
+  try {
+    await setDoc(doc(window.CDX_DB, 'users', fbUid, 'projects', p.id), p);
+  } catch(e){
+    console.warn('losWriteProject error:', e);
+    showSyncBar('Life OS sync failed','err');
   }
-  if(showFeedback) showSyncBar('Loading Life OS…','syncing');
-  try{
-    const sid=await losEnsureTab();
-    if(!sid){
-      if(showFeedback) showSyncBar('⚠ Cannot access spreadsheet — use Sheet button to link your Sheet','err');
-      losBuildChips(); losRenderList(); losShowEmpty();
-      return;
-    }
-    const res=await apiFetch(`${SHEETS_API}/${sid}/values/${LIFEOS_TAB}!A2:H`);
-    const rows=res.values||[];
-    _losProjects=rows.filter(r=>r[0]&&r[1]).map(r=>({
-      id:r[0]||'', title:r[1]||'', category:r[2]||'Other',
-      notes:r[3]||'', checklist:losSafeJSON(r[4]||'[]',[]),
-      createdAt:r[6]||losNow(), updatedAt:r[7]||losNow(),
-    }));
-    _losLoaded=true;
-    losBuildChips(); losRenderList();
-    if(_losSelected&&_losProjects.find(x=>x.id===_losSelected)) losSelect(_losSelected);
-    else losShowEmpty();
-    if(showFeedback) showSyncBar('Life OS synced · '+_losProjects.length+' projects','ok');
-  }catch(e){
-    // Do NOT set _losLoaded=true on failure — allow retry on next open
-    losBuildChips(); losRenderList(); losShowEmpty();
-    if(showFeedback) showSyncBar('⚠ Life OS sync failed: '+(e.message||e),'err');
-  }
-}
-
-async function losSave(){
-  if(!accessToken) return;
-  try{
-    const sid=await losEnsureTab(); if(!sid) return;
-    // Clear data rows then rewrite all
-    await fetch(`${SHEETS_API}/${sid}/values/${LIFEOS_TAB}!A2:H:clear`,{
-      method:'POST', headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'}, body:'{}',
-    });
-    if(_losProjects.length){
-      await fetch(`${SHEETS_API}/${sid}/values/${LIFEOS_TAB}!A2:H?valueInputOption=RAW`,{
-        method:'PUT',
-        headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
-        body:JSON.stringify({values:_losProjects.map(p=>[
-          p.id, p.title, p.category, p.notes,
-          JSON.stringify(p.checklist||[]),
-          losProg(p),
-          p.createdAt||losNow(), p.updatedAt||losNow(),
-        ])}),
-      });
-    }
-    showSyncBar('Life OS saved ✓','ok');
-  }catch(e){ showSyncBar('⚠ Life OS save failed','err'); }
 }
 
 function losDebouncedSave(){
   clearTimeout(_losSaveTimer);
-  _losSaveTimer=setTimeout(losSave, 1200);
+  _losSaveTimer = setTimeout(()=>{
+    if(!_losSelected) return;
+    const p = _losProjects.find(x=>x.id===_losSelected);
+    if(p) losWriteProject(p);
+  }, 800);
+}
+
+function losLoad(showFeedback){
+  // Phase 2: data comes from onSnapshot — just re-render cached state
+  losBuildChips(); losRenderList();
+  if(_losSelected && _losProjects.find(x=>x.id===_losSelected)) losSelect(_losSelected);
+  else if(!_losProjects.length) losShowEmpty();
+  if(showFeedback) showSyncBar('Life OS · '+_losProjects.length+' projects · live','ok');
+}
+
+function losSubscribe(){
+  if(!fbUid || !window.CDX_DB) return;
+  if(_losUnsub) return; // already subscribed
+  const { collection, onSnapshot } = window.CDX_FB;
+  _losUnsub = onSnapshot(collection(window.CDX_DB, 'users', fbUid, 'projects'), snap => {
+    _losProjects = snap.docs.map(d => d.data());
+    _losLoaded   = true;
+    losBuildChips(); losRenderList();
+    // Only clear detail if the selected project was deleted remotely
+    if(_losSelected && !_losProjects.find(x=>x.id===_losSelected)) losShowEmpty();
+  }, err => console.warn('projects onSnapshot:', err.message));
 }
 
 // ══ HABITS / ROUTINES / BEHAVIOURS ═══════════════════
 
-const HABITS_KEY      = 'cdx_habits_v1';
-const ROUTINES_KEY    = 'cdx_routines_v1';
-const BEHAVIOURS_KEY  = 'cdx_behaviours_v1';
+// ── ROUTINES + BEHAVIOURS FIRESTORE STATE ─────────────
+let _routines      = {morning:[], evening:[]};
+let _behav         = {identity:'', keystone:[], notes:''};
+let _routinesUnsub = null;
+let _behavUnsub    = null;
+let _routinesSaveTimer = null;
+let _behavSaveTimer    = null;
 
-function habitsLoad(){ try{ return JSON.parse(localStorage.getItem(HABITS_KEY)||'[]'); }catch(e){ return []; } }
-function habitsSave(d){ try{ localStorage.setItem(HABITS_KEY,JSON.stringify(d)); }catch(e){} }
-function routinesLoad(){ try{ return JSON.parse(localStorage.getItem(ROUTINES_KEY)||'{"morning":[],"evening":[]}'); }catch(e){ return {morning:[],evening:[]}; } }
-function routinesSave(d){ try{ localStorage.setItem(ROUTINES_KEY,JSON.stringify(d)); }catch(e){} }
-function behavLoad(){ try{ return JSON.parse(localStorage.getItem(BEHAVIOURS_KEY)||'{"identity":"","keystone":[],"notes":""}'); }catch(e){ return {identity:'',keystone:[],notes:''}; } }
-function behavSaveStore(d){ try{ localStorage.setItem(BEHAVIOURS_KEY,JSON.stringify(d)); }catch(e){} }
+// ── HABITS FIRESTORE STATE ────────────────────────────
+let _habits        = [];   // [{id, name, order}] — active only, sorted by order
+let _habitLogs     = {};   // {'YYYY-MM-DD': {date, completions:{habitId:true}}}
+let _habitsUnsub   = null; // onSnapshot unsubscribe fn
+let _habitLogsUnsub= null;
+
+function habitsSubscribe(){
+  if(!fbUid || !window.CDX_DB) return;
+  const { collection, query, where, onSnapshot } = window.CDX_FB;
+  const db = window.CDX_DB;
+  if(_habitsUnsub)    { _habitsUnsub();    _habitsUnsub    = null; }
+  if(_habitLogsUnsub) { _habitLogsUnsub(); _habitLogsUnsub = null; }
+
+  // Listen to all habits docs, filter + sort in memory (avoids composite index)
+  _habitsUnsub = onSnapshot(collection(db, 'users', fbUid, 'habits'), snap => {
+    _habits = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(h => !h.archivedAt)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    if(document.getElementById('habits-overlay').classList.contains('open') &&
+       document.getElementById('hpane-habits').style.display !== 'none'){
+      renderHabits();
+    }
+  }, err => console.warn('habits onSnapshot:', err.message));
+
+  // Listen to last 14 days of habitLogs (single-field range — no composite index needed)
+  const d14 = new Date(); d14.setDate(d14.getDate() - 13);
+  const since = localDateStr(d14);
+  _habitLogsUnsub = onSnapshot(
+    query(collection(db, 'users', fbUid, 'habitLogs'), where('date', '>=', since)),
+    snap => {
+      snap.docs.forEach(d => { _habitLogs[d.id] = d.data(); });
+      if(document.getElementById('habits-overlay').classList.contains('open') &&
+         document.getElementById('hpane-habits').style.display !== 'none'){
+        renderHabits();
+      }
+    }, err => console.warn('habitLogs onSnapshot:', err.message));
+}
+function routinesLoad(){ return _routines; }
+function routinesSave(d){
+  _routines = d;
+  clearTimeout(_routinesSaveTimer);
+  _routinesSaveTimer = setTimeout(async ()=>{
+    if(!fbUid || !window.CDX_DB) return;
+    const { doc, setDoc, serverTimestamp } = window.CDX_FB;
+    try { await setDoc(doc(window.CDX_DB,'users',fbUid,'routines','config'), {...d, updatedAt:serverTimestamp()}); }
+    catch(e){ console.warn('routinesSave error:',e); }
+  }, 800);
+}
+
+function behavLoad(){ return _behav; }
+function behavSaveStore(d){
+  _behav = d;
+  clearTimeout(_behavSaveTimer);
+  _behavSaveTimer = setTimeout(async ()=>{
+    if(!fbUid || !window.CDX_DB) return;
+    const { doc, setDoc, serverTimestamp } = window.CDX_FB;
+    try { await setDoc(doc(window.CDX_DB,'users',fbUid,'behaviours','current'), {...d, updatedAt:serverTimestamp()}); }
+    catch(e){ console.warn('behavSave error:',e); }
+  }, 800);
+}
+
+function routinesSubscribe(){
+  if(!fbUid || !window.CDX_DB) return;
+  if(_routinesUnsub) return;
+  const { doc, onSnapshot } = window.CDX_FB;
+  _routinesUnsub = onSnapshot(doc(window.CDX_DB,'users',fbUid,'routines','config'), snap => {
+    if(snap.exists()){ const d=snap.data(); _routines={morning:d.morning||[],evening:d.evening||[]}; }
+    if(document.getElementById('habits-overlay').classList.contains('open') &&
+       document.getElementById('hpane-routines').style.display !== 'none') renderRoutines();
+  }, err => console.warn('routines onSnapshot:',err.message));
+}
+
+function behavSubscribe(){
+  if(!fbUid || !window.CDX_DB) return;
+  if(_behavUnsub) return;
+  const { doc, onSnapshot } = window.CDX_FB;
+  _behavUnsub = onSnapshot(doc(window.CDX_DB,'users',fbUid,'behaviours','current'), snap => {
+    if(snap.exists()){ const d=snap.data(); _behav={identity:d.identity||'',keystone:d.keystone||[],notes:d.notes||''}; }
+    if(document.getElementById('habits-overlay').classList.contains('open') &&
+       document.getElementById('hpane-behaviours').style.display !== 'none') renderBehaviours();
+  }, err => console.warn('behaviours onSnapshot:',err.message));
+}
 
 function localDateStr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function last7Days(){
@@ -4256,8 +4528,6 @@ function last7Days(){
 function openHabits(){
   document.getElementById('habits-overlay').classList.add('open');
   switchHabitsTab('habits');
-  // Ensure HabitLog sheet tab exists for existing spreadsheets
-  if(SHEETS_ID && accessToken) ensureHabitLogTab();
 }
 function closeHabits(){
   document.getElementById('habits-overlay').classList.remove('open');
@@ -4275,36 +4545,40 @@ function switchHabitsTab(tab){
 
 // ── HABITS TAB ──────────────────────────────────────
 function renderHabits(){
-  const habits = habitsLoad();
-  const days   = last7Days();
+  const days     = last7Days();
   const todayStr = localDateStr(new Date());
-  const DN = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const DN       = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const strip    = document.getElementById('habits-day-strip');
+  const list     = document.getElementById('habits-list');
+
+  if(!fbUid){
+    strip.innerHTML = '';
+    list.innerHTML  = '<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--ink-dim);padding:16px 0">Sign in to load habits.</div>';
+    return;
+  }
 
   // Day strip header
-  const strip = document.getElementById('habits-day-strip');
   strip.innerHTML = '<div style="width:160px;flex-shrink:0"></div>' +
     days.map(d=>`<div class="habit-day-cell"><div class="habit-day-label${localDateStr(d)===todayStr?' today':''}">${DN[d.getDay()]}<br>${d.getDate()}</div></div>`).join('') +
     '<div style="width:56px;flex-shrink:0"></div>';
 
-  // Habit rows
-  const list = document.getElementById('habits-list');
-  if(!habits.length){
+  if(!_habits.length){
     list.innerHTML='<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--ink-dim);padding:16px 0">No habits yet — add one below.</div>';
     return;
   }
-  list.innerHTML = habits.map((h,hi)=>{
-    const checks = days.map((d,di)=>{
-      const ds = localDateStr(d);
-      const done = (h.log||[]).includes(ds);
+  list.innerHTML = _habits.map(h=>{
+    const checks = days.map(d=>{
+      const ds      = localDateStr(d);
+      const done    = !!_habitLogs[ds]?.completions?.[h.id];
       const isToday = ds===todayStr;
-      return `<div class="habit-day-cell"><div class="habit-check-box${done?' done':''}${isToday?' today-col':''}" onclick="habitToggle(${hi},'${ds}')" title="${ds}">${done?'✓':''}</div></div>`;
+      return `<div class="habit-day-cell"><div class="habit-check-box${done?' done':''}${isToday?' today-col':''}" onclick="habitToggle('${h.id}','${ds}')" title="${ds}">${done?'✓':''}</div></div>`;
     }).join('');
     const streak = habitsStreak(h);
     return `<div class="habit-row">
       <div class="habit-name">${escHtml(h.name)}</div>
       ${checks}
       <div class="habit-streak">${streak>0?streak+'d':''}</div>
-      <button class="habit-del-btn" onclick="habitDelete(${hi})" title="Remove">&#8722;</button>
+      <button class="habit-del-btn" onclick="habitDelete('${h.id}')" title="Remove">&#8722;</button>
     </div>`;
   }).join('');
 }
@@ -4312,44 +4586,77 @@ function renderHabits(){
 function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function habitsStreak(h){
-  const log = h.log||[]; let s=0; const now=new Date();
+  let s=0; const now=new Date();
   for(let i=0;;i++){
     const d=new Date(now); d.setDate(now.getDate()-i);
-    if(log.includes(localDateStr(d))) s++; else break;
+    if(_habitLogs[localDateStr(d)]?.completions?.[h.id]) s++; else break;
   }
   return s;
 }
 
-function habitToggle(hi, dateStr){
-  const habits = habitsLoad();
-  if(!habits[hi]) return;
-  const log = habits[hi].log||[];
-  const idx = log.indexOf(dateStr);
-  const checked = idx<0; // will become checked
-  if(idx>=0) log.splice(idx,1); else log.push(dateStr);
-  habits[hi].log = log;
-  habitsSave(habits);
+async function habitToggle(habitId, dateStr){
+  if(!fbUid) return;
+  const { doc, setDoc, updateDoc, deleteField } = window.CDX_FB;
+  const db = window.CDX_DB;
+
+  // Optimistic UI update
+  if(!_habitLogs[dateStr]) _habitLogs[dateStr] = { date: dateStr, completions: {} };
+  const wasDone = !!_habitLogs[dateStr].completions[habitId];
+  if(wasDone) delete _habitLogs[dateStr].completions[habitId];
+  else        _habitLogs[dateStr].completions[habitId] = true;
   renderHabits();
-  // Sync to Google Sheets HabitLog tab
-  if(accessToken) logToSheet('HabitLog',[new Date().toISOString(),habits[hi].name,dateStr,checked?'done':'removed']);
+
+  try {
+    const logRef = doc(db, 'users', fbUid, 'habitLogs', dateStr);
+    if(!wasDone){
+      await setDoc(logRef, { date: dateStr, completions: { [habitId]: true } }, { merge: true });
+    } else {
+      await updateDoc(logRef, { [`completions.${habitId}`]: deleteField() });
+    }
+  } catch(e){
+    console.warn('habitToggle error:', e);
+    showSyncBar('Habit sync failed', 'err');
+    // Revert optimistic update on failure
+    if(!wasDone) delete _habitLogs[dateStr].completions[habitId];
+    else         _habitLogs[dateStr].completions[habitId] = true;
+    renderHabits();
+  }
 }
 
-function habitDelete(hi){
-  const habits = habitsLoad();
-  habits.splice(hi,1);
-  habitsSave(habits);
-  renderHabits();
+async function habitDelete(habitId){
+  if(!fbUid) return;
+  const { doc, updateDoc, serverTimestamp } = window.CDX_FB;
+  try {
+    await updateDoc(doc(window.CDX_DB, 'users', fbUid, 'habits', habitId), {
+      archivedAt: serverTimestamp()
+    });
+    // onSnapshot will remove it from _habits and re-render
+  } catch(e){
+    console.warn('habitDelete error:', e);
+    showSyncBar('Could not archive habit', 'err');
+  }
 }
 
-function habitsAddNew(){
-  const inp = document.getElementById('habit-new-inp');
+async function habitsAddNew(){
+  const inp  = document.getElementById('habit-new-inp');
   const name = inp.value.trim();
-  if(!name) return;
-  const habits = habitsLoad();
-  habits.push({name, log:[]});
-  habitsSave(habits);
-  inp.value='';
-  renderHabits();
+  if(!name || !fbUid) return;
+  inp.value = '';
+  const { doc, setDoc, serverTimestamp } = window.CDX_FB;
+  const id = 'h_' + Date.now();
+  try {
+    await setDoc(doc(window.CDX_DB, 'users', fbUid, 'habits', id), {
+      id, name,
+      order:      _habits.length,
+      createdAt:  serverTimestamp(),
+      archivedAt: null,
+    });
+    // onSnapshot updates _habits + re-renders
+  } catch(e){
+    console.warn('habitsAddNew error:', e);
+    showSyncBar('Could not save habit', 'err');
+    inp.value = name; // restore input on error
+  }
 }
 document.addEventListener('keydown', e=>{
   if(document.getElementById('habits-overlay').classList.contains('open') && e.key==='Enter'){
@@ -4483,32 +4790,29 @@ function buildDashboardContext(){
     });
   }
 
-  // Habits
+  // Habits (from Firestore live state)
   try{
-    const hData = behavLoad();
-    const todayStr = today;
-    const habs = hData.habits||[];
-    if(habs.length){
+    if(_habits.length){
       lines.push('\n-- Habits Today --');
-      habs.forEach(h=>{
-        const checked = (h.log||{})[todayStr]||false;
-        lines.push('  ['+(checked?'✓':' ')+'] '+h.name+(h.streak?' ('+h.streak+'d streak)':''));
+      _habits.forEach(h=>{
+        const done = !!_habitLogs[today]?.completions?.[h.id];
+        const streak = habitsStreak(h);
+        lines.push('  ['+(done?'✓':' ')+'] '+h.name+(streak>0?' ('+streak+'d streak)':''));
       });
     }
-    if((hData.keystone||[]).length){
-      lines.push('\n-- Keystone Goals --');
-      (hData.keystone||[]).forEach(k=>lines.push('  ★ '+k));
+    if((_behav.keystone||[]).length){
+      lines.push('\n-- Keystone Behaviours --');
+      _behav.keystone.forEach(k=>lines.push('  ★ '+k));
     }
   } catch(e){}
 
-  // Life OS projects
+  // Life OS projects (from Firestore live state)
   try{
-    const los = _losProjects||[];
-    if(los.length){
-      lines.push('\n-- Life OS Pillars --');
-      los.slice(0,6).forEach(p=>{
-        const pct = p.krs&&p.krs.length ? Math.round(p.krs.reduce((s,k)=>s+(k.progress||0),0)/p.krs.length) : 0;
-        lines.push('  '+p.name+' — '+pct+'% overall');
+    if((_losProjects||[]).length){
+      lines.push('\n-- Life OS Projects --');
+      _losProjects.slice(0,6).forEach(p=>{
+        const pct = losProg(p);
+        lines.push('  ['+p.category+'] '+p.title+' — '+pct+'% done');
       });
     }
   } catch(e){}
@@ -4692,7 +4996,48 @@ ${ctx}`;
     <span class="mob-nav-icon">&#11044;</span>
     <span>Cosmodex</span>
   </button>
+  <button class="mob-nav-btn" id="mob-more-nav-btn" onclick="mobDrawerOpen()">
+    <span class="mob-nav-icon">&#8942;</span>
+    <span>More</span>
+  </button>
 </div>
+
+<!-- MOBILE MORE DRAWER -->
+<div id="mob-more-backdrop" onclick="mobDrawerClose()"></div>
+<div id="mob-more-drawer">
+  <button class="mob-drawer-item" onclick="mobDrawerClose();openHabits()">
+    <span class="mob-drawer-icon">&#129419;</span>Habits &amp; Routines
+  </button>
+  <button class="mob-drawer-item" onclick="mobDrawerClose();openLifeOS()">
+    <span class="mob-drawer-icon">&#10010;</span>Life OS
+  </button>
+  <button class="mob-drawer-item" onclick="mobDrawerClose();openInsights()">
+    <span class="mob-drawer-icon">&#128200;</span>Insights
+  </button>
+  <div class="mob-drawer-sep"></div>
+  <button class="mob-drawer-item" onclick="mobDrawerClose();document.getElementById('pomo-open-btn').click()">
+    <span class="mob-drawer-icon">&#9650;</span>Focus Timer
+  </button>
+  <button class="mob-drawer-item" onclick="mobDrawerClose();document.getElementById('notes-btn').click()">
+    <span class="mob-drawer-icon">&#9998;</span>Notes
+  </button>
+  <button class="mob-drawer-item" onclick="mobDrawerClose();document.getElementById('claude-fab').click()">
+    <span class="mob-drawer-icon">&#9670;</span>Ask Cosmos
+  </button>
+  <div class="mob-drawer-sep"></div>
+  <button class="mob-drawer-item" onclick="mobDrawerClose();loadAllData()">
+    <span class="mob-drawer-icon">&#8635;</span>Sync
+  </button>
+  <button class="mob-drawer-item" onclick="mobDrawerClose();signOut()" style="color:var(--red)">
+    <span class="mob-drawer-icon">&#9661;</span>Sign out
+  </button>
+</div>
+
+<!-- MOBILE FAB — contextual primary action, updated by mobileSwitchPanel -->
+<button id="mob-fab" class="hidden" onclick="mobFabAction()">
+  <span id="mob-fab-icon">+</span>
+  <span id="mob-fab-label">Event</span>
+</button>
 
 <!-- ASK CLAUDE FLOATING BUTTON -->
 <button id="claude-fab" title="Ask Claude AI for suggestions">◆ Ask Claude</button>
