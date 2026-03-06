@@ -488,20 +488,28 @@ body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:4
   .mob-panel-bar {
     display: flex !important;
     align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
+    gap: 10px;
+    padding: 0 16px;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    min-height: 52px;
   }
-  .mob-panel-bar .view-toggle { margin-left: 0; background: var(--ink-faint); border-radius: 6px; padding: 2px; display:flex; }
-  .mob-panel-bar .view-btn    { min-height: 34px; min-width: 48px; padding: 5px 12px; font-size: 11px; }
+  .mob-panel-bar .view-toggle { margin-left: 0; background: var(--ink-faint); border-radius: 6px; padding: 2px; display:flex; flex-shrink:0; }
+  .mob-panel-bar .view-btn    { min-height: 36px; min-width: 44px; padding: 5px 10px; font-size: 11px; }
   .mob-panel-bar .mob-bar-title {
-    font-family: 'JetBrains Mono', monospace; font-size: 11px;
-    letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-dim);
-    flex: 1;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent);
+    flex: 1; font-weight: 400;
   }
-  .mob-panel-bar .add-btn { font-size: 16px; padding: 2px 10px; min-height: 34px; min-width: 34px; border-width: 1.5px; margin-left: auto; }
+  .mob-panel-bar .add-btn { font-size: 18px; padding: 0 10px; min-height: 36px; min-width: 36px; border-width: 1.5px; flex-shrink: 0; }
+  .mob-panel-bar .mob-bar-btn {
+    background: none; border: 1.5px solid var(--border); border-radius: 5px;
+    color: var(--ink-dim); cursor: pointer; font-size: 16px;
+    min-height: 36px; min-width: 36px; padding: 0 10px;
+    font-family: 'JetBrains Mono', monospace; flex-shrink: 0;
+  }
+  .mob-panel-bar .mob-bar-btn:active { background: var(--ink-faint); }
 
   /* ── iOS input font ≥16px prevents auto-zoom ── */
   input, select, textarea { font-size: 16px !important; }
@@ -1337,8 +1345,9 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
 
 <!-- COL 1: CALENDAR -->
 <section class="panel" id="panel-left">
-  <!-- Mobile-only toolbar: view toggle + add event (hidden on desktop via CSS) -->
+  <!-- Mobile-only toolbar: title + view toggle + add event -->
   <div class="mob-panel-bar" id="mob-cal-bar">
+    <span class="mob-bar-title">&#128197; Calendar</span>
     <div class="view-toggle">
       <button class="view-btn active" data-view="day">Day</button>
       <button class="view-btn" data-view="week">Week</button>
@@ -1354,7 +1363,7 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
 <section class="panel" id="panel-tasks">
   <!-- Mobile-only toolbar: tasks label + add task (hidden on desktop via CSS) -->
   <div class="mob-panel-bar" id="mob-task-bar">
-    <span class="mob-bar-title">Tasks</span>
+    <span class="mob-bar-title">&#9745; Tasks</span>
     <button class="add-btn" id="mob-add-task-btn" title="Add task">+</button>
   </div>
   <div class="tab-bar" id="task-tab-bar" style="display:none"></div>
@@ -1367,6 +1376,12 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
 
 <!-- COL 3: CHRONODEX -->
 <section class="panel" id="panel-chrono">
+  <!-- Mobile-only toolbar: brand + theme toggle + sync -->
+  <div class="mob-panel-bar" id="mob-chrono-bar">
+    <span class="mob-bar-title">&#9711; Cosmodex</span>
+    <button class="mob-bar-btn" id="mob-theme-btn" title="Toggle theme" onclick="document.getElementById('theme-btn').click()">&#9788;</button>
+    <button class="mob-bar-btn" title="Sync" onclick="loadAllData()">&#8635;</button>
+  </div>
   <div class="chrono-wrapper">
     <div class="time-display">
       <div class="time-big" id="time-big">00:00</div>
@@ -1938,6 +1953,17 @@ function saveSession(){
 }
 function clearSession(){ accessToken=null;tokenExpiry=0;currentUser=''; try{localStorage.removeItem('cdx_tok');}catch(e){} }
 
+// ── Auto-connect: fires when BOTH Firebase session is restored AND GIS is ready ──
+let _gisTokenClientReady = false;
+let _pendingFirebaseAutoConnect = false;
+function _maybeAutoConnect(){
+  if(!_gisTokenClientReady || !_pendingFirebaseAutoConnect) return;
+  _pendingFirebaseAutoConnect = false;
+  if(accessToken && Date.now() < tokenExpiry - 90000){ loadAllData(); return; }
+  const hint = localStorage.getItem('cdx_user_hint') || currentUser;
+  if(hint){ try{ tokenClient.requestAccessToken({ prompt:'none', login_hint:hint }); }catch(e){} }
+}
+
 function initGIS(){
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID, scope: SCOPES,
@@ -1954,17 +1980,19 @@ function initGIS(){
     error_callback: ()=>{},
   });
 
-  // Auto-sign-in for returning users: if no valid cached token but a previous email hint exists,
-  // silently attempt a new token using the browser's active Google session (no popup shown).
-  // Falls back to the sign-in button if the Google session has also expired.
+  // Mark GIS as ready and attempt auto-connect if Firebase session is already restored
+  _gisTokenClientReady = true;
+  _maybeAutoConnect();
+
+  // Also attempt silent re-auth if no valid token (for cases where Firebase isn't restored)
   if(!accessToken){
     const hint = localStorage.getItem('cdx_user_hint');
     if(hint){
       setTimeout(()=>{
         try{
-          tokenClient.requestAccessToken({ prompt: '', login_hint: hint });
+          tokenClient.requestAccessToken({ prompt: 'none', login_hint: hint });
         }catch(e){}
-      }, 200); // small delay to let GIS finish initialising
+      }, 200);
     }
   }
 }
@@ -2066,8 +2094,24 @@ async function fbSignInWithGoogleToken(googleAccessToken){
 window.addEventListener('DOMContentLoaded', () => {
   if(!window.CDX_AUTH || !window.CDX_FB) return;
   window.CDX_FB.onAuthStateChanged(window.CDX_AUTH, user => {
-    if(user){ fbUid = user.uid; console.log('Firebase session restored — uid:', fbUid); habitsSubscribe(); losSubscribe(); routinesSubscribe(); behavSubscribe(); }
-    else    { fbUid = null; }
+    if(user){
+      fbUid = user.uid;
+      console.log('Firebase session restored — uid:', fbUid);
+      habitsSubscribe(); losSubscribe(); routinesSubscribe(); behavSubscribe();
+      // Auto-dismiss sign-in overlay on return visits — Firebase persistent session is trusted.
+      // Only if GIS hasn't already obtained a fresh token (which hides overlay via its own callback).
+      const overlay = document.getElementById('signin-overlay');
+      const hasValidToken = accessToken && Date.now() < tokenExpiry - 90000;
+      if(overlay && !overlay.classList.contains('hidden') && !hasValidToken){
+        overlay.classList.add('hidden');
+        const storedEmail = localStorage.getItem('cdx_user_hint') || '';
+        if(storedEmail) document.getElementById('sync-user').textContent = storedEmail;
+        showSyncBar('Session restored \u2014 reconnecting calendar\u2026', '');
+        _pendingFirebaseAutoConnect = true;
+        _maybeAutoConnect();
+      }
+    }
+    else { fbUid = null; }
   });
 });
 
@@ -2305,6 +2349,7 @@ document.getElementById('theme-btn').addEventListener('click',()=>{
   isDark=!isDark;
   document.documentElement.setAttribute('data-theme',isDark?'dark':'light');
   document.getElementById('theme-btn').textContent=isDark?'☀':'☾';
+  const mbt=document.getElementById('mob-theme-btn'); if(mbt) mbt.textContent=isDark?'☀':'☾';
   drawCosmodex(); drawPomoRing();
 });
 
@@ -5115,7 +5160,7 @@ ${ctx}`;
   <button class="mob-drawer-item" onclick="mobDrawerClose();document.getElementById('notes-btn').click()">
     <span class="mob-drawer-icon">&#9998;</span>Notes
   </button>
-  <button class="mob-drawer-item" onclick="mobDrawerClose();document.getElementById('claude-fab').click()">
+  <button class="mob-drawer-item" onclick="mobDrawerClose();document.getElementById('cosmos-btn').click()">
     <span class="mob-drawer-icon">&#9670;</span>Ask Cosmos
   </button>
   <div class="mob-drawer-sep"></div>
