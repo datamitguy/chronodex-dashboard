@@ -1978,7 +1978,14 @@ function initGIS(){
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID, scope: SCOPES,
     callback: async (resp) => {
-      if(resp.error){ showSyncBar('Auth error: '+resp.error,'err'); return; }
+      if(resp.error){
+        // Reset button so user can retry
+        const btn = document.getElementById('signin-btn');
+        if(btn){ btn.textContent = 'Sign in with Google'; btn.disabled = false; }
+        const sub = document.querySelector('#signin-overlay .signin-sub');
+        if(sub) sub.innerHTML = 'Your day, at a glance.<br>Sign in to load your calendar &amp; tasks.';
+        showSyncBar('Auth error: '+resp.error,'err'); return;
+      }
       accessToken = resp.access_token;
       tokenExpiry  = Date.now() + (resp.expires_in - 60)*1000;
       await fetchUserInfo(); saveSession();
@@ -1987,21 +1994,46 @@ function initGIS(){
       document.getElementById('sync-user').textContent = currentUser;
       await loadAllData();
     },
-    error_callback: ()=>{},
+    // error_callback fires when silent prompt:'none' fails (no existing session / revoked)
+    error_callback: ()=>{
+      const btn = document.getElementById('signin-btn');
+      if(btn){ btn.textContent = 'Sign in with Google'; btn.disabled = false; }
+      const sub = document.querySelector('#signin-overlay .signin-sub');
+      if(sub) sub.innerHTML = 'Your day, at a glance.<br>Sign in to load your calendar &amp; tasks.';
+    },
   });
 
-  // Mark GIS as ready and attempt auto-connect if Firebase session is already restored
+  // Mark GIS as ready
   _gisTokenClientReady = true;
+
+  // If user tapped the sign-in button before GIS finished loading — execute their queued request
+  if(_pendingSignIn){
+    _pendingSignIn = false;
+    const btn = document.getElementById('signin-btn');
+    if(btn){ btn.textContent = 'Sign in with Google'; btn.disabled = false; }
+    const hint = localStorage.getItem('cdx_user_hint') || '';
+    tokenClient.requestAccessToken({prompt:'', login_hint:hint});
+    return; // don't also attempt silent re-auth
+  }
+
+  // Attempt auto-connect if Firebase session is already restored
   _maybeAutoConnect();
 
-  // Also attempt silent re-auth if no valid token (for cases where Firebase isn't restored)
+  // Also attempt silent re-auth if no valid token (for returning users without active Firebase session)
   if(!accessToken){
     const hint = localStorage.getItem('cdx_user_hint');
     if(hint){
+      // Show reconnecting state so user knows something is happening
+      const sub = document.querySelector('#signin-overlay .signin-sub');
+      if(sub) sub.innerHTML = 'Reconnecting as ' + hint.split('@')[0] + '&hellip;';
+      const btn = document.getElementById('signin-btn');
+      if(btn){ btn.textContent = 'Reconnecting…'; btn.disabled = true; }
       setTimeout(()=>{
         try{
           tokenClient.requestAccessToken({ prompt: 'none', login_hint: hint });
-        }catch(e){}
+        }catch(e){
+          if(btn){ btn.textContent = 'Sign in with Google'; btn.disabled = false; }
+        }
       }, 200);
     }
   }
@@ -2045,8 +2077,15 @@ async function fetchUserInfo(){
   try{ const r=await apiFetch('https://www.googleapis.com/oauth2/v2/userinfo'); currentUser=r.email||''; }catch(e){}
 }
 
+let _pendingSignIn = false;
 function requestToken(){
-  if(!tokenClient){showSyncBar('GIS loading — try again shortly','err');return;}
+  if(!tokenClient){
+    // GIS not loaded yet — queue the request so initGIS() executes it automatically
+    _pendingSignIn = true;
+    const btn = document.getElementById('signin-btn');
+    if(btn){ btn.textContent = 'Loading…'; btn.disabled = true; }
+    return;
+  }
   const hint=localStorage.getItem('cdx_user_hint')||'';
   // prompt:'' = use existing account/consent; only shows picker if multiple accounts
   tokenClient.requestAccessToken({prompt:'', login_hint:hint});
@@ -2095,8 +2134,19 @@ async function fbSignInWithGoogleToken(googleAccessToken){
     routinesSubscribe();  // Phase 3: routines
     behavSubscribe();     // Phase 3: behaviours
   }catch(e){
-    console.warn('Firebase sign-in failed:', e.message);
-    showSyncBar('Firebase sign-in failed: ' + e.message, 'err');
+    console.warn('Firebase sign-in failed:', e.code, e.message);
+    let msg;
+    if(e.code === 'auth/unauthorized-domain'){
+      msg = 'Firebase: add this site\'s domain to Firebase Auth → Settings → Authorised domains';
+    } else if(e.code === 'auth/invalid-credential' || e.code === 'auth/invalid-access-token'){
+      msg = 'Firebase: token mismatch — reload the page and sign in again';
+    } else if(e.code === 'auth/network-request-failed'){
+      msg = 'Firebase: network error — check your connection';
+    } else {
+      msg = 'Firebase sign-in failed: ' + (e.code || e.message || 'unknown error');
+    }
+    showSyncBar(msg, 'err');
+    // Calendar/Tasks still work even without Firebase — habits/routines/LOS won't save
   }
 }
 
@@ -2236,7 +2286,7 @@ async function fetchTasks(){
         const due=t.due?t.due.slice(0,10):null;
         const d=due?(new Date(due)-new Date(today))/86400000:null;
         const priority=d===null?'low':d<=0?'high':d<=2?'high':d<=7?'med':'low';
-        all.push({title:t.title.replace(/</g,'&lt;'),due,done:false,priority,_id:t.id,_list:tl.id,_listName:tl.title,_parent:t.parent||null});
+        all.push({title:t.title,due,done:false,priority,_id:t.id,_list:tl.id,_listName:tl.title,_parent:t.parent||null});
       });
     }catch(e){}
   }));
@@ -2448,10 +2498,10 @@ function buildDay(){
       el.style.cssText='border-color:'+ev.color+';background:'+ev.color+'28;position:relative;margin-top:'+Math.round(startM/60*40)+'px;';
       const tStr=String(evStartH).padStart(2,'0')+':'+String(evStartM).padStart(2,'0');
       if(isFirstHour){
-        el.innerHTML='<span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--ink-dim)">'+tStr+'</span> '+ev.title+(dur>0?' <span style="color:var(--ink-dim);font-size:12px">'+dur+'m</span>':'')+'<button class="ev-del-btn" title="Delete event">✕</button>';
+        el.innerHTML='<span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--ink-dim)">'+tStr+'</span> '+escHtml(ev.title)+(dur>0?' <span style="color:var(--ink-dim);font-size:12px">'+dur+'m</span>':'')+'<button class="ev-del-btn" title="Delete event">✕</button>';
       }else{
         el.style.opacity='0.55';
-        el.innerHTML='<span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--ink-dim)">&#8597;</span> '+ev.title+'<button class="ev-del-btn" title="Delete event">✕</button>';
+        el.innerHTML='<span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--ink-dim)">&#8597;</span> '+escHtml(ev.title)+'<button class="ev-del-btn" title="Delete event">✕</button>';
       }
       el.querySelector('.ev-del-btn').addEventListener('click',e=>{e.stopPropagation();deleteEvent(ev);});
       el.addEventListener('click',()=>openPomo(ev)); evDiv.appendChild(el);
@@ -2587,7 +2637,7 @@ function buildWeek(){
     dayEvts.slice(0,3).forEach(e=>{
       const t=new Date(e.startISO).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
       const el=document.createElement('div'); el.className='cal-event';
-      el.innerHTML='<span class="cal-event-dot" style="background:'+e.color+'"></span><span class="cal-event-time">'+t+'</span><span style="overflow:hidden;text-overflow:ellipsis">'+e.title+'</span>';
+      el.innerHTML='<span class="cal-event-dot" style="background:'+e.color+'"></span><span class="cal-event-time">'+t+'</span><span style="overflow:hidden;text-overflow:ellipsis">'+escHtml(e.title)+'</span>';
       evDiv.appendChild(el);
     });
     if(dayEvts.length>3){const m=document.createElement('div');m.style.cssText='font-family:JetBrains Mono,monospace;font-size:12px;color:var(--ink-dim);padding-left:13px;';m.textContent='+'+(dayEvts.length-3)+' more';evDiv.appendChild(m);}
@@ -3099,7 +3149,7 @@ function showPicker(events,px,py){
   events.forEach(ev=>{
     const fmt=d=>d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
     const div=document.createElement('div');div.className='picker-item';
-    div.innerHTML='<div class="picker-dot" style="background:'+ev.color+'"></div><div class="picker-text"><div class="picker-title">'+ev.title+'</div><div class="picker-time">'+fmt(new Date(ev.startISO))+' \u2013 '+fmt(new Date(ev.endISO))+'</div></div>';
+    div.innerHTML='<div class="picker-dot" style="background:'+ev.color+'"></div><div class="picker-text"><div class="picker-title">'+escHtml(ev.title)+'</div><div class="picker-time">'+fmt(new Date(ev.startISO))+' \u2013 '+fmt(new Date(ev.endISO))+'</div></div>';
     div.addEventListener('click',()=>{closePicker();openPomo(ev);});
     items.appendChild(div);
   });
@@ -3167,7 +3217,7 @@ function buildTasks(){
     item.className='task-item'+(task.done?' done':'')+(isSubtask?' subtask':'');
     item.draggable=true;
     item.dataset.taskId=task._id;
-    const metaHtml=task.due?'<div class="task-meta '+(mc||'')+'">'+fmtDue(task.due,today)+(activeTaskTab==='all'?' \u00b7 '+task._listName:'')+'</div>':'';
+    const metaHtml=task.due?'<div class="task-meta '+(mc||'')+'">'+fmtDue(task.due,today)+(activeTaskTab==='all'?' \u00b7 '+escHtml(task._listName):'')+'</div>':'';
     // Calendar badge — shown if task was scheduled via drag-to-calendar
     let calBadge='';
     try{
@@ -3179,7 +3229,7 @@ function buildTasks(){
       '<div class="drag-hint">\u2630</div>'+
       '<div class="task-pri pri-'+task.priority+'"></div>'+
       '<div class="task-check"></div>'+
-      '<div class="task-body"><div class="task-title">'+(isSubtask?'\u2937 ':'')+task.title+'</div>'+metaHtml+calBadge+'</div>'+
+      '<div class="task-body"><div class="task-title">'+(isSubtask?'\u2937 ':'')+escHtml(task.title)+'</div>'+metaHtml+calBadge+'</div>'+
       (!isSubtask?'<button class="task-add-sub" title="Add subtask">+</button>':'')+
       '<button class="task-del-btn" title="Delete task">\u2715</button>';
 
@@ -3573,7 +3623,7 @@ function renderFocusChecklist(){
   focusChecklist.forEach((item,i)=>{
     const div=document.createElement('div');
     div.className='focus-check-item'+(item.done?' done':'');
-    div.innerHTML='<div class="focus-check-box">'+(item.done?'\u2713':'')+'</div><span class="focus-check-txt">'+item.text+'</span>';
+    div.innerHTML='<div class="focus-check-box">'+(item.done?'\u2713':'')+'</div><span class="focus-check-txt">'+escHtml(item.text)+'</span>';
     div.querySelector('.focus-check-box').addEventListener('click',()=>{
       focusChecklist[i].done=!focusChecklist[i].done; renderFocusChecklist();
     });
@@ -4715,7 +4765,7 @@ function renderHabits(){
   }).join('');
 }
 
-function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function habitsStreak(h){
   let s=0; const now=new Date();
