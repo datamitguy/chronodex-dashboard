@@ -2011,6 +2011,7 @@ function clearSession(){ accessToken=null;tokenExpiry=0;currentUser=''; try{loca
 let _gisTokenClientReady = false;
 let _pendingFirebaseAutoConnect = false;
 let _silentAuthFromRestore = false;
+let _silentReconnectTimer = null; // safety timeout so "Reconnecting…" never stays forever
 function _maybeAutoConnect(){
   if(!_gisTokenClientReady || !_pendingFirebaseAutoConnect) return;
   _pendingFirebaseAutoConnect = false;
@@ -2031,6 +2032,7 @@ function initGIS(){
         if(sub) sub.innerHTML = 'Your day, at a glance.<br>Sign in to load your calendar &amp; tasks.';
         showSyncBar('Auth error: '+resp.error,'err'); return;
       }
+      clearTimeout(_silentReconnectTimer);
       accessToken = resp.access_token;
       tokenExpiry  = Date.now() + (resp.expires_in - 60)*1000;
       _silentAuthFromRestore = false;
@@ -2044,6 +2046,7 @@ function initGIS(){
     },
     // error_callback fires when silent prompt:'none' fails (no existing session / revoked)
     error_callback: ()=>{
+      clearTimeout(_silentReconnectTimer);
       if(_silentAuthFromRestore){
         _silentAuthFromRestore = false;
         const rb = document.getElementById('reconnect-bar');
@@ -2075,7 +2078,8 @@ function initGIS(){
   _maybeAutoConnect();
 
   // Also attempt silent re-auth if no valid token (for returning users without active Firebase session)
-  if(!accessToken){
+  // Guard: skip if Firebase restore is already handling it (_silentAuthFromRestore=true) to avoid double request
+  if(!accessToken && !_silentAuthFromRestore){
     const hint = localStorage.getItem('cdx_user_hint');
     if(hint){
       // Show reconnecting state so user knows something is happening
@@ -2083,10 +2087,18 @@ function initGIS(){
       if(sub) sub.innerHTML = 'Reconnecting as ' + hint.split('@')[0] + '&hellip;';
       const btn = document.getElementById('signin-btn');
       if(btn){ btn.textContent = 'Reconnecting…'; btn.disabled = true; }
+      // Safety: if neither callback nor error_callback fires (iOS Safari hang), reset after 5s
+      _silentReconnectTimer = setTimeout(()=>{
+        if(btn && btn.disabled){
+          btn.textContent = 'Sign in with Google'; btn.disabled = false;
+          if(sub) sub.innerHTML = 'Your day, at a glance.<br>Sign in to load your calendar &amp; tasks.';
+        }
+      }, 5000);
       setTimeout(()=>{
         try{
           tokenClient.requestAccessToken({ prompt: 'none', login_hint: hint });
         }catch(e){
+          clearTimeout(_silentReconnectTimer);
           if(btn){ btn.textContent = 'Sign in with Google'; btn.disabled = false; }
         }
       }, 200);
@@ -4440,7 +4452,9 @@ setInterval(async ()=>{
   try { await loadAllDataSilent(); } catch(e) {}
 }, 5*60*1000);  // 5 min refresh + token renewal check
 
+let _gisWaitCount = 0;
 const _gisWait=setInterval(()=>{
+  _gisWaitCount++;
   if(window.google&&window.google.accounts){
     clearInterval(_gisWait); initGIS();
     if(accessToken){
@@ -4448,6 +4462,12 @@ const _gisWait=setInterval(()=>{
       document.getElementById('sync-user').textContent=currentUser;
       loadAllData();
     }
+  } else if(_gisWaitCount > 60){ // ~9 seconds — GIS script failed to load
+    clearInterval(_gisWait);
+    const btn = document.getElementById('signin-btn');
+    const sub = document.querySelector('#signin-overlay .signin-sub');
+    if(btn){ btn.textContent = 'Sign in with Google'; btn.disabled = false; }
+    if(sub) sub.innerHTML = 'Could not load Google Sign-In.<br>Check your network and reload.';
   }
 },150);
 
