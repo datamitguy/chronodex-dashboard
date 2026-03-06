@@ -4735,7 +4735,15 @@ function renderHabits(){
 
   if(!fbUid){
     strip.innerHTML = '';
-    list.innerHTML  = '<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--ink-dim);padding:16px 0">Sign in to load habits.</div>';
+    if(accessToken){
+      // Google is signed in but Firebase auth failed — show retry button
+      list.innerHTML = '<div style="font-family:\'JetBrains Mono\',monospace;font-size:13px;color:var(--ink-dim);padding:16px 0;display:flex;flex-direction:column;gap:12px">' +
+        '<span>&#9888; Habits sync unavailable — Firebase sign-in failed.</span>' +
+        '<button onclick="habitsRetryFirebase()" style="background:var(--accent-dim);border:2px solid var(--accent);border-radius:5px;color:var(--accent);cursor:pointer;font-family:\'JetBrains Mono\',monospace;font-size:12px;letter-spacing:0.08em;padding:8px 16px;min-height:36px;width:fit-content">&#8635; Retry connection</button>' +
+        '</div>';
+    } else {
+      list.innerHTML = '<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--ink-dim);padding:16px 0">Sign in with Google first to load habits.</div>';
+    }
     return;
   }
 
@@ -4859,6 +4867,13 @@ async function habitsAddNew(){
     renderHabits();
   }
 }
+async function habitsRetryFirebase(){
+  if(!accessToken){ showSyncBar('Sign in with Google first', 'err'); return; }
+  showSyncBar('Retrying Firebase connection\u2026', '');
+  await fbSignInWithGoogleToken(accessToken);
+  if(fbUid){ renderHabits(); showSyncBar('Connected \u2713', 'ok'); }
+}
+
 document.addEventListener('keydown', e=>{
   if(document.getElementById('habits-overlay').classList.contains('open') && e.key==='Enter'){
     const focus = document.activeElement;
