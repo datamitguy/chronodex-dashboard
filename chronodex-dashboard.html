@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Cosmodex">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#030508">
-<link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Cosmodex%22,%22short_name%22:%22Cosmodex%22,%22display%22:%22fullscreen%22,%22background_color%22:%22%23030508%22,%22theme_color%22:%22%23030508%22,%22orientation%22:%22any%22}">
+<link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Cosmodex%22,%22short_name%22:%22Cosmodex%22,%22display%22:%22standalone%22,%22background_color%22:%22%23030508%22,%22theme_color%22:%22%23030508%22,%22orientation%22:%22portrait%22}">
 <title>Cosmodex</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
 <!-- Google Identity Services — needed for Calendar + Tasks OAuth token -->
@@ -55,7 +55,15 @@
 </script>
 
 <style>
-*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+*, *::before, *::after {
+  box-sizing: border-box; margin: 0; padding: 0;
+  -webkit-tap-highlight-color: transparent; /* no blue flash on tap (iOS) */
+}
+button, a, [role="button"] {
+  touch-action: manipulation; /* eliminates 300ms tap delay */
+  -webkit-user-select: none;
+  user-select: none;
+}
 
 [data-theme="dark"] {
   --bg:#030508; --surface:#090d14; --border:#1a2535;
@@ -103,7 +111,13 @@
 [data-theme="light"] .lifeos-det-updated,
 [data-theme="light"] .month-day-num { color: var(--accent); }
 
-html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--ink); font-family:'Cormorant Garamond',serif; }
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: var(--bg); color: var(--ink); font-family: 'Cormorant Garamond',serif;
+  overscroll-behavior: none;          /* kill rubber-band scroll on iOS */
+  -webkit-text-size-adjust: 100%;     /* prevent iOS font inflation in landscape */
+  text-size-adjust: 100%;
+}
 html { height: 100dvh; }
 body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:46px 1fr; height:100dvh; }
 
@@ -355,128 +369,163 @@ body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:4
 .hour-event:hover .ev-del-btn { opacity:0.7; }
 .ev-del-btn:hover { color:var(--red) !important; opacity:1 !important; }
 
-/* ══ RESPONSIVE / MOBILE ══ */
+/* ══ RESPONSIVE / MOBILE — iPhone 17 Pro optimised ══ */
 @media (max-width: 720px) {
+  /* ── Grid reset ── */
   #app-header { display:none !important; }
   body {
     grid-template-columns: 1fr !important;
     grid-template-rows: 0px 1fr !important;
     position: relative;
   }
-  /* All panels stack, only active one shows */
+
+  /* ── Panels: respect Dynamic Island (safe-area-inset-top) and home indicator ── */
   .panel {
     position: absolute !important;
-    inset: 0 !important;
-    bottom: 56px !important; /* leave room for bottom nav */
+    top: env(safe-area-inset-top) !important;
+    left: 0 !important; right: 0 !important;
+    bottom: calc(56px + env(safe-area-inset-bottom)) !important;
     border-right: none !important;
     display: none !important;
   }
   .panel.mobile-active { display: flex !important; }
 
-  /* Bottom nav bar */
+  /* ── Full-screen overlays: same safe-area treatment ── */
+  #pomo-overlay, #notes-overlay,
+  #habits-overlay, #lifeos-overlay, #insights-overlay {
+    top: env(safe-area-inset-top) !important;
+    bottom: calc(56px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* ── Sign-in overlay: padding so content avoids notch + home bar ── */
+  #signin-overlay {
+    padding-top: max(24px, env(safe-area-inset-top));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+
+  /* ── Bottom nav: show + account for home indicator ── */
   #mobile-nav {
     display: flex !important;
+    height: calc(56px + env(safe-area-inset-bottom)) !important;
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
-  /* Cosmodex: make canvas fill width */
-  .chrono-wrapper { padding: 8px 10px 10px; }
-  #cosmodex-canvas { width: 100% !important; height: auto !important; }
-
-  /* Time display smaller */
-  .time-big { font-size: 40px; }
-
-  /* Overlays: full screen */
-  #pomo-overlay, #notes-overlay { inset: 0; }
-
-  /* Day view: tighter */
-  .hour-label { width: 40px; font-size: 11px; }
-
-  /* Pomo col: full width */
-  .pomo-col { width: 100%; border-right: none; }
-  .scribble-col { display: none; } /* hide scribble on narrow screens */
-  .pomo-overlay-inner { flex-direction: column; }
-
-  /* ── Mobile panel toolbars (hidden on desktop) ── */
-  .mob-panel-bar {
-    display: flex !important;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 10px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  .mob-panel-bar .view-toggle { margin-left: 0; background: var(--ink-faint); border-radius: 5px; padding: 2px; display:flex; }
-  .mob-panel-bar .view-btn    { min-height: 32px; min-width: 44px; padding: 4px 10px; font-size: 11px; }
-  .mob-panel-bar .mob-bar-title {
-    font-family: 'JetBrains Mono', monospace; font-size: 11px;
-    letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-dim);
-    flex: 1;
-  }
-  .mob-panel-bar .add-btn { font-size: 14px; padding: 2px 9px; min-height: 32px; min-width: 32px; border-width: 1.5px; margin-left: auto; }
-
-  /* ── FAB — contextual primary action ── */
+  /* ── FAB: float above the taller nav ── */
   #mob-fab {
     display: flex !important;
-    position: fixed;
-    right: 16px;
-    bottom: 68px; /* above mobile nav */
-    z-index: 700;
-    background: var(--accent);
-    color: var(--bg);
-    border: none;
-    border-radius: 28px;
-    padding: 10px 18px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
-    letter-spacing: 0.06em;
-    cursor: pointer;
-    box-shadow: 0 4px 16px rgba(61,184,255,0.35);
-    align-items: center;
-    gap: 6px;
-    font-weight: 400;
-    transition: opacity 0.15s, transform 0.15s;
+    bottom: calc(68px + env(safe-area-inset-bottom));
   }
   #mob-fab.hidden { opacity: 0; pointer-events: none; transform: scale(0.85); }
 
-  /* ── More drawer ── */
+  /* ── More drawer: anchored just above nav ── */
   #mob-more-backdrop {
     display: none;
     position: fixed; inset: 0; z-index: 800;
-    background: rgba(0,0,0,0.55);
+    background: rgba(0,0,0,0.60);
   }
   #mob-more-backdrop.open { display: block; }
   #mob-more-drawer {
     position: fixed;
-    bottom: 56px; left: 0; right: 0;
-    z-index: 801;
+    bottom: calc(56px + env(safe-area-inset-bottom)); left: 0; right: 0;
+    z-index: 850;
     background: var(--surface);
     border-top: 2px solid var(--border);
-    border-radius: 14px 14px 0 0;
-    padding: 8px 0 6px;
+    border-radius: 18px 18px 0 0;
+    padding: 10px 0 8px;
     transform: translateY(100%);
-    transition: transform 0.22s ease;
+    transition: transform 0.26s cubic-bezier(0.4,0,0.2,1);
+    /* drag handle */
+  }
+  #mob-more-drawer::before {
+    content: '';
+    display: block;
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 10px;
   }
   #mob-more-drawer.open { transform: translateY(0); }
   .mob-drawer-item {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 13px 22px;
+    padding: 14px 24px;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
-    letter-spacing: 0.08em;
+    font-size: 14px;
+    letter-spacing: 0.06em;
     color: var(--ink);
     cursor: pointer;
     border: none;
     background: none;
     width: 100%;
     text-align: left;
+    -webkit-user-select: none;
+    user-select: none;
+    min-height: 52px;
   }
   .mob-drawer-item:active { background: var(--ink-faint); }
-  .mob-drawer-item .mob-drawer-icon { font-size: 20px; width: 28px; text-align: center; flex-shrink: 0; }
-  .mob-drawer-sep { height: 1px; background: var(--border); margin: 4px 16px; }
+  .mob-drawer-item .mob-drawer-icon { font-size: 22px; width: 30px; text-align: center; flex-shrink: 0; }
+  .mob-drawer-sep { height: 1px; background: var(--border); margin: 4px 20px; }
   #mob-more-nav-btn { color: var(--accent); }
+
+  /* ── Cosmodex ── */
+  .chrono-wrapper { padding: 8px 10px 10px; }
+  #cosmodex-canvas { width: 100% !important; height: auto !important; }
+  .time-big { font-size: 40px; }
+  .next-strip { padding: 10px 14px; }
+  .next-title { font-size: 16px; }
+
+  /* ── Day view ── */
+  .hour-label { width: 40px; font-size: 11px; }
+  .hour-row { min-height: 44px; } /* 44pt minimum touch target */
+
+  /* ── Pomo overlay ── */
+  .pomo-col { width: 100%; border-right: none; }
+  .scribble-col { display: none; }
+  .pomo-overlay-inner { flex-direction: column; }
+
+  /* ── Mobile panel toolbars ── */
+  .mob-panel-bar {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .mob-panel-bar .view-toggle { margin-left: 0; background: var(--ink-faint); border-radius: 6px; padding: 2px; display:flex; }
+  .mob-panel-bar .view-btn    { min-height: 34px; min-width: 48px; padding: 5px 12px; font-size: 11px; }
+  .mob-panel-bar .mob-bar-title {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-dim);
+    flex: 1;
+  }
+  .mob-panel-bar .add-btn { font-size: 16px; padding: 2px 10px; min-height: 34px; min-width: 34px; border-width: 1.5px; margin-left: auto; }
+
+  /* ── iOS input font ≥16px prevents auto-zoom ── */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* ── Touch feedback on nav ── */
+  #mobile-nav, .mob-nav-btn { -webkit-user-select: none; user-select: none; }
+  .mob-nav-btn { min-height: 44px; touch-action: manipulation; }
+  .mob-nav-btn:active { opacity: 0.55; transform: scale(0.90); transition: transform 0.1s, opacity 0.1s; }
+  .mob-nav-icon { font-size: 22px; }
+
+  /* ── Habits, Insights, Life OS compact layout ── */
+  .habits-body { padding: 16px 14px !important; }
+  .insights-body { padding: 16px 14px !important; }
+  .habit-check-box { width: 36px; height: 36px; font-size: 16px; border-radius: 6px; }
+  .habit-row { padding: 8px 0; }
+  .lifeos-body { flex-direction: column !important; }
+  .lifeos-left { width: 100% !important; max-height: 210px; border-right: none !important; border-bottom: 1px solid var(--border); }
+  #lifeos-detail { padding: 16px 14px !important; }
+
+  /* ── Momentum scrolling on all scroll containers ── */
+  .tasks-list, .daily-timeline, .habits-body, .pomo-body,
+  .insights-body, .lifeos-proj-list, #lifeos-detail, #claude-chat {
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 /* Mobile-only elements — hidden on desktop, shown via @media above */
@@ -490,15 +539,16 @@ body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:4
 
 /* Mobile bottom navigation */
 #mobile-nav {
-  display: none; /* hidden on desktop */
+  display: none; /* shown via media query */
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  height: 56px;
+  height: 56px; /* overridden in media query to add safe-area-inset-bottom */
   background: var(--surface);
-  border-top: 2px solid var(--border);
-  z-index: 600;
+  border-top: 1px solid var(--border);
+  z-index: 900;
   justify-content: space-around;
-  align-items: center;
+  align-items: flex-start; /* buttons sit at top; padding-bottom handles home bar */
+  padding-top: 6px;
 }
 .mob-nav-btn {
   flex: 1;
@@ -508,27 +558,41 @@ body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:4
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 3px;
+  justify-content: flex-start;
+  gap: 2px;
   cursor: pointer;
   color: var(--ink-dim);
   font-family: 'JetBrains Mono', monospace;
   font-size: 9px;
-  letter-spacing: 0.10em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 .mob-nav-btn.active { color: var(--accent); }
 .mob-nav-icon { font-size: 18px; line-height: 1; }
 
 /* ══ SIGN-IN OVERLAY ══ */
-#signin-overlay { position:fixed; inset:0; z-index:2000; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px; }
+#signin-overlay {
+  position: fixed; inset: 0; z-index: 2000;
+  background: var(--bg); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 24px;
+  padding: max(40px, env(safe-area-inset-top)) 24px max(32px, env(safe-area-inset-bottom));
+}
 #signin-overlay.hidden { display:none; }
 .signin-logo { font-size:54px; opacity:0.6; }
 .signin-title { font-family:'JetBrains Mono',monospace; font-size:22px; letter-spacing:0.22em; text-transform:uppercase; color:var(--ink); text-align:center; }
 .signin-sub { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-dim); text-align:center; line-height:1.8; }
-.signin-btn { font-family:'JetBrains Mono',monospace; font-size:15px; letter-spacing:0.12em; text-transform:uppercase; padding:16px 36px; border-radius:6px; cursor:pointer; background:var(--gold-dim); border:2px solid var(--gold); color:var(--gold); min-height:56px; }
+.signin-btn { font-family:'JetBrains Mono',monospace; font-size:15px; letter-spacing:0.12em; text-transform:uppercase; padding:16px 36px; border-radius:8px; cursor:pointer; background:var(--gold-dim); border:2px solid var(--gold); color:var(--gold); min-height:56px; width:min(280px,85vw); }
 .signin-btn:active { background:var(--gold); color:var(--bg); }
 .signin-note { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-faint); text-align:center; max-width:340px; line-height:1.8; }
+/* iOS "Add to Home Screen" hint — only shown in Safari (not standalone) */
+#ios-a2hs-hint {
+  display: none;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  color: var(--ink-dim); text-align: center; line-height: 1.9;
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 18px; max-width: 300px;
+  background: var(--ink-faint);
+}
 
 /* ══ SYNC BAR ══ */
 #sync-bar { position:fixed; bottom:0; left:0; right:0; z-index:1000; background:var(--surface); border-top:2px solid var(--border); padding:7px 16px; display:flex; align-items:center; gap:10px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-dim); transform:translateY(100%); transition:transform 0.2s ease; }
@@ -1685,6 +1749,7 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
   <div class="signin-sub">Your day, at a glance.<br>Sign in to load your calendar &amp; tasks.</div>
   <button class="signin-btn" id="signin-btn">Sign in with Google</button>
   <div class="signin-note">Calendar &amp; Tasks access (read + write).<br>No data stored anywhere.</div>
+  <div id="ios-a2hs-hint">&#8679; Tap Share, then<br>"Add to Home Screen"<br>for full-screen experience</div>
 </div>
 
 <!-- SYNC BAR -->
@@ -2005,6 +2070,16 @@ window.addEventListener('DOMContentLoaded', () => {
     else    { fbUid = null; }
   });
 });
+
+// ── iOS "Add to Home Screen" hint ─────────────────────
+(function(){
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone === true;
+  if(isIOS && !isStandalone){
+    const hint = document.getElementById('ios-a2hs-hint');
+    if(hint) hint.style.display = 'block';
+  }
+})();
 
 // ── SYNC BAR ──────────────────────────────────────────
 let _st=null;
@@ -3913,6 +3988,7 @@ let _mobActivePanel = 'panel-left';
 
 function mobileSwitchPanel(id, btn){
   if(!isMobile()) return;
+  mobDrawerClose();
   _mobActivePanel = id;
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('mobile-active'));
   document.getElementById(id).classList.add('mobile-active');
@@ -4557,8 +4633,8 @@ function renderHabits(){
     return;
   }
 
-  // Day strip header
-  strip.innerHTML = '<div style="width:160px;flex-shrink:0"></div>' +
+  // Day strip header — use flex:1 spacers so it scales to any screen width
+  strip.innerHTML = '<div style="flex:1;min-width:80px;max-width:200px"></div>' +
     days.map(d=>`<div class="habit-day-cell"><div class="habit-day-label${localDateStr(d)===todayStr?' today':''}">${DN[d.getDay()]}<br>${d.getDate()}</div></div>`).join('') +
     '<div style="width:56px;flex-shrink:0"></div>';
 
@@ -4624,38 +4700,56 @@ async function habitToggle(habitId, dateStr){
 }
 
 async function habitDelete(habitId){
-  if(!fbUid) return;
+  if(!fbUid){ showSyncBar('Sign in first', 'err'); return; }
+
+  // Optimistic removal — remove from local state immediately
+  const removed = _habits.find(h => h.id === habitId);
+  _habits = _habits.filter(h => h.id !== habitId);
+  renderHabits();
+
   const { doc, updateDoc, serverTimestamp } = window.CDX_FB;
   try {
     await updateDoc(doc(window.CDX_DB, 'users', fbUid, 'habits', habitId), {
       archivedAt: serverTimestamp()
     });
-    // onSnapshot will remove it from _habits and re-render
   } catch(e){
     console.warn('habitDelete error:', e);
     showSyncBar('Could not archive habit', 'err');
+    // Revert
+    if(removed) { _habits.push(removed); _habits.sort((a,b)=>(a.order??0)-(b.order??0)); }
+    renderHabits();
   }
 }
 
 async function habitsAddNew(){
   const inp  = document.getElementById('habit-new-inp');
   const name = inp.value.trim();
-  if(!name || !fbUid) return;
+  if(!name) return;
+  if(!fbUid){ showSyncBar('Sign in first to save habits', 'err'); return; }
   inp.value = '';
-  const { doc, setDoc, serverTimestamp } = window.CDX_FB;
+
+  // Optimistic UI — add to local array immediately so user sees it instantly
   const id = 'h_' + Date.now();
+  const tempHabit = { id, name, order: _habits.length, archivedAt: null };
+  _habits.push(tempHabit);
+  renderHabits();
+
+  const { doc, setDoc, serverTimestamp } = window.CDX_FB;
   try {
     await setDoc(doc(window.CDX_DB, 'users', fbUid, 'habits', id), {
       id, name,
-      order:      _habits.length,
+      order:      _habits.length - 1,
       createdAt:  serverTimestamp(),
       archivedAt: null,
     });
-    // onSnapshot updates _habits + re-renders
+    // onSnapshot will confirm and re-render with server data
   } catch(e){
     console.warn('habitsAddNew error:', e);
-    showSyncBar('Could not save habit', 'err');
-    inp.value = name; // restore input on error
+    showSyncBar('Could not save habit: ' + e.message, 'err');
+    // Revert optimistic update
+    _habits = _habits.filter(h => h.id !== id);
+    inp.value = name;
+    renderHabits();
   }
 }
 document.addEventListener('keydown', e=>{
