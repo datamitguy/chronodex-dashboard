@@ -119,13 +119,10 @@ html, body {
   text-size-adjust: 100%;
 }
 html { height: 100dvh; }
-body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:46px 1fr; height:100dvh; }
+body { display:flex; flex-direction:row; height:100dvh; overflow:hidden; }
 
-/* Explicit column+row placement */
-#app-header   { grid-column:1/-1; grid-row:1; }
-#panel-chrono { grid-column:1; grid-row:2; }
-#panel-tasks  { grid-column:2; grid-row:2; }
-#panel-left   { grid-column:3; grid-row:2; }
+/* Old header redistributed to #cdx-nav + #cdx-page-hd; kept in DOM for mobile compat */
+#app-header { display:none !important; }
 
 /* ── APP HEADER ── */
 #app-header {
@@ -373,6 +370,204 @@ body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:4
 .hour-event:hover .ev-del-btn { opacity:0.7; }
 .ev-del-btn:hover { color:var(--red) !important; opacity:1 !important; }
 
+/* ══════════════════════════════════════════════════════
+   LINEAR TWIN — Desktop layout
+   ══════════════════════════════════════════════════════ */
+
+/* Cursor spotlight */
+#cdx-cursor-spot {
+  position:fixed; width:520px; height:520px; border-radius:50%;
+  background:radial-gradient(circle, rgba(61,184,255,0.036) 0%, transparent 70%);
+  pointer-events:none; transform:translate(-50%,-50%);
+  z-index:1; left:-600px; top:-600px;
+  transition:left 0.07s cubic-bezier(0.25,0.46,0.45,0.94), top 0.07s cubic-bezier(0.25,0.46,0.45,0.94);
+}
+
+/* ── Left navigation ── */
+#cdx-nav {
+  width:220px; flex-shrink:0; overflow:hidden; overflow-y:auto;
+  background:rgba(9,13,20,0.5); backdrop-filter:blur(22px) saturate(130%);
+  -webkit-backdrop-filter:blur(22px) saturate(130%);
+  border-right:1px solid var(--border);
+  display:flex; flex-direction:column;
+  transition:width 220ms cubic-bezier(0.25,0.46,0.45,0.94);
+  scrollbar-width:none; z-index:50;
+}
+#cdx-nav::-webkit-scrollbar { display:none; }
+#cdx-nav.nav-collapsed { width:0; }
+.cdx-nav-ws {
+  padding:12px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:9px; flex-shrink:0; min-height:50px;
+  overflow:hidden; white-space:nowrap;
+}
+.cdx-nav-avatar {
+  width:28px; height:28px; border-radius:7px; flex-shrink:0;
+  background:var(--accent-dim); border:1px solid rgba(61,184,255,0.3);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--accent);
+}
+.cdx-nav-ws-name { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink); line-height:1.2; }
+.cdx-nav-ws-plan { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--ink-dim); letter-spacing:0.05em; }
+.cdx-nav-sec { padding:6px 8px 2px; }
+.cdx-nav-sec-lbl { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.15em; text-transform:uppercase; color:var(--ink-dim); padding:6px 6px 3px; opacity:0.45; white-space:nowrap; }
+.cdx-ni {
+  display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:5px;
+  cursor:pointer; white-space:nowrap; overflow:hidden;
+  font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim);
+  transition:all 180ms cubic-bezier(0.25,0.46,0.45,0.94);
+  position:relative; border-left:2px solid transparent; will-change:transform;
+}
+.cdx-ni:hover { background:var(--ink-faint); color:var(--ink); }
+.cdx-ni.active { background:var(--accent-dim); color:var(--accent); border-left-color:var(--accent); }
+.cdx-ni-glow {
+  position:absolute; left:0; top:0; bottom:0; width:40px;
+  background:linear-gradient(90deg, rgba(61,184,255,0.1), transparent);
+  opacity:0; pointer-events:none; border-radius:5px; transition:opacity 180ms;
+}
+.cdx-ni:hover .cdx-ni-glow, .cdx-ni.active .cdx-ni-glow { opacity:1; }
+.cdx-ni-icon { font-size:14px; flex-shrink:0; line-height:1; width:18px; text-align:center; }
+.cdx-nav-footer {
+  margin-top:auto; padding:8px; border-top:1px solid var(--border);
+  display:flex; gap:2px; flex-shrink:0;
+}
+.cdx-nav-ft-btn {
+  flex:1; padding:7px; background:none; border:none; color:var(--ink-dim);
+  cursor:pointer; border-radius:5px; font-size:14px; text-align:center;
+  transition:all 180ms; min-height:34px;
+}
+.cdx-nav-ft-btn:hover { background:var(--ink-faint); color:var(--ink); }
+
+/* ── Page area ── */
+#cdx-page-area { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+
+/* ── Page header ── */
+#cdx-page-hd {
+  height:46px; flex-shrink:0;
+  background:rgba(9,13,20,0.72); backdrop-filter:blur(18px) saturate(140%);
+  -webkit-backdrop-filter:blur(18px) saturate(140%);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 12px; gap:6px;
+  position:relative; z-index:100; overflow:hidden;
+}
+#cdx-page-hd-shimmer {
+  position:absolute; bottom:0; left:-80px; width:160px; height:1px;
+  background:linear-gradient(90deg, transparent, rgba(61,184,255,0.55), transparent);
+  pointer-events:none; transition:left 0.05s;
+}
+.cdx-pg-title { font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0.1em; color:var(--ink); white-space:nowrap; }
+.cdx-pg-sub   { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim); white-space:nowrap; }
+.cdx-pg-actions { display:flex; gap:4px; margin-left:auto; align-items:center; }
+.cdx-hbtn {
+  font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.07em;
+  background:none; border:1px solid transparent; color:var(--ink-dim);
+  padding:5px 10px; border-radius:5px; cursor:pointer; white-space:nowrap;
+  transition:all 180ms cubic-bezier(0.25,0.46,0.45,0.94);
+}
+.cdx-hbtn:hover { background:var(--ink-faint); color:var(--ink); border-color:var(--border); }
+.cdx-hbtn.accent { color:var(--accent); }
+.cdx-hbtn.accent:hover { background:var(--accent-dim); border-color:var(--accent-dim); }
+.cdx-hbtn-grp { display:flex; align-items:center; background:var(--ink-faint); border-radius:5px; padding:2px; gap:0; }
+.cdx-hbtn-sep { width:1px; height:16px; background:var(--border); flex-shrink:0; margin:0 2px; }
+
+/* ── Panels container ── */
+#cdx-panels { flex:1; display:flex; overflow:hidden; }
+#panel-left  { flex:6; min-width:0; border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; background:var(--surface); }
+#panel-tasks { flex:4; min-width:0; display:flex; flex-direction:column; overflow:hidden; background:var(--surface); border-right:none; }
+
+/* ── Floating Cosmodex Orb ── */
+#cdx-orb-backdrop {
+  position:fixed; inset:0; z-index:849; background:rgba(0,0,0,0.55);
+  backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+  display:none; cursor:pointer;
+}
+#cdx-orb-backdrop.open { display:block; }
+
+#panel-chrono {
+  position:fixed; bottom:22px; right:22px;
+  width:96px; height:96px; border-radius:50%;
+  background:rgba(9,13,20,0.85); backdrop-filter:blur(22px);
+  -webkit-backdrop-filter:blur(22px);
+  border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; z-index:200; overflow:hidden;
+  transition:width 360ms cubic-bezier(0.25,0.46,0.45,0.94),
+             height 360ms cubic-bezier(0.25,0.46,0.45,0.94),
+             border-radius 360ms cubic-bezier(0.25,0.46,0.45,0.94),
+             box-shadow 360ms cubic-bezier(0.25,0.46,0.45,0.94),
+             top 0ms, left 0ms, bottom 0ms, right 0ms;
+  animation:cdx-orb-pulse 3.5s ease-in-out infinite;
+}
+@keyframes cdx-orb-pulse {
+  0%,100% { box-shadow:0 0 0 0 rgba(61,184,255,0); }
+  50%      { box-shadow:0 0 22px rgba(61,184,255,0.18), 0 0 44px rgba(61,184,255,0.07); }
+}
+#panel-chrono:not(.orb-open):hover { border-color:rgba(61,184,255,0.35); animation-play-state:paused; }
+
+/* Orb collapsed — show just the live clock time */
+#panel-chrono .mob-panel-bar      { display:none !important; }
+#panel-chrono .chrono-canvas-wrap { display:none; }
+#panel-chrono .next-strip         { display:none; }
+#panel-chrono .chrono-wrapper {
+  padding:0; width:100%; height:100%;
+  display:flex; align-items:center; justify-content:center; gap:0;
+}
+#panel-chrono .time-display { text-align:center; }
+#panel-chrono .time-big  { font-size:16px; color:var(--accent); letter-spacing:0.04em; line-height:1; }
+#panel-chrono .time-date { display:none; }
+
+/* Clock SVG overlay — hidden in mini state */
+#cdx-clock-overlay { display:none; pointer-events:none; }
+
+/* Orb EXPANDED state */
+#panel-chrono.orb-open {
+  position:fixed;
+  top:50%; left:50%; bottom:auto; right:auto;
+  transform:translate(-50%, -50%);
+  width:min(80vw,80vh); height:min(80vw,80vh);
+  border-radius:20px; cursor:default;
+  animation-play-state:paused !important;
+  box-shadow:0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(61,184,255,0.15) !important;
+  z-index:850; overflow:auto;
+}
+#panel-chrono.orb-open .chrono-wrapper {
+  flex-direction:column; padding:24px 20px 20px;
+  justify-content:center; gap:14px; width:auto; height:auto; min-height:100%;
+}
+#panel-chrono.orb-open .time-display { display:block; text-align:center; }
+#panel-chrono.orb-open .time-big  { font-size:clamp(32px, 5vw, 60px); }
+#panel-chrono.orb-open .time-date { display:block; font-size:13px; }
+#panel-chrono.orb-open .chrono-canvas-wrap {
+  display:block; width:min(55vw,55vh); position:relative; margin:0 auto;
+}
+#panel-chrono.orb-open #cosmodex-canvas {
+  width:100% !important; height:auto !important;
+  aspect-ratio:760/500; border-radius:0;
+}
+#panel-chrono.orb-open .next-strip {
+  display:block; width:100%; max-width:420px; margin:0 auto;
+  text-align:center; background:transparent; border:none; padding:0;
+}
+#panel-chrono.orb-open .next-lbl   { font-size:10px; letter-spacing:0.2em; opacity:0.7; }
+#panel-chrono.orb-open .next-title { font-size:clamp(18px, 2.5vw, 26px); color:var(--ink); }
+#panel-chrono.orb-open .next-time  { font-size:12px; }
+#panel-chrono.orb-open #cdx-clock-overlay { display:block; }
+
+/* Orb close button */
+#cdx-orb-close {
+  position:absolute; top:12px; right:12px;
+  background:none; border:1px solid var(--border); border-radius:50%;
+  color:var(--ink-dim); cursor:pointer; width:28px; height:28px;
+  font-size:13px; display:none; align-items:center; justify-content:center;
+  transition:all 180ms; z-index:5; padding:0; line-height:1;
+}
+#panel-chrono.orb-open #cdx-orb-close { display:flex; }
+#cdx-orb-close:hover { background:var(--ink-faint); color:var(--ink); border-color:var(--ink-dim); }
+
+/* Task + event stagger animation */
+@keyframes cdx-row-in { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+.task-item  { animation:cdx-row-in 260ms cubic-bezier(0.25,0.46,0.45,0.94) both; }
+.hour-event { animation:cdx-row-in 260ms cubic-bezier(0.25,0.46,0.45,0.94) both; }
+
 /* ══ RESPONSIVE / MOBILE — iPhone 17 Pro optimised ══ */
 @media (max-width: 720px) {
   /* ── Grid reset ── */
@@ -561,6 +756,35 @@ body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:4
   .insights-body, .lifeos-proj-list, #lifeos-detail, #claude-chat {
     -webkit-overflow-scrolling: touch;
   }
+}
+
+/* ── Mobile overrides for new Linear Twin elements ── */
+@media (max-width: 720px) {
+  body { display:grid !important; grid-template-columns:1fr !important; grid-template-rows:0px 1fr !important; }
+  #cdx-nav          { display:none !important; }
+  #cdx-page-hd      { display:none !important; }
+  #cdx-cursor-spot  { display:none !important; }
+  #cdx-orb-backdrop { display:none !important; }
+  /* Flatten wrappers so panels behave as direct body children for existing mobile CSS */
+  #cdx-page-area, #cdx-panels { display:contents !important; }
+  /* Restore #panel-chrono to its original mobile panel behaviour */
+  #panel-chrono {
+    position:absolute !important; bottom:auto !important; right:auto !important;
+    top:env(safe-area-inset-top) !important; left:0 !important;
+    width:auto !important; height:auto !important; border-radius:0 !important;
+    animation:none !important; box-shadow:none !important;
+    border:none !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important;
+    background:var(--bg) !important; cursor:default !important; overflow:visible !important;
+    transform:none !important;
+  }
+  #panel-chrono .chrono-canvas-wrap { display:block !important; width:100% !important; position:relative !important; }
+  #panel-chrono #cosmodex-canvas    { width:100% !important; height:auto !important; aspect-ratio:unset !important; border-radius:0 !important; }
+  #panel-chrono .time-display { display:block !important; }
+  #panel-chrono .time-big     { font-size:40px !important; }
+  #panel-chrono .time-date    { display:block !important; }
+  #panel-chrono .next-strip   { display:block !important; }
+  #panel-chrono .chrono-wrapper { flex-direction:column !important; padding:8px 10px 10px !important; width:auto !important; height:auto !important; gap:12px !important; justify-content:flex-start !important; }
+  #cdx-orb-close              { display:none !important; }
 }
 
 /* Mobile-only elements — hidden on desktop, shown via @media above */
@@ -1354,14 +1578,7 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
    LINEAR-STYLE DESIGN ENHANCEMENTS
    ══════════════════════════════════════════════════════ */
 
-/* ── Dark mode ambient background ── */
-[data-theme="dark"] body::before {
-  content:'';
-  position:fixed; inset:0; pointer-events:none; z-index:0;
-  background-image: radial-gradient(circle, rgba(26,37,53,0.55) 1px, transparent 1px);
-  background-size: 28px 28px;
-  opacity: 0.55;
-}
+/* ── Dark mode ambient background (dot grid removed) ── */
 /* Ambient top glow — rendered as a DOM element to avoid body::after conflict with paper grain */
 #cdx-bg-glow {
   position:fixed; top:-160px; left:50%; transform:translateX(-50%);
@@ -1663,8 +1880,61 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
 </head>
 <body>
 <div id="cdx-bg-glow" aria-hidden="true"></div>
+<div id="cdx-cursor-spot" aria-hidden="true"></div>
 
-<!-- UNIFIED APP HEADER -->
+<!-- LINEAR TWIN: LEFT NAV -->
+<nav id="cdx-nav">
+  <div class="cdx-nav-ws">
+    <div class="cdx-nav-avatar" id="cdx-nav-avatar">C</div>
+    <div>
+      <div class="cdx-nav-ws-name">Cosmodex</div>
+      <div class="cdx-nav-ws-plan" id="cdx-nav-user-plan">Personal</div>
+    </div>
+    <button onclick="document.getElementById('cdx-nav').classList.toggle('nav-collapsed')" style="margin-left:auto;background:none;border:none;color:var(--ink-dim);cursor:pointer;font-size:15px;padding:2px 6px;border-radius:4px;transition:background 180ms" title="Collapse">⋮</button>
+  </div>
+  <div class="cdx-nav-sec">
+    <div class="cdx-nav-sec-lbl">Workspace</div>
+    <div class="cdx-ni active" id="cdx-ni-today">
+      <div class="cdx-ni-glow"></div>
+      <span class="cdx-ni-icon">◈</span> Today
+      <span style="margin-left:auto;font-size:10px;opacity:0.45" id="cdx-nav-today-ct"></span>
+    </div>
+    <div class="cdx-ni" id="cdx-ni-cal">
+      <div class="cdx-ni-glow"></div>
+      <span class="cdx-ni-icon">◻</span> Calendar
+    </div>
+    <div class="cdx-ni" id="cdx-ni-tasks">
+      <div class="cdx-ni-glow"></div>
+      <span class="cdx-ni-icon">✓</span> Tasks
+    </div>
+  </div>
+  <div class="cdx-nav-sec">
+    <div class="cdx-nav-sec-lbl">Life OS</div>
+    <div class="cdx-ni" onclick="openHabits()">
+      <div class="cdx-ni-glow"></div>
+      <span class="cdx-ni-icon">◑</span> Habits
+    </div>
+    <div class="cdx-ni" onclick="openInsights()">
+      <div class="cdx-ni-glow"></div>
+      <span class="cdx-ni-icon">◲</span> Insights
+    </div>
+    <div class="cdx-ni" onclick="openPlanOverlay('week')">
+      <div class="cdx-ni-glow"></div>
+      <span class="cdx-ni-icon">◈</span> Planning
+    </div>
+    <div class="cdx-ni" onclick="openLifeOS()">
+      <div class="cdx-ni-glow"></div>
+      <span class="cdx-ni-icon">◭</span> Life OS
+    </div>
+  </div>
+  <div class="cdx-nav-footer">
+    <button class="cdx-nav-ft-btn" title="Toggle theme" onclick="document.getElementById('theme-btn').click()">◑</button>
+    <button class="cdx-nav-ft-btn" title="Focus timer" onclick="document.getElementById('pomo-open-btn').click()">▲</button>
+    <button class="cdx-nav-ft-btn" title="Command palette" onclick="document.querySelector('#cmd-palette')&&document.querySelector('#cmd-palette').classList.add('open')">⌘</button>
+  </div>
+</nav>
+
+<!-- ORIGINAL APP HEADER (kept in DOM for mobile; hidden on desktop) -->
 <header id="app-header">
   <!-- Brand -->
   <svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:30px;height:30px;flex-shrink:0;color:var(--accent)">
@@ -1697,6 +1967,33 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
   <div class="ah-sep"></div>
   <button class="sbtn" id="theme-btn" title="Toggle theme">&#9788;</button>
 </header>
+
+<!-- LINEAR TWIN: PAGE AREA (wraps page header + two panels) -->
+<div id="cdx-page-area">
+
+  <!-- Page header -->
+  <header id="cdx-page-hd">
+    <button onclick="document.getElementById('cdx-nav').classList.toggle('nav-collapsed')" class="cdx-hbtn" style="font-size:16px;padding:4px 8px" title="Toggle nav">&#9776;</button>
+    <span class="cdx-pg-title" id="cdx-pg-title">Today</span>
+    <span class="cdx-pg-sub" id="cdx-pg-sub"></span>
+    <div class="cdx-pg-actions">
+      <div class="cdx-hbtn-grp">
+        <button class="cdx-hbtn" onclick="document.getElementById('notes-btn').click()" title="Quick note">&#9998; Notes</button>
+        <button class="cdx-hbtn" onclick="document.getElementById('pomo-open-btn').click()" title="Focus timer">&#9650; Focus</button>
+        <button class="cdx-hbtn accent" onclick="document.getElementById('cosmos-btn').click()" title="Ask Cosmos">&#9670; Ask Cosmos</button>
+      </div>
+      <div class="cdx-hbtn-sep"></div>
+      <button class="cdx-hbtn" onclick="openInsights()" title="Insights">Insights</button>
+      <button class="cdx-hbtn" onclick="openHabits()" title="Habits">Habits</button>
+      <button class="cdx-hbtn" onclick="openPlanOverlay('week')" title="Planning">Plan</button>
+      <div class="cdx-hbtn-sep"></div>
+      <button class="cdx-hbtn" onclick="document.getElementById('theme-btn').click()" title="Toggle theme">&#9788;</button>
+    </div>
+    <div id="cdx-page-hd-shimmer"></div>
+  </header>
+
+  <!-- Two-column panels -->
+  <div id="cdx-panels">
 
 <!-- COL 1: CALENDAR -->
 <section class="panel" id="panel-left">
@@ -1748,8 +2045,15 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
   </div>
 </section>
 
-<!-- COL 3: CHRONODEX -->
-<section class="panel" id="panel-chrono">
+  </div><!-- /cdx-panels -->
+</div><!-- /cdx-page-area -->
+
+<!-- FLOATING COSMODEX ORB -->
+<div id="cdx-orb-backdrop" onclick="closeCdxOrb()"></div>
+<!-- COL 3: CHRONODEX (now the floating orb) -->
+<section class="panel" id="panel-chrono" onclick="handleOrbClick(event)">
+  <!-- Close button — only visible when expanded -->
+  <button id="cdx-orb-close" onclick="closeCdxOrb(event)" title="Close">&#10005;</button>
   <!-- Mobile-only toolbar: brand + theme toggle + sync -->
   <div class="mob-panel-bar" id="mob-chrono-bar">
     <button class="mob-bar-btn" title="Menu" onclick="mobDrawerOpen()" style="font-size:18px;margin-right:2px">&#9776;</button>
@@ -1764,6 +2068,9 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
     </div>
     <div class="chrono-canvas-wrap">
       <canvas id="cosmodex-canvas" width="760" height="500"></canvas>
+      <!-- Clock hand overlay — visible only when orb is expanded -->
+      <svg id="cdx-clock-overlay" viewBox="0 0 760 500" preserveAspectRatio="xMidYMid meet"
+           style="position:absolute;inset:0;width:100%;height:100%;z-index:2"></svg>
       <div class="chrono-tap-overlay" id="chrono-overlay"></div>
     </div>
     <div class="next-strip">
@@ -6310,6 +6617,199 @@ ${ctx}`;
       window.closePlanOverlay();
     }
   });
+})();
+</script>
+
+<!-- ══════════════════════════════════════════════════════
+     LINEAR TWIN — Interactions & Orb
+     ══════════════════════════════════════════════════════ -->
+<script>
+(function() {
+  'use strict';
+
+  /* ── Page header date ── */
+  function updatePageSub() {
+    const el = document.getElementById('cdx-pg-sub');
+    if (!el) return;
+    const d = new Date();
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    el.textContent = days[d.getDay()] + ' · ' + months[d.getMonth()] + ' ' + d.getDate();
+  }
+  updatePageSub();
+
+  /* ── Nav today count (mirrors tasks-count) ── */
+  function syncNavTodayCount() {
+    const src = document.getElementById('tasks-count');
+    const dst = document.getElementById('cdx-nav-today-ct');
+    if (src && dst) dst.textContent = src.textContent;
+  }
+  setInterval(syncNavTodayCount, 2000);
+
+  /* ── Nav user avatar initial ── */
+  function syncAvatar() {
+    const syncUser = document.getElementById('sync-user');
+    const avatar   = document.getElementById('cdx-nav-avatar');
+    if (syncUser && avatar && syncUser.textContent) {
+      const email = syncUser.textContent.trim();
+      if (email) avatar.textContent = email[0].toUpperCase();
+    }
+  }
+  setInterval(syncAvatar, 2000);
+
+  /* ── Cursor spotlight ── */
+  const spot = document.getElementById('cdx-cursor-spot');
+  document.addEventListener('mousemove', function(e) {
+    if (!spot) return;
+    spot.style.left = e.clientX + 'px';
+    spot.style.top  = e.clientY + 'px';
+    // Page header shimmer
+    const shimmer = document.getElementById('cdx-page-hd-shimmer');
+    if (shimmer) shimmer.style.left = (e.clientX - 80) + 'px';
+  }, { passive: true });
+
+  /* ── Magnetic nav items ── */
+  document.querySelectorAll('.cdx-ni').forEach(function(item) {
+    item.addEventListener('mousemove', function(e) {
+      const r = item.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      item.style.transform = 'translateX(' + (x * 4).toFixed(1) + 'px)';
+      item.style.transition = 'none';
+    });
+    item.addEventListener('mouseleave', function() {
+      item.style.transform = '';
+      item.style.transition = '';
+    });
+  });
+
+  /* ── 3D card tilt on events and tasks ── */
+  function add3DTilt(container) {
+    if (!container) return;
+    container.addEventListener('mousemove', function(e) {
+      var card = e.target.closest('.hour-event, .task-item');
+      container.querySelectorAll('.hour-event, .task-item').forEach(function(el) {
+        if (el !== card) { el.style.transform = ''; el.style.transition = ''; }
+      });
+      if (!card) return;
+      var r = card.getBoundingClientRect();
+      var x = (e.clientX - r.left) / r.width  - 0.5;
+      var y = (e.clientY - r.top)  / r.height - 0.5;
+      card.style.transform = 'perspective(800px) rotateX(' + (-y*5).toFixed(2) + 'deg) rotateY(' + (x*5).toFixed(2) + 'deg) translateZ(4px)';
+      card.style.transition = 'none';
+    });
+    container.addEventListener('mouseleave', function() {
+      container.querySelectorAll('.hour-event, .task-item').forEach(function(el) {
+        el.style.transform = ''; el.style.transition = '';
+      });
+    });
+  }
+
+  /* Attach tilt to both panels (re-attach after renders via MutationObserver) */
+  ['left-content', 'tasks-list'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    add3DTilt(el);
+    new MutationObserver(function() { add3DTilt(el); }).observe(el, { childList: true, subtree: false });
+  });
+
+  /* ── Orb open / close ── */
+  var orbOpen = false;
+  var orb = document.getElementById('panel-chrono');
+  var backdrop = document.getElementById('cdx-orb-backdrop');
+
+  window.handleOrbClick = function(e) {
+    if (orbOpen) return; // clicks inside expanded orb are fine
+    openCdxOrb();
+  };
+
+  function openCdxOrb() {
+    if (orbOpen) return;
+    orbOpen = true;
+    orb.classList.add('orb-open');
+    backdrop.classList.add('open');
+    orb.style.cursor = 'default';
+    // Redraw canvas at new size after transition
+    setTimeout(function() {
+      if (typeof drawCosmodex === 'function') drawCosmodex();
+      startClockHands();
+    }, 380);
+  }
+
+  window.closeCdxOrb = function(e) {
+    if (e) e.stopPropagation();
+    if (!orbOpen) return;
+    orbOpen = false;
+    orb.classList.remove('orb-open');
+    backdrop.classList.remove('open');
+    orb.style.cursor = '';
+    stopClockHands();
+    setTimeout(function() {
+      if (typeof drawCosmodex === 'function') drawCosmodex();
+    }, 380);
+  };
+
+  // Close on Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && orbOpen) window.closeCdxOrb();
+  });
+
+  /* ── Analog clock hands on SVG overlay ── */
+  var clockInterval = null;
+  var clockSvg = document.getElementById('cdx-clock-overlay');
+
+  function drawClockHands() {
+    if (!clockSvg || !orbOpen) return;
+    var now = new Date();
+    var h = now.getHours() % 12 + now.getMinutes() / 60 + now.getSeconds() / 3600;
+    var m = now.getMinutes() + now.getSeconds() / 60;
+    var s = now.getSeconds();
+    // Canvas is 760x500, dial centre at (380, 250)
+    var cx = 380, cy = 250;
+    // Radius proportional to canvas size (760w → dial ~220px radius in JS)
+    var rH = 68, rM = 100, rS = 115;
+
+    function handPath(angle_360, radius) {
+      var rad = (angle_360 - 90) * Math.PI / 180;
+      return 'M' + cx + ',' + cy + ' L' + (cx + radius * Math.cos(rad)).toFixed(1) + ',' + (cy + radius * Math.sin(rad)).toFixed(1);
+    }
+
+    clockSvg.innerHTML =
+      '<line x1="' + cx + '" y1="' + cy + '" x2="' + (cx + rH * Math.cos((h/12*360-90)*Math.PI/180)).toFixed(1) + '" y2="' + (cy + rH * Math.sin((h/12*360-90)*Math.PI/180)).toFixed(1) + '" stroke="#3db8ff" stroke-width="3.5" stroke-linecap="round" opacity="0.95"/>' +
+      '<line x1="' + cx + '" y1="' + cy + '" x2="' + (cx + rM * Math.cos((m/60*360-90)*Math.PI/180)).toFixed(1) + '" y2="' + (cy + rM * Math.sin((m/60*360-90)*Math.PI/180)).toFixed(1) + '" stroke="#cce0f8" stroke-width="2" stroke-linecap="round" opacity="0.85"/>' +
+      '<line x1="' + cx + '" y1="' + cy + '" x2="' + (cx + rS * Math.cos((s/60*360-90)*Math.PI/180)).toFixed(1) + '" y2="' + (cy + rS * Math.sin((s/60*360-90)*Math.PI/180)).toFixed(1) + '" stroke="#ff82b4" stroke-width="1.2" stroke-linecap="round" opacity="0.75"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="4" fill="#3db8ff"/>';
+  }
+
+  function startClockHands() {
+    drawClockHands();
+    clockInterval = setInterval(drawClockHands, 1000);
+  }
+
+  function stopClockHands() {
+    clearInterval(clockInterval);
+    clockInterval = null;
+    if (clockSvg) clockSvg.innerHTML = '';
+  }
+
+  /* ── Stagger animations on content renders ── */
+  function applyStagger(container, selector, baseDelay) {
+    if (!container) return;
+    container.querySelectorAll(selector).forEach(function(el, i) {
+      el.style.animationDelay = (baseDelay + i * 28) + 'ms';
+    });
+  }
+
+  var staggerObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      if (m.target.id === 'tasks-list')    applyStagger(m.target, '.task-item', 0);
+      if (m.target.id === 'left-content')  applyStagger(m.target, '.hour-event', 0);
+    });
+  });
+  ['tasks-list','left-content'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) staggerObserver.observe(el, { childList: true });
+  });
+
 })();
 </script>
 
