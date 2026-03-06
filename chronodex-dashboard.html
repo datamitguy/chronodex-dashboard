@@ -374,14 +374,8 @@ body { display:flex; flex-direction:row; height:100dvh; overflow:hidden; }
    LINEAR TWIN — Desktop layout
    ══════════════════════════════════════════════════════ */
 
-/* Cursor spotlight */
-#cdx-cursor-spot {
-  position:fixed; width:130px; height:130px; border-radius:50%;
-  background:radial-gradient(circle, rgba(61,184,255,0.12) 0%, transparent 70%);
-  pointer-events:none; transform:translate(-50%,-50%);
-  z-index:1; left:-600px; top:-600px;
-  transition:left 0.07s cubic-bezier(0.25,0.46,0.45,0.94), top 0.07s cubic-bezier(0.25,0.46,0.45,0.94);
-}
+/* Cursor spotlight — removed (distracting) */
+#cdx-cursor-spot { display:none; }
 
 /* ── Left navigation ── */
 #cdx-nav {
@@ -530,14 +524,14 @@ body { display:flex; flex-direction:row; height:100dvh; overflow:hidden; }
   z-index:850; overflow:auto;
 }
 #panel-chrono.orb-open .chrono-wrapper {
-  flex-direction:column; padding:24px 20px 20px;
-  justify-content:center; gap:14px; width:auto; height:auto; min-height:100%;
+  flex-direction:column; padding:14px 20px 16px;
+  justify-content:flex-start; gap:8px; width:auto; height:auto; min-height:100%;
 }
 #panel-chrono.orb-open .time-display { display:block; text-align:center; }
-#panel-chrono.orb-open .time-big  { font-size:clamp(32px, 5vw, 60px); }
+#panel-chrono.orb-open .time-big  { font-size:clamp(22px, 3vw, 42px); }
 #panel-chrono.orb-open .time-date { display:block; font-size:13px; }
 #panel-chrono.orb-open .chrono-canvas-wrap {
-  display:block; width:min(74vw,74vh); position:relative; margin:0 auto;
+  display:block; width:min(90vw,90vh); position:relative; margin:0 auto;
 }
 #panel-chrono.orb-open #cosmodex-canvas {
   width:100% !important; height:auto !important;
@@ -2714,13 +2708,10 @@ function initGIS(){
       clearTimeout(_silentReconnectTimer);
       if(_silentAuthFromRestore){
         _silentAuthFromRestore = false;
-        // Re-show overlay with clear reconnect CTA — small reconnect bar is too easy to miss
-        const overlay = document.getElementById('signin-overlay');
-        const sub = document.querySelector('#signin-overlay .signin-sub');
-        const btn = document.getElementById('signin-btn');
-        if(overlay) overlay.classList.remove('hidden');
-        if(sub) sub.innerHTML = 'Calendar disconnected.<br>Tap to reconnect your Google account.';
-        if(btn){ btn.textContent = 'Reconnect Google'; btn.disabled = false; }
+        // Firebase session is active — show small reconnect bar, not full overlay
+        const rb = document.getElementById('reconnect-bar');
+        if(rb) rb.style.display = '';
+        showSyncBar('Calendar needs reconnection — click Reconnect', 'err');
         return;
       }
       const btn = document.getElementById('signin-btn');
@@ -3641,7 +3632,7 @@ function drawCosmodex() {
   const container = cv.parentElement;
   const panel = document.getElementById('panel-chrono');
   const panelH = panel ? panel.clientHeight : 900;
-  const availH = Math.max(panelH - 300, 180); // subtract header + time display + next strip + padding + gaps
+  const availH = Math.max(panelH - 200, 180); // subtract header + time display + next strip + padding
   const maxLwByH = Math.round(availH * 760 / 500);
   const rawLw = Math.max(container.clientWidth || 760, 120);
   const lw = Math.min(rawLw, maxLwByH);
@@ -3862,6 +3853,9 @@ function drawCosmodex() {
     const ri     = petalRI();
     const isMajor = i % 3 === 0;
 
+    // Skip 5am start — no dot or tick at the very beginning of the clock face
+    if(i === 0) continue;
+
     if(isMajor){
       // Subtle radial tick at major hour boundaries
       ctx.save();
@@ -3903,24 +3897,54 @@ function drawCosmodex() {
     }
   }
 
-  // ── 6. Time needle ──
+  // ── 6. Current-time indicator: red elapsed arc within petal + radial cut line ──
   if (tm >= H_START * 60 && tm < H_END * 60) {
     const slotF = tm / 60 - H_START;
     const si    = Math.floor(slotF);
     const frac  = slotF - si;
     const na    = hourAngle(si, frac);
-    const nLen  = petalRO(si) + 6*sc;
+    const ri    = petalRI() + 1*sc;
+    const ro    = petalRO(si);
+
+    ctx.save();
+
+    // Elapsed wedge within the current petal — semi-transparent red fill
+    const eA0 = hourAngle(si, 0) + GAP;
+    const eA1 = na - GAP * 0.3;
+    if (eA1 > eA0 + 0.01) {
+      ctx.globalAlpha = 0.32;
+      ctx.beginPath();
+      ctx.arc(cx, cy, ro - 1*sc, eA0, eA1);
+      ctx.arc(cx, cy, ri,        eA1, eA0, true);
+      ctx.closePath();
+      ctx.fillStyle = needleC;
+      ctx.fill();
+    }
+
+    // Red radial cut line from inner to just past outer radius
+    const nEnd = ro + 8*sc;
+    ctx.globalAlpha = 1;
     ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + nLen * Math.cos(na), cy + nLen * Math.sin(na));
-    ctx.strokeStyle = dark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.5)';
+    // Shadow for legibility
+    ctx.beginPath();
+    ctx.moveTo(cx + ri * Math.cos(na), cy + ri * Math.sin(na));
+    ctx.lineTo(cx + nEnd * Math.cos(na), cy + nEnd * Math.sin(na));
+    ctx.strokeStyle = dark ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.7)';
     ctx.lineWidth = 5; ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + nLen * Math.cos(na), cy + nLen * Math.sin(na));
+    // Red line
+    ctx.beginPath();
+    ctx.moveTo(cx + ri * Math.cos(na), cy + ri * Math.sin(na));
+    ctx.lineTo(cx + nEnd * Math.cos(na), cy + nEnd * Math.sin(na));
     ctx.strokeStyle = needleC; ctx.lineWidth = 2.5; ctx.stroke();
-    ctx.beginPath(); ctx.arc(cx + nLen * Math.cos(na), cy + nLen * Math.sin(na), 5*sc, 0, Math.PI * 2);
+    // Tip dot
+    ctx.beginPath();
+    ctx.arc(cx + nEnd * Math.cos(na), cy + nEnd * Math.sin(na), 4*sc, 0, Math.PI*2);
     ctx.fillStyle = needleC; ctx.fill();
+
+    ctx.restore();
   }
 
-  // ── 7. Centre hub — just a small dot, no circle ──
+  // ── 7. Centre hub ──
   ctx.beginPath(); ctx.arc(cx, cy, 8*sc, 0, Math.PI * 2);
   ctx.fillStyle = hubC; ctx.fill();
 }
@@ -5188,6 +5212,11 @@ setInterval(async ()=>{
   try { await loadAllDataSilent(); } catch(e) {}
 }, 5*60*1000);  // 5 min refresh + token renewal check
 
+// Refresh token when tab becomes visible (handles backgrounded/sleeping tabs that miss setInterval)
+document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden && accessToken) maybeRefreshToken().catch(()=>{});
+});
+
 let _gisWaitCount = 0;
 const _gisWait=setInterval(()=>{
   _gisWaitCount++;
@@ -6274,7 +6303,10 @@ ${ctx}`;
 <!-- ══ COMMAND PALETTE (Cmd+K / Ctrl+K) ══ -->
 <div id="cmd-palette" role="dialog" aria-modal="true" aria-label="Command palette">
   <div id="cmd-palette-box">
-    <input id="cmd-palette-inp" type="text" placeholder="Type a command or search…" autocomplete="off" spellcheck="false">
+    <div style="display:flex;align-items:center;border-bottom:1px solid var(--border)">
+      <input id="cmd-palette-inp" type="text" placeholder="Type a command or search…" autocomplete="off" spellcheck="false" style="border-bottom:none;flex:1">
+      <button id="cmd-palette-close-btn" title="Close (Esc)" style="background:none;border:none;color:var(--ink-dim);cursor:pointer;font-size:16px;padding:0 16px;min-height:50px;flex-shrink:0;line-height:1">✕</button>
+    </div>
     <div id="cmd-palette-results"></div>
     <div id="cmd-palette-hint">
       <span>↑↓ navigate</span>
@@ -6386,6 +6418,11 @@ ${ctx}`;
   document.getElementById('cmd-palette-inp').addEventListener('input',e=>{
     _palActive=0; renderPalette(e.target.value);
   });
+  // Escape on the input itself (some browsers don't bubble Escape from inputs)
+  document.getElementById('cmd-palette-inp').addEventListener('keydown',e=>{
+    if(e.key==='Escape'){ e.preventDefault(); closePalette(); }
+  });
+  document.getElementById('cmd-palette-close-btn').addEventListener('click', closePalette);
 
   // Click backdrop to close
   document.getElementById('cmd-palette').addEventListener('click',e=>{
@@ -6665,13 +6702,8 @@ ${ctx}`;
   }
   setInterval(syncAvatar, 2000);
 
-  /* ── Cursor spotlight ── */
-  const spot = document.getElementById('cdx-cursor-spot');
+  /* ── Page header shimmer (cursor glow removed) ── */
   document.addEventListener('mousemove', function(e) {
-    if (!spot) return;
-    spot.style.left = e.clientX + 'px';
-    spot.style.top  = e.clientY + 'px';
-    // Page header shimmer
     const shimmer = document.getElementById('cdx-page-hd-shimmer');
     if (shimmer) shimmer.style.left = (e.clientX - 80) + 'px';
   }, { passive: true });
