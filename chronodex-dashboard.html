@@ -2016,6 +2016,9 @@ function _maybeAutoConnect(){
   if(!_gisTokenClientReady || !_pendingFirebaseAutoConnect) return;
   _pendingFirebaseAutoConnect = false;
   if(accessToken && Date.now() < tokenExpiry - 90000){ loadAllData(); return; }
+  // On mobile, prompt:'none' hangs permanently on iOS Safari — neither callback nor error_callback
+  // fires, leaving the app dead. The overlay "Continue with Google" button handles reconnection.
+  if(window.innerWidth <= 720) return;
   const hint = localStorage.getItem('cdx_user_hint') || currentUser;
   if(hint){ try{ tokenClient.requestAccessToken({ prompt:'none', login_hint:hint }); }catch(e){} }
 }
@@ -2079,7 +2082,7 @@ function initGIS(){
 
   // Also attempt silent re-auth if no valid token (for returning users without active Firebase session)
   // Guard: skip if Firebase restore is already handling it (_silentAuthFromRestore=true) to avoid double request
-  if(!accessToken && !_silentAuthFromRestore){
+  if(!accessToken && !_silentAuthFromRestore && window.innerWidth > 720){
     const hint = localStorage.getItem('cdx_user_hint');
     if(hint){
       // Show reconnecting state so user knows something is happening
@@ -2153,9 +2156,13 @@ function requestToken(){
     if(btn){ btn.textContent = 'Loading…'; btn.disabled = true; }
     return;
   }
-  const hint=localStorage.getItem('cdx_user_hint')||'';
-  // prompt:'' = use existing account/consent; only shows picker if multiple accounts
-  tokenClient.requestAccessToken({ prompt: hint ? '' : 'select_account', login_hint: hint });
+  const hint = localStorage.getItem('cdx_user_hint') || '';
+  // Always use select_account — forces proper Google account picker popup on all platforms.
+  // On iOS Safari, prompt:'' can silently fail. login_hint pre-fills the email when known but
+  // still shows the picker so there is always visible UI for the user.
+  const opts = { prompt: 'select_account' };
+  if(hint) opts.login_hint = hint;
+  tokenClient.requestAccessToken(opts);
 }
 
 function signOut(){
@@ -2235,13 +2242,27 @@ window.addEventListener('DOMContentLoaded', () => {
       const overlay = document.getElementById('signin-overlay');
       const hasValidToken = accessToken && Date.now() < tokenExpiry - 90000;
       if(overlay && !overlay.classList.contains('hidden') && !hasValidToken){
-        overlay.classList.add('hidden');
         const storedEmail = localStorage.getItem('cdx_user_hint') || '';
-        if(storedEmail) document.getElementById('sync-user').textContent = storedEmail;
-        showSyncBar('Session restored \u2014 reconnecting calendar\u2026', '');
-        _pendingFirebaseAutoConnect = true;
-        _silentAuthFromRestore = true;
-        _maybeAutoConnect();
+        if(window.innerWidth <= 720){
+          // Mobile: keep overlay visible — prompt:'none' hangs on iOS Safari.
+          // Update overlay to a "reconnect" state so user knows to tap to continue.
+          const sub = document.querySelector('#signin-overlay .signin-sub');
+          const btn = document.getElementById('signin-btn');
+          if(sub) sub.innerHTML = storedEmail
+            ? 'Welcome back, ' + escHtml(storedEmail.split('@')[0]) + '!<br>Tap to reconnect your Google account.'
+            : 'Session restored.<br>Tap to reconnect Google.';
+          if(btn){ btn.textContent = 'Continue with Google'; btn.disabled = false; }
+          _pendingFirebaseAutoConnect = true;
+          // Do NOT set _silentAuthFromRestore — no silent auth on mobile
+        } else {
+          // Desktop: hide overlay, attempt silent token reconnect in background
+          overlay.classList.add('hidden');
+          if(storedEmail) document.getElementById('sync-user').textContent = storedEmail;
+          showSyncBar('Session restored \u2014 reconnecting calendar\u2026', '');
+          _pendingFirebaseAutoConnect = true;
+          _silentAuthFromRestore = true;
+          _maybeAutoConnect();
+        }
       }
     }
     else { fbUid = null; }
