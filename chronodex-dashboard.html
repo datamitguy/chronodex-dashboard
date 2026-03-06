@@ -638,7 +638,9 @@ body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:4
 #sync-user { margin-left:auto; color:var(--ink-faint); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px; }
 .signout-btn { background:none; border:1px solid var(--border); border-radius:3px; color:var(--ink-dim); font-family:'JetBrains Mono',monospace; font-size:11px; padding:4px 10px; cursor:pointer; min-height:30px; }
 .signout-btn:active { background:var(--ink-faint); }
-.loading-msg { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); padding:20px 16px; }
+.loading-msg { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); padding:20px 16px; text-align:center; }
+#reconnect-bar { position:fixed; bottom:0; left:0; right:0; z-index:2050; background:var(--surface); border-top:2px solid var(--gold); padding:8px 16px; display:flex; align-items:center; gap:10px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-dim); }
+#reconnect-btn { background:var(--gold-dim); border:1.5px solid var(--gold); color:var(--gold); font-family:'JetBrains Mono',monospace; font-size:11px; padding:5px 14px; border-radius:4px; cursor:pointer; }
 
 /* ══ ADD ENTRY MODAL ══ */
 .modal-backdrop { position:fixed; inset:0; z-index:900; background:rgba(0,0,0,0.55); display:none; align-items:center; justify-content:center; }
@@ -1353,6 +1355,9 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
   <button class="sbtn" id="sbtn-habits" title="Habits" onclick="openHabits()">&#129419;</button>
   <button class="sbtn" id="sbtn-lifeos" title="Life OS" onclick="openLifeOS()">&#10010;</button>
   <div class="ah-sep"></div>
+  <button class="sbtn on" id="sbtn-cal" title="Toggle calendar" onclick="toggleSidePanel('left')">&#128197;</button>
+  <button class="sbtn on" id="sbtn-tasks" title="Toggle tasks" onclick="toggleSidePanel('tasks')">&#9745;</button>
+  <div class="ah-sep"></div>
   <button class="sbtn" id="theme-btn" title="Toggle theme">&#9788;</button>
 </header>
 
@@ -1360,8 +1365,7 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
 <section class="panel" id="panel-left">
   <!-- Desktop panel header: toggle + title + add event + view selector -->
   <div class="panel-header" id="cal-panel-hdr">
-    <button class="sbtn on" id="sbtn-cal" title="Toggle calendar" onclick="toggleSidePanel('left')">&#128197;</button>
-    <span class="ah-lbl" id="left-title" style="margin-left:4px;max-width:120px;overflow:hidden;text-overflow:ellipsis"></span>
+    <span class="ah-lbl" id="left-title" style="max-width:120px;overflow:hidden;text-overflow:ellipsis"></span>
     <div style="flex:1"></div>
     <button class="add-btn" id="add-event-btn" title="Add event">+</button>
     <div class="view-toggle" style="margin-left:6px">
@@ -1389,8 +1393,7 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
 <section class="panel" id="panel-tasks">
   <!-- Desktop panel header: toggle + title + add task -->
   <div class="panel-header" id="task-panel-hdr">
-    <button class="sbtn on" id="sbtn-tasks" title="Toggle tasks" onclick="toggleSidePanel('tasks')">&#9745;</button>
-    <span class="ah-lbl" style="margin-left:4px">Tasks</span>
+    <span class="ah-lbl">Tasks</span>
     <div style="flex:1"></div>
     <button class="add-btn" id="add-task-btn" title="Add task">+</button>
   </div>
@@ -1798,6 +1801,12 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
   <button class="signout-btn" id="signout-btn">Sign out</button>
 </div>
 
+<!-- RECONNECT BAR (shown when Firebase session restores but silent Google token refresh fails) -->
+<div id="reconnect-bar" style="display:none">
+  <span>Calendar disconnected —</span>
+  <button id="reconnect-btn">Reconnect Google</button>
+</div>
+
 <!-- EVENT PICKER (tap dial) -->
 <div id="event-picker">
   <div class="picker-label">Start Pomodoro for</div>
@@ -2001,6 +2010,7 @@ function clearSession(){ accessToken=null;tokenExpiry=0;currentUser=''; try{loca
 // ── Auto-connect: fires when BOTH Firebase session is restored AND GIS is ready ──
 let _gisTokenClientReady = false;
 let _pendingFirebaseAutoConnect = false;
+let _silentAuthFromRestore = false;
 function _maybeAutoConnect(){
   if(!_gisTokenClientReady || !_pendingFirebaseAutoConnect) return;
   _pendingFirebaseAutoConnect = false;
@@ -2023,6 +2033,9 @@ function initGIS(){
       }
       accessToken = resp.access_token;
       tokenExpiry  = Date.now() + (resp.expires_in - 60)*1000;
+      _silentAuthFromRestore = false;
+      const rb = document.getElementById('reconnect-bar');
+      if(rb) rb.style.display = 'none';
       await fetchUserInfo(); saveSession();
       await fbSignInWithGoogleToken(accessToken);   // sign into Firebase with same Google token
       document.getElementById('signin-overlay').classList.add('hidden');
@@ -2031,6 +2044,12 @@ function initGIS(){
     },
     // error_callback fires when silent prompt:'none' fails (no existing session / revoked)
     error_callback: ()=>{
+      if(_silentAuthFromRestore){
+        _silentAuthFromRestore = false;
+        const rb = document.getElementById('reconnect-bar');
+        if(rb) rb.style.display = 'flex';
+        return; // sign-in button is hidden under dismissed overlay — show reconnect bar instead
+      }
       const btn = document.getElementById('signin-btn');
       if(btn){ btn.textContent = 'Sign in with Google'; btn.disabled = false; }
       const sub = document.querySelector('#signin-overlay .signin-sub');
@@ -2047,7 +2066,7 @@ function initGIS(){
   if(_pendingSignIn){
     _pendingSignIn = false;
     const btn = document.getElementById('signin-btn');
-    if(btn){ btn.textContent = 'Sign in with Google ↩ Tap again'; btn.disabled = false; }
+    if(btn){ btn.textContent = 'Sign in with Google'; btn.disabled = false; }
     _maybeAutoConnect();
     return;
   }
@@ -2124,7 +2143,7 @@ function requestToken(){
   }
   const hint=localStorage.getItem('cdx_user_hint')||'';
   // prompt:'' = use existing account/consent; only shows picker if multiple accounts
-  tokenClient.requestAccessToken({prompt:'', login_hint:hint});
+  tokenClient.requestAccessToken({ prompt: hint ? '' : 'select_account', login_hint: hint });
 }
 
 function signOut(){
@@ -2147,6 +2166,10 @@ function signOut(){
 
 document.getElementById('signin-btn').addEventListener('click', requestToken);
 document.getElementById('signout-btn').addEventListener('click', signOut);
+document.getElementById('reconnect-btn').addEventListener('click', () => {
+  document.getElementById('reconnect-bar').style.display = 'none';
+  requestToken();
+});
 
 // ── FIREBASE AUTH HELPERS ─────────────────────────────
 // Called after GIS gives us a Google access token.
@@ -2205,6 +2228,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if(storedEmail) document.getElementById('sync-user').textContent = storedEmail;
         showSyncBar('Session restored \u2014 reconnecting calendar\u2026', '');
         _pendingFirebaseAutoConnect = true;
+        _silentAuthFromRestore = true;
         _maybeAutoConnect();
       }
     }
