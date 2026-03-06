@@ -2024,8 +2024,13 @@ function _maybeAutoConnect(){
 }
 
 function initGIS(){
+  // Use redirect flow on mobile — popup auth is silently blocked by iOS Safari and Android Chrome
+  const _isMobileAuth = window.innerWidth <= 720 || /Mobi|Android/i.test(navigator.userAgent);
+  const _redirectUri  = window.location.origin + window.location.pathname;
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID, scope: SCOPES,
+    ux_mode:      _isMobileAuth ? 'redirect' : 'popup',
+    redirect_uri: _isMobileAuth ? _redirectUri : undefined,
     callback: async (resp) => {
       if(resp.error){
         // Reset button so user can retry
@@ -2052,9 +2057,14 @@ function initGIS(){
       clearTimeout(_silentReconnectTimer);
       if(_silentAuthFromRestore){
         _silentAuthFromRestore = false;
-        const rb = document.getElementById('reconnect-bar');
-        if(rb) rb.style.display = 'flex';
-        return; // sign-in button is hidden under dismissed overlay — show reconnect bar instead
+        // Re-show overlay with clear reconnect CTA — small reconnect bar is too easy to miss
+        const overlay = document.getElementById('signin-overlay');
+        const sub = document.querySelector('#signin-overlay .signin-sub');
+        const btn = document.getElementById('signin-btn');
+        if(overlay) overlay.classList.remove('hidden');
+        if(sub) sub.innerHTML = 'Calendar disconnected.<br>Tap to reconnect your Google account.';
+        if(btn){ btn.textContent = 'Reconnect Google'; btn.disabled = false; }
+        return;
       }
       const btn = document.getElementById('signin-btn');
       if(btn){ btn.textContent = 'Sign in with Google'; btn.disabled = false; }
@@ -2066,13 +2076,18 @@ function initGIS(){
   // Mark GIS as ready
   _gisTokenClientReady = true;
 
-  // If user tapped the sign-in button before GIS finished loading — re-enable button so
-  // they can tap again. We cannot call requestAccessToken here because it's not inside a
-  // user-gesture context on mobile (popup would be blocked by the browser).
+  // If user tapped the sign-in button before GIS finished loading — GIS is now ready.
+  // Restore subtitle message; button was never disabled (Fix 3), user can tap again.
   if(_pendingSignIn){
     _pendingSignIn = false;
+    const sub = document.querySelector('#signin-overlay .signin-sub');
     const btn = document.getElementById('signin-btn');
-    if(btn){ btn.textContent = 'Sign in with Google'; btn.disabled = false; }
+    // Only reset subtitle/button if we set the "Connecting..." message; preserve Firebase-set labels
+    if(sub && sub.textContent.includes('Connecting to Google')){
+      if(btn && btn.textContent !== 'Continue with Google'){
+        sub.innerHTML = 'Your day, at a glance.<br>Sign in to load your calendar &amp; tasks.';
+      }
+    }
     _maybeAutoConnect();
     return;
   }
@@ -2090,11 +2105,13 @@ function initGIS(){
       if(sub) sub.innerHTML = 'Reconnecting as ' + hint.split('@')[0] + '&hellip;';
       const btn = document.getElementById('signin-btn');
       if(btn){ btn.textContent = 'Reconnecting…'; btn.disabled = true; }
-      // Safety: if neither callback nor error_callback fires (iOS Safari hang), reset after 5s
+      // Safety: if neither callback nor error_callback fires (iOS Safari hang), re-show overlay after 5s
       _silentReconnectTimer = setTimeout(()=>{
         if(btn && btn.disabled){
-          btn.textContent = 'Sign in with Google'; btn.disabled = false;
-          if(sub) sub.innerHTML = 'Your day, at a glance.<br>Sign in to load your calendar &amp; tasks.';
+          const overlay = document.getElementById('signin-overlay');
+          if(overlay) overlay.classList.remove('hidden');
+          btn.textContent = 'Reconnect Google'; btn.disabled = false;
+          if(sub) sub.innerHTML = 'Calendar disconnected.<br>Tap to reconnect.';
         }
       }, 5000);
       setTimeout(()=>{
@@ -2114,6 +2131,9 @@ function initGIS(){
 // If silent refresh fails the token naturally expires; user re-auths on next manual sync.
 async function maybeRefreshToken(){
   if(!tokenClient || !accessToken) return;
+  // Skip silent refresh on mobile — token client uses redirect mode there,
+  // and prompt:'none' with redirect could navigate away unexpectedly
+  if(window.innerWidth <= 720 || /Mobi|Android/i.test(navigator.userAgent)) return;
   const timeLeft = tokenExpiry - Date.now();
   if(timeLeft < 10 * 60 * 1000){
     try {
@@ -2150,16 +2170,14 @@ async function fetchUserInfo(){
 let _pendingSignIn = false;
 function requestToken(){
   if(!tokenClient){
-    // GIS not loaded yet — queue the request so initGIS() executes it automatically
+    // GIS not loaded yet — mark pending and show message; do NOT disable the button
+    // (disabling causes permanent stuck state if GIS is slow or fails)
     _pendingSignIn = true;
-    const btn = document.getElementById('signin-btn');
-    if(btn){ btn.textContent = 'Loading…'; btn.disabled = true; }
+    const sub = document.querySelector('#signin-overlay .signin-sub');
+    if(sub) sub.innerHTML = 'Connecting to Google&hellip; tap again in a moment.';
     return;
   }
   const hint = localStorage.getItem('cdx_user_hint') || '';
-  // Always use select_account — forces proper Google account picker popup on all platforms.
-  // On iOS Safari, prompt:'' can silently fail. login_hint pre-fills the email when known but
-  // still shows the picker so there is always visible UI for the user.
   const opts = { prompt: 'select_account' };
   if(hint) opts.login_hint = hint;
   tokenClient.requestAccessToken(opts);
@@ -4485,6 +4503,7 @@ const _gisWait=setInterval(()=>{
     }
   } else if(_gisWaitCount > 60){ // ~9 seconds — GIS script failed to load
     clearInterval(_gisWait);
+    _pendingSignIn = false;
     const btn = document.getElementById('signin-btn');
     const sub = document.querySelector('#signin-overlay .signin-sub');
     if(btn){ btn.textContent = 'Sign in with Google'; btn.disabled = false; }
