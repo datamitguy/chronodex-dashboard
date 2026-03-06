@@ -149,7 +149,7 @@ body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:4
 #app-header .add-btn     { font-size:14px; padding:1px 7px; min-height:24px; min-width:24px; border-width:1.5px; }
 #app-header .sbtn        { width:26px; height:26px; font-size:14px; }
 /* Brand label */
-#header-brand            { font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.22em; text-transform:uppercase; color:var(--accent); white-space:nowrap; margin-left:5px; font-weight:400; }
+#header-brand            { font-family:'JetBrains Mono',monospace; font-size:15px; letter-spacing:0.22em; text-transform:uppercase; color:var(--accent); white-space:nowrap; margin-left:6px; font-weight:400; }
 
 .panel { border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; min-width:0; }
 #panel-left { border-right:none; }
@@ -248,7 +248,7 @@ body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:4
 /* CHRONODEX */
 #panel-chrono { background:var(--bg); }
 #panel-left, #panel-tasks { background:var(--surface); }
-.chrono-wrapper { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:space-evenly; gap:0; padding:16px 20px 20px; width:100%; }
+.chrono-wrapper { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:space-evenly; gap:0; padding:12px 20px 12px; width:100%; }
 .time-display { text-align:center; }
 .time-big { font-size:76px; font-weight:300; letter-spacing:0.04em; line-height:1; font-variant-numeric:tabular-nums; display:block; }
 .time-date { font-family:'JetBrains Mono',monospace; font-size:15px; color:var(--ink-dim); letter-spacing:0.18em; margin-top:8px; text-transform:uppercase; display:block; }
@@ -256,10 +256,10 @@ body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:4
 #chronodex-canvas { max-width:100%; display:block; pointer-events:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; outline:none; border:none; -webkit-appearance:none; appearance:none; }
 .chrono-canvas-wrap { position:relative; display:block; width:100%; }
 .chrono-tap-overlay { position:absolute; inset:0; cursor:pointer; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
-.next-strip { background:var(--ink-faint); border:2px solid var(--border); border-radius:3px; padding:12px 18px; width:100%; }
-.next-lbl { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.18em; color:var(--ink-dim); text-transform:uppercase; margin-bottom:3px; }
-.next-title { font-size:18px; font-weight:400; color:var(--gold); }
-.next-time { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); margin-top:2px; }
+.next-strip { background:var(--ink-faint); border:1px solid var(--border); border-radius:3px; padding:7px 14px; width:100%; }
+.next-lbl { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.18em; color:var(--ink-dim); text-transform:uppercase; margin-bottom:2px; }
+.next-title { font-size:15px; font-weight:400; color:var(--gold); }
+.next-time { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-dim); margin-top:1px; }
 
 /* EVENT PICKER */
 #event-picker { position:fixed; z-index:500; display:none; background:var(--surface); border:2px solid var(--border); border-radius:6px; min-width:230px; max-width:320px; }
@@ -422,41 +422,62 @@ body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:4
   }
   #mob-fab.hidden { opacity: 0; pointer-events: none; transform: scale(0.85); }
 
-  /* ── More drawer: anchored just above nav ── */
+  /* ── Side drawer: slides in from the left ── */
   #mob-more-backdrop {
     display: none;
     position: fixed; inset: 0; z-index: 800;
-    background: rgba(0,0,0,0.60);
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
   }
   #mob-more-backdrop.open { display: block; }
   #mob-more-drawer {
     position: fixed;
-    bottom: calc(56px + env(safe-area-inset-bottom)); left: 0; right: 0;
+    top: 0; left: 0; bottom: 0;
+    width: min(300px, 82vw);
     z-index: 850;
     background: var(--surface);
-    border-top: 2px solid var(--border);
-    border-radius: 18px 18px 0 0;
-    padding: 10px 0 8px;
-    transform: translateY(100%);
-    transition: transform 0.26s cubic-bezier(0.4,0,0.2,1);
-    /* drag handle */
+    border-right: 1px solid var(--border);
+    padding: max(env(safe-area-inset-top), 16px) 0 max(env(safe-area-inset-bottom), 16px);
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
   }
-  #mob-more-drawer::before {
-    content: '';
-    display: block;
-    width: 36px; height: 4px;
-    background: var(--border);
-    border-radius: 2px;
-    margin: 0 auto 10px;
+  #mob-more-drawer.open { transform: translateX(0); }
+  #mob-drawer-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
   }
-  #mob-more-drawer.open { transform: translateY(0); }
+  #mob-drawer-header svg { color: var(--accent); flex-shrink: 0; }
+  #mob-drawer-brand {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 400;
+  }
+  .mob-drawer-section-lbl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.20em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    padding: 10px 20px 4px;
+  }
   .mob-drawer-item {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 14px 24px;
+    padding: 13px 20px;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 14px;
+    font-size: 13px;
     letter-spacing: 0.06em;
     color: var(--ink);
     cursor: pointer;
@@ -466,11 +487,12 @@ body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:4
     text-align: left;
     -webkit-user-select: none;
     user-select: none;
-    min-height: 52px;
+    min-height: 48px;
   }
   .mob-drawer-item:active { background: var(--ink-faint); }
-  .mob-drawer-item .mob-drawer-icon { font-size: 22px; width: 30px; text-align: center; flex-shrink: 0; }
-  .mob-drawer-sep { height: 1px; background: var(--border); margin: 4px 20px; }
+  .mob-drawer-item.active-nav { color: var(--accent); }
+  .mob-drawer-item .mob-drawer-icon { font-size: 20px; width: 28px; text-align: center; flex-shrink: 0; }
+  .mob-drawer-sep { height: 1px; background: var(--border); margin: 6px 20px; }
   #mob-more-nav-btn { color: var(--accent); }
 
   /* ── Cosmodex ── */
@@ -547,7 +569,7 @@ body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:4
 #mob-more-backdrop { display: none; }
 #mob-more-drawer   { display: none; }
 @media (max-width: 720px) {
-  #mob-more-drawer { display: block; } /* block so transform works; visibility controlled by .open */
+  #mob-more-drawer { display: flex; } /* flex so transform works; visibility controlled by .open */
 }
 
 /* Mobile bottom navigation */
@@ -1307,7 +1329,7 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
 <!-- UNIFIED APP HEADER -->
 <header id="app-header">
   <!-- Brand -->
-  <svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:22px;height:22px;flex-shrink:0;color:var(--accent)">
+  <svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:30px;height:30px;flex-shrink:0;color:var(--accent)">
     <circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.5" opacity="0.7"/>
     <circle cx="11" cy="11" r="5.5" stroke="currentColor" stroke-width="1" opacity="0.5"/>
     <circle cx="11" cy="11" r="1.5" fill="currentColor"/>
@@ -1350,6 +1372,7 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
   </div>
   <!-- Mobile-only toolbar: title + view toggle + add event -->
   <div class="mob-panel-bar" id="mob-cal-bar">
+    <button class="mob-bar-btn" title="Menu" onclick="mobDrawerOpen()" style="font-size:18px;margin-right:2px">&#9776;</button>
     <span class="mob-bar-title">&#128197; Calendar</span>
     <div class="view-toggle">
       <button class="view-btn active" data-view="day">Day</button>
@@ -1373,6 +1396,7 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
   </div>
   <!-- Mobile-only toolbar: tasks label + add task (hidden on desktop via CSS) -->
   <div class="mob-panel-bar" id="mob-task-bar">
+    <button class="mob-bar-btn" title="Menu" onclick="mobDrawerOpen()" style="font-size:18px;margin-right:2px">&#9776;</button>
     <span class="mob-bar-title">&#9745; Tasks</span>
     <button class="add-btn" id="mob-add-task-btn" title="Add task">+</button>
   </div>
@@ -1388,6 +1412,7 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
 <section class="panel" id="panel-chrono">
   <!-- Mobile-only toolbar: brand + theme toggle + sync -->
   <div class="mob-panel-bar" id="mob-chrono-bar">
+    <button class="mob-bar-btn" title="Menu" onclick="mobDrawerOpen()" style="font-size:18px;margin-right:2px">&#9776;</button>
     <span class="mob-bar-title">&#9711; Cosmodex</span>
     <button class="mob-bar-btn" id="mob-theme-btn" title="Toggle theme" onclick="document.getElementById('theme-btn').click()">&#9788;</button>
     <button class="mob-bar-btn" title="Sync" onclick="loadAllData()">&#8635;</button>
@@ -2006,14 +2031,15 @@ function initGIS(){
   // Mark GIS as ready
   _gisTokenClientReady = true;
 
-  // If user tapped the sign-in button before GIS finished loading — execute their queued request
+  // If user tapped the sign-in button before GIS finished loading — re-enable button so
+  // they can tap again. We cannot call requestAccessToken here because it's not inside a
+  // user-gesture context on mobile (popup would be blocked by the browser).
   if(_pendingSignIn){
     _pendingSignIn = false;
     const btn = document.getElementById('signin-btn');
-    if(btn){ btn.textContent = 'Sign in with Google'; btn.disabled = false; }
-    const hint = localStorage.getItem('cdx_user_hint') || '';
-    tokenClient.requestAccessToken({prompt:'', login_hint:hint});
-    return; // don't also attempt silent re-auth
+    if(btn){ btn.textContent = 'Sign in with Google ↩ Tap again'; btn.disabled = false; }
+    _maybeAutoConnect();
+    return;
   }
 
   // Attempt auto-connect if Firebase session is already restored
@@ -4821,14 +4847,12 @@ async function habitDelete(habitId){
   _habits = _habits.filter(h => h.id !== habitId);
   renderHabits();
 
-  const { doc, updateDoc, serverTimestamp } = window.CDX_FB;
+  const { doc, deleteDoc } = window.CDX_FB;
   try {
-    await updateDoc(doc(window.CDX_DB, 'users', fbUid, 'habits', habitId), {
-      archivedAt: serverTimestamp()
-    });
+    await deleteDoc(doc(window.CDX_DB, 'users', fbUid, 'habits', habitId));
   } catch(e){
     console.warn('habitDelete error:', e);
-    showSyncBar('Could not archive habit', 'err');
+    showSyncBar('Could not delete habit', 'err');
     // Revert
     if(removed) { _habits.push(removed); _habits.sort((a,b)=>(a.order??0)-(b.order??0)); }
     renderHabits();
@@ -5213,14 +5237,41 @@ ${ctx}`;
     <span>Cosmodex</span>
   </button>
   <button class="mob-nav-btn" id="mob-more-nav-btn" onclick="mobDrawerOpen()">
-    <span class="mob-nav-icon">&#8942;</span>
-    <span>More</span>
+    <span class="mob-nav-icon">&#9776;</span>
+    <span>Menu</span>
   </button>
 </div>
 
-<!-- MOBILE MORE DRAWER -->
+<!-- MOBILE SIDE DRAWER -->
 <div id="mob-more-backdrop" onclick="mobDrawerClose()"></div>
 <div id="mob-more-drawer">
+  <!-- Header -->
+  <div id="mob-drawer-header">
+    <svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:24px;height:24px">
+      <circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.5" opacity="0.7"/>
+      <circle cx="11" cy="11" r="5.5" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+      <circle cx="11" cy="11" r="1.5" fill="currentColor"/>
+      <line x1="11" y1="2" x2="11" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="11" y1="17" x2="11" y2="20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+      <line x1="2" y1="11" x2="5" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+      <line x1="17" y1="11" x2="20" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+    </svg>
+    <span id="mob-drawer-brand">Cosmodex</span>
+  </div>
+  <!-- Views -->
+  <div class="mob-drawer-section-lbl">Views</div>
+  <button class="mob-drawer-item" data-drawer-panel="panel-left" onclick="mobDrawerClose();mobileSwitchPanel('panel-left',document.querySelector('.mob-nav-btn[data-panel=panel-left]'))">
+    <span class="mob-drawer-icon">&#128197;</span>Calendar
+  </button>
+  <button class="mob-drawer-item" data-drawer-panel="panel-tasks" onclick="mobDrawerClose();mobileSwitchPanel('panel-tasks',document.querySelector('.mob-nav-btn[data-panel=panel-tasks]'))">
+    <span class="mob-drawer-icon">&#9745;</span>Tasks
+  </button>
+  <button class="mob-drawer-item" data-drawer-panel="panel-chrono" onclick="mobDrawerClose();mobileSwitchPanel('panel-chrono',document.querySelector('.mob-nav-btn[data-panel=panel-chrono]'))">
+    <span class="mob-drawer-icon">&#11044;</span>Cosmodex
+  </button>
+  <div class="mob-drawer-sep"></div>
+  <!-- Tools -->
+  <div class="mob-drawer-section-lbl">Tools</div>
   <button class="mob-drawer-item" onclick="mobDrawerClose();openHabits()">
     <span class="mob-drawer-icon">&#129419;</span>Habits &amp; Routines
   </button>
@@ -5231,6 +5282,8 @@ ${ctx}`;
     <span class="mob-drawer-icon">&#128200;</span>Insights
   </button>
   <div class="mob-drawer-sep"></div>
+  <!-- Actions -->
+  <div class="mob-drawer-section-lbl">Actions</div>
   <button class="mob-drawer-item" onclick="mobDrawerClose();document.getElementById('pomo-open-btn').click()">
     <span class="mob-drawer-icon">&#9650;</span>Focus Timer
   </button>
@@ -5241,8 +5294,12 @@ ${ctx}`;
     <span class="mob-drawer-icon">&#9670;</span>Ask Cosmos
   </button>
   <div class="mob-drawer-sep"></div>
+  <!-- System -->
   <button class="mob-drawer-item" onclick="mobDrawerClose();loadAllData()">
     <span class="mob-drawer-icon">&#8635;</span>Sync
+  </button>
+  <button class="mob-drawer-item" onclick="mobDrawerClose();document.getElementById('theme-btn').click()">
+    <span class="mob-drawer-icon">&#9788;</span>Toggle Theme
   </button>
   <button class="mob-drawer-item" onclick="mobDrawerClose();signOut()" style="color:var(--red)">
     <span class="mob-drawer-icon">&#9661;</span>Sign out
