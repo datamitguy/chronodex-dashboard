@@ -837,6 +837,31 @@ body { display:grid; grid-template-columns:1fr 340px 340px; grid-template-rows:4
   transition:opacity 0.1s;
 }
 .ig-cell:hover { opacity:0.75; }
+/* Insights widget cards */
+.insights-widget {
+  background:var(--ink-faint); border:1px solid var(--border); border-radius:12px; padding:16px; text-align:left;
+}
+.insights-widget-title {
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:4px;
+}
+.ins-stat-card {
+  background:var(--ink-faint); border:1px solid var(--border); border-radius:10px;
+  padding:14px 18px; min-width:110px; flex:1;
+}
+.ins-stat-card-val {
+  font-family:'JetBrains Mono',monospace; font-size:26px; font-weight:700; color:var(--accent); line-height:1.1;
+}
+.ins-stat-card-lbl {
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  text-transform:uppercase; letter-spacing:0.10em; color:var(--ink-dim); margin-top:5px;
+}
+.ins-bar-col { display:flex; flex-direction:column; align-items:center; flex:1; min-width:0; }
+.ins-bar {
+  width:100%; background:var(--accent); border-radius:3px 3px 0 0;
+  transition:height 500ms cubic-bezier(0.25,0.46,0.45,0.94); min-height:2px;
+}
+.ins-bar-lbl { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--ink-dim); text-align:center; margin-top:3px; }
 
 /* ── BREATHING RING ── */
 .breath-section { display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px 0 4px; }
@@ -1337,18 +1362,14 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
   background-size: 28px 28px;
   opacity: 0.55;
 }
-[data-theme="dark"] body::after {
-  content:'';
+/* Ambient top glow — rendered as a DOM element to avoid body::after conflict with paper grain */
+#cdx-bg-glow {
   position:fixed; top:-160px; left:50%; transform:translateX(-50%);
   width:1000px; height:440px; pointer-events:none; z-index:0;
   background: radial-gradient(ellipse at 50% 0%, rgba(61,184,255,0.065) 0%, transparent 65%);
+  opacity:0; transition:opacity 400ms ease;
 }
-/* Panels and header must sit above body pseudo-elements */
-#app-header, .panel, #panel-chrono,
-#pomo-overlay, #notes-overlay, #habits-overlay,
-#lifeos-overlay, #insights-overlay, #claude-panel,
-#signin-overlay, #event-picker, #modal-confirm,
-#modal-event, #modal-task { position:relative; z-index:1; }
+[data-theme="dark"] #cdx-bg-glow { opacity:1; }
 /* Overlays keep their explicit z-index */
 #pomo-overlay    { z-index:800; }
 #notes-overlay   { z-index:810; }
@@ -1527,9 +1548,121 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
   color:var(--ink-dim); border-top:1px solid var(--border);
   display:flex; gap:14px; opacity:0.6;
 }
+
+/* ── PLANNING OVERLAY ── */
+#plan-overlay {
+  display:none; position:fixed; inset:0; z-index:820;
+  background:rgba(3,5,8,0.72); backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  align-items:center; justify-content:center;
+}
+#plan-overlay.open { display:flex; }
+#plan-overlay-box {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:16px; width:min(920px,96vw); max-height:88vh;
+  display:flex; flex-direction:column; overflow:hidden;
+}
+#plan-overlay-header {
+  display:flex; align-items:center; padding:14px 20px;
+  border-bottom:1px solid var(--border); flex-shrink:0;
+}
+#plan-tab-bar {
+  display:flex; gap:4px; background:var(--ink-faint);
+  border-radius:8px; padding:3px;
+}
+.plan-tab {
+  padding:5px 20px; border:none; border-radius:6px; cursor:pointer;
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  background:transparent; color:var(--ink-dim);
+  transition:background 180ms ease, color 180ms ease;
+}
+.plan-tab.active { background:var(--surface); color:var(--accent); }
+.plan-close-btn {
+  margin-left:auto; background:none; border:none; color:var(--ink-dim);
+  font-size:18px; cursor:pointer; padding:4px 8px; line-height:1;
+}
+.plan-panel { display:none; padding:20px; overflow-y:auto; flex:1; }
+.plan-panel.active { display:flex; flex-direction:column; gap:16px; }
+#plan-week-body, #plan-month-body { display:flex; gap:20px; flex:1; min-height:0; }
+.plan-left-col { display:flex; flex-direction:column; gap:10px; width:260px; flex-shrink:0; }
+.plan-right-col { flex:1; display:flex; flex-direction:column; gap:12px; min-width:0; }
+.plan-field-lbl {
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-dim);
+}
+.plan-left-col textarea {
+  background:var(--ink-faint); border:1px solid var(--border); border-radius:8px;
+  color:var(--ink); padding:10px; font-family:'Cormorant Garamond',serif;
+  font-size:15px; resize:vertical; min-height:60px; width:100%; box-sizing:border-box;
+}
+.plan-priority-inp {
+  background:var(--ink-faint); border:1px solid var(--border); border-radius:6px;
+  color:var(--ink); padding:8px 10px; font-family:'Cormorant Garamond',serif;
+  font-size:14px; width:100%; box-sizing:border-box;
+}
+.plan-left-col textarea:focus, .plan-priority-inp:focus {
+  outline:none; border-color:var(--accent);
+}
+#plan-week-nav, #plan-month-nav {
+  display:flex; align-items:center; gap:8px; flex-shrink:0;
+}
+#plan-week-nav button, #plan-month-nav button {
+  background:var(--ink-faint); border:1px solid var(--border); border-radius:6px;
+  color:var(--ink-dim); cursor:pointer; padding:4px 12px;
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  transition:background 150ms ease;
+}
+#plan-week-nav button:hover, #plan-month-nav button:hover { background:var(--accent-dim); color:var(--accent); }
+#plan-week-label, #plan-month-label {
+  font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink); flex:1; text-align:center;
+}
+.plan-month-cal {
+  display:grid; grid-template-columns:repeat(7,1fr); gap:3px;
+  flex-shrink:0; width:100%;
+}
+.pm-day-cell {
+  aspect-ratio:1; background:var(--ink-faint); border-radius:4px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--ink-dim);
+  cursor:default; position:relative; overflow:hidden;
+}
+.pm-day-cell.today { border:1px solid var(--accent); color:var(--accent); }
+.pm-event-dot { width:4px; height:4px; border-radius:50%; background:var(--accent); margin-top:2px; }
+.milestone-row {
+  display:flex; align-items:center; gap:8px; padding:6px 0;
+  border-bottom:1px solid var(--ink-faint);
+}
+.milestone-row input[type="text"] {
+  flex:1; background:transparent; border:none; color:var(--ink);
+  font-family:'Cormorant Garamond',serif; font-size:14px; outline:none;
+}
+.milestone-row input[type="date"] {
+  background:var(--ink-faint); border:1px solid var(--border); border-radius:4px;
+  color:var(--ink-dim); font-family:'JetBrains Mono',monospace; font-size:11px; padding:2px 6px;
+}
+.milestone-row input[type="checkbox"] { accent-color:var(--accent); cursor:pointer; }
+#pm-add-milestone {
+  background:none; border:1px dashed var(--border); border-radius:6px;
+  color:var(--ink-dim); cursor:pointer; padding:6px 12px;
+  font-family:'JetBrains Mono',monospace; font-size:11px; width:100%;
+  transition:border-color 150ms ease, color 150ms ease;
+}
+#pm-add-milestone:hover { border-color:var(--accent); color:var(--accent); }
+.plan-stat-bar { display:flex; flex-direction:column; gap:4px; }
+.plan-stat-bar-label {
+  display:flex; justify-content:space-between;
+  font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim);
+}
+.plan-stat-bar-track { height:6px; background:var(--ink-faint); border-radius:3px; overflow:hidden; }
+.plan-stat-bar-fill { height:100%; background:var(--accent); border-radius:3px; transition:width 500ms cubic-bezier(0.25,0.46,0.45,0.94); }
+@media(max-width:720px){
+  #plan-week-body, #plan-month-body { flex-direction:column; }
+  .plan-left-col { width:100%; }
+}
 </style>
 </head>
 <body>
+<div id="cdx-bg-glow" aria-hidden="true"></div>
 
 <!-- UNIFIED APP HEADER -->
 <header id="app-header">
@@ -1557,6 +1690,7 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
   <button class="sbtn" id="sbtn-insights" title="Insights" onclick="openInsights()">&#128200;</button>
   <button class="sbtn" id="sbtn-habits" title="Habits" onclick="openHabits()">&#129419;</button>
   <button class="sbtn" id="sbtn-lifeos" title="Life OS" onclick="openLifeOS()">&#10010;</button>
+  <button class="sbtn" id="sbtn-plan" title="Planning" onclick="openPlanOverlay('week')">&#128467;</button>
   <div class="ah-sep"></div>
   <button class="sbtn on" id="sbtn-cal" title="Toggle calendar" onclick="toggleSidePanel('left')">&#128197;</button>
   <button class="sbtn on" id="sbtn-tasks" title="Toggle tasks" onclick="toggleSidePanel('tasks')">&#9745;</button>
@@ -1808,18 +1942,23 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
     <button onclick="closeInsights()" style="margin-left:auto;background:none;border:2px solid var(--border);border-radius:5px;color:var(--ink-dim);cursor:pointer;font-size:16px;padding:5px 10px;min-height:44px;min-width:44px">✕</button>
   </div>
   <div class="insights-body">
-    <div>
-      <div class="insights-section-lbl">90-Day Focus Grid — 6 rows &times; 15 days</div>
+    <!-- Stat cards row -->
+    <div id="ins-stat-cards" style="display:flex;gap:12px;flex-wrap:wrap"></div>
+    <!-- Bar chart widget -->
+    <div class="insights-widget">
+      <div class="insights-widget-title">Focus Hours &mdash; Last 8 Weeks</div>
+      <div id="ins-bar-chart" style="display:flex;align-items:flex-end;gap:6px;height:80px;margin-top:8px"></div>
+      <div id="ins-bar-labels" style="display:flex;gap:6px;margin-top:4px"></div>
+    </div>
+    <!-- 90-day heatmap -->
+    <div class="insights-widget">
+      <div class="insights-widget-title">90-Day Focus Grid</div>
       <div class="insights-grid-6x15" id="insights-grid-6x15"></div>
       <div style="display:flex;align-items:center;gap:6px;margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-dim)">
         <span>0h</span>
         <div id="insights-grid-legend" style="display:flex;gap:4px"></div>
         <span>4h+</span>
       </div>
-    </div>
-    <div>
-      <div class="insights-section-lbl">Focus Stats</div>
-      <div class="stat-grid" id="insights-stats"></div>
     </div>
   </div>
 </div>
@@ -4583,7 +4722,8 @@ function closeInsights(){
 async function buildInsights(){
   // Show loading state
   document.getElementById('insights-grid-6x15').innerHTML='<div style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--ink-dim)">Loading…</div>';
-  document.getElementById('insights-stats').innerHTML='';
+  const insStatCards=document.getElementById('ins-stat-cards');
+  if(insStatCards) insStatCards.innerHTML='<div style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--ink-dim)">Loading…</div>';
 
   // Build 90-day map from Firestore focusSessions
   const dayFocus={};   // date → hours of deep work
@@ -4612,24 +4752,53 @@ async function buildInsights(){
   const cells=[];
   for(let i=6;i>=0;i--){ const d=new Date(now);d.setDate(now.getDate()-i);cells.push({date:localDate(d)}); }
 
-  // ── Stats ──
+  // ── Stat cards ──
   const totalHrs=Object.values(dayFocus).reduce((s,v)=>s+v,0);
   const thisWeek=cells.reduce((s,c)=>s+(dayFocus[c.date]||0),0);
   const bestEntry=Object.entries(dayFocus).sort((a,b)=>b[1]-a[1])[0];
-  const statsEl=document.getElementById('insights-stats');
-  statsEl.innerHTML=`
-    <div class="stat-card">
-      <div class="stat-card-lbl">Total 90 days</div>
-      <div class="stat-card-val">${totalHrs.toFixed(1)}<span class="stat-card-unit">h</span></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-card-lbl">This week</div>
-      <div class="stat-card-val">${thisWeek.toFixed(1)}<span class="stat-card-unit">h</span></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-card-lbl">Best day</div>
-      <div class="stat-card-val" style="font-size:18px">${bestEntry?bestEntry[0].slice(5)+' · '+bestEntry[1].toFixed(1)+'h':'—'}</div>
-    </div>`;
+  const daysActive=Object.keys(dayFocus).length;
+  if(insStatCards) insStatCards.innerHTML=`
+    <div class="ins-stat-card"><div class="ins-stat-card-val">${totalHrs.toFixed(0)}h</div><div class="ins-stat-card-lbl">Total Focus</div></div>
+    <div class="ins-stat-card"><div class="ins-stat-card-val">${thisWeek.toFixed(1)}h</div><div class="ins-stat-card-lbl">This Week</div></div>
+    <div class="ins-stat-card"><div class="ins-stat-card-val">${bestEntry?bestEntry[1].toFixed(1)+'h':'—'}</div><div class="ins-stat-card-lbl">Best Day</div></div>
+    <div class="ins-stat-card"><div class="ins-stat-card-val">${daysActive}</div><div class="ins-stat-card-lbl">Days Active</div></div>`;
+
+  // ── Weekly bar chart (last 8 weeks) ──
+  const weekBuckets={};
+  for(let w=7;w>=0;w--){
+    const ws=new Date(now);
+    const dow=ws.getDay();
+    ws.setDate(ws.getDate()-(dow===0?6:dow-1)-w*7);
+    ws.setHours(0,0,0,0);
+    const wLabel=ws.toLocaleDateString('en-GB',{month:'short',day:'numeric'});
+    // compute ISO week key inline
+    const wd=new Date(ws); wd.setDate(wd.getDate()+3-(wd.getDay()+6)%7);
+    const wk1=new Date(wd.getFullYear(),0,4);
+    const wn=1+Math.round(((wd-wk1)/86400000-3+(wk1.getDay()+6)%7)/7);
+    const wkey=`${wd.getFullYear()}-W${String(wn).padStart(2,'0')}`;
+    weekBuckets[wkey]={label:wLabel,h:0};
+  }
+  // accumulate dayFocus into week buckets
+  Object.entries(dayFocus).forEach(([dateStr,hrs])=>{
+    const d=new Date(dateStr+'T00:00');
+    const wd2=new Date(d); wd2.setDate(wd2.getDate()+3-(wd2.getDay()+6)%7);
+    const wk1b=new Date(wd2.getFullYear(),0,4);
+    const wn2=1+Math.round(((wd2-wk1b)/86400000-3+(wk1b.getDay()+6)%7)/7);
+    const wkey2=`${wd2.getFullYear()}-W${String(wn2).padStart(2,'0')}`;
+    if(weekBuckets[wkey2]) weekBuckets[wkey2].h+=hrs;
+  });
+  const maxWH=Math.max(1,...Object.values(weekBuckets).map(b=>b.h));
+  const barChartEl=document.getElementById('ins-bar-chart');
+  const barLabelsEl=document.getElementById('ins-bar-labels');
+  if(barChartEl){
+    barChartEl.innerHTML=Object.values(weekBuckets).map(b=>
+      `<div class="ins-bar-col"><div class="ins-bar" style="height:${(b.h/maxWH*100).toFixed(0)}%" title="${b.h.toFixed(1)}h"></div></div>`).join('');
+  }
+  if(barLabelsEl){
+    barLabelsEl.style.cssText='display:flex;gap:6px;margin-top:4px;';
+    barLabelsEl.innerHTML=Object.values(weekBuckets).map(b=>
+      `<div class="ins-bar-lbl" style="flex:1">${b.label}</div>`).join('');
+  }
 
   // ── 6×15 Focus Grid (90 days, 6 rows × 15 columns) ──
   const gridEl=document.getElementById('insights-grid-6x15');
@@ -5725,6 +5894,68 @@ ${ctx}`;
   </div>
 </div>
 
+<!-- ══ PLANNING OVERLAY ══ -->
+<div id="plan-overlay">
+  <div id="plan-overlay-box">
+    <div id="plan-overlay-header">
+      <div id="plan-tab-bar">
+        <button class="plan-tab active" data-tab="week" onclick="switchPlanTab('week')">Week</button>
+        <button class="plan-tab" data-tab="month" onclick="switchPlanTab('month')">Month</button>
+      </div>
+      <button onclick="closePlanOverlay()" class="plan-close-btn">&#x2715;</button>
+    </div>
+    <!-- Week panel -->
+    <div id="plan-week-panel" class="plan-panel active">
+      <div id="plan-week-nav">
+        <button onclick="shiftPlanWeek(-1)">&#8592;</button>
+        <span id="plan-week-label"></span>
+        <button onclick="shiftPlanWeek(0)">Today</button>
+        <button onclick="shiftPlanWeek(1)">&#8594;</button>
+      </div>
+      <div id="plan-week-body">
+        <div class="plan-left-col">
+          <label class="plan-field-lbl">Intention</label>
+          <textarea id="pw-intention" placeholder="What matters most this week?"></textarea>
+          <label class="plan-field-lbl">Top 3 Priorities</label>
+          <input class="plan-priority-inp" id="pw-p1" placeholder="1.">
+          <input class="plan-priority-inp" id="pw-p2" placeholder="2.">
+          <input class="plan-priority-inp" id="pw-p3" placeholder="3.">
+          <label class="plan-field-lbl">Review &#8212; Went Well</label>
+          <textarea id="pw-went-well" placeholder="What went well?"></textarea>
+          <label class="plan-field-lbl">Carry Forward</label>
+          <textarea id="pw-carry-fwd" placeholder="What to carry forward?"></textarea>
+        </div>
+        <div class="plan-right-col">
+          <div id="pw-task-grid"></div>
+          <div id="pw-stats"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Month panel -->
+    <div id="plan-month-panel" class="plan-panel">
+      <div id="plan-month-nav">
+        <button onclick="shiftPlanMonth(-1)">&#8592;</button>
+        <span id="plan-month-label"></span>
+        <button onclick="shiftPlanMonth(0)">Today</button>
+        <button onclick="shiftPlanMonth(1)">&#8594;</button>
+      </div>
+      <div id="plan-month-body">
+        <div class="plan-right-col" style="max-width:340px;flex-shrink:0;">
+          <div class="plan-month-cal" id="pm-cal-grid"></div>
+        </div>
+        <div class="plan-right-col">
+          <label class="plan-field-lbl">Month Intention</label>
+          <textarea id="pm-intention" placeholder="What do you want to accomplish this month?" style="min-height:72px"></textarea>
+          <label class="plan-field-lbl">Milestones</label>
+          <div id="pm-milestones"></div>
+          <button id="pm-add-milestone" onclick="addMilestone()">+ Add Milestone</button>
+          <div id="pm-stats"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ══ COMMAND PALETTE (Cmd+K / Ctrl+K) ══ -->
 <div id="cmd-palette" role="dialog" aria-modal="true" aria-label="Command palette">
   <div id="cmd-palette-box">
@@ -5848,6 +6079,237 @@ ${ctx}`;
 
   // Expose so other code can open it
   window.openCmdPalette=openPalette;
+})();
+
+// ══ PLANNING OVERLAY ══
+(function(){
+  let _planTab='week';
+  let _planWeekOffset=0;
+  let _planMonthOffset=0;
+  let _planSaveTimer=null;
+
+  function isoWeekKey(date){
+    const d=new Date(date||new Date());
+    d.setHours(0,0,0,0);
+    d.setDate(d.getDate()+3-(d.getDay()+6)%7);
+    const w1=new Date(d.getFullYear(),0,4);
+    const wn=1+Math.round(((d-w1)/86400000-3+(w1.getDay()+6)%7)/7);
+    return `${d.getFullYear()}-W${String(wn).padStart(2,'0')}`;
+  }
+  function monthKey(date){
+    const d=date||new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  }
+  function getWeekStart(offset){
+    const now=new Date();
+    const dow=now.getDay();
+    const mon=new Date(now);
+    mon.setDate(now.getDate()-(dow===0?6:dow-1)+(offset||0)*7);
+    mon.setHours(0,0,0,0);
+    return mon;
+  }
+
+  window.openPlanOverlay=function(tab){
+    _planTab=tab||'week';
+    document.getElementById('plan-overlay').classList.add('open');
+    switchPlanTab(_planTab);
+  };
+  window.closePlanOverlay=function(){
+    document.getElementById('plan-overlay').classList.remove('open');
+  };
+  window.switchPlanTab=function(tab){
+    _planTab=tab;
+    document.querySelectorAll('.plan-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+    document.querySelectorAll('.plan-panel').forEach(p=>p.classList.toggle('active',p.id===`plan-${tab}-panel`));
+    if(tab==='week') buildWeekPlan();
+    else buildMonthPlan();
+  };
+  window.shiftPlanWeek=function(dir){
+    _planWeekOffset=(dir===0)?0:_planWeekOffset+dir;
+    buildWeekPlan();
+  };
+  window.shiftPlanMonth=function(dir){
+    _planMonthOffset=(dir===0)?0:_planMonthOffset+dir;
+    buildMonthPlan();
+  };
+
+  async function buildWeekPlan(){
+    const ws=getWeekStart(_planWeekOffset);
+    const we=new Date(ws); we.setDate(ws.getDate()+6);
+    const fmt=d=>d.toLocaleDateString('en-GB',{month:'short',day:'numeric'});
+    document.getElementById('plan-week-label').textContent=`Week of ${fmt(ws)} \u2013 ${fmt(we)}`;
+    const key=isoWeekKey(ws);
+
+    // Load from Firestore
+    let data={};
+    if(typeof fbUid!=='undefined'&&fbUid&&window.CDX_DB){
+      try{
+        const { doc, getDoc, collection } = window.CDX_FB;
+        const snap=await getDoc(doc(collection(window.CDX_DB,'users',fbUid,'weeklyPlans'),key));
+        if(snap.exists()) data=snap.data();
+      }catch(e){}
+    }
+    document.getElementById('pw-intention').value=data.intention||'';
+    document.getElementById('pw-p1').value=(data.priorities||[])[0]||'';
+    document.getElementById('pw-p2').value=(data.priorities||[])[1]||'';
+    document.getElementById('pw-p3').value=(data.priorities||[])[2]||'';
+    document.getElementById('pw-went-well').value=data.reviewWentWell||'';
+    document.getElementById('pw-carry-fwd').value=data.reviewCarryForward||'';
+
+    // 7-column task grid
+    const days=Array.from({length:7},(_,i)=>{
+      const d=new Date(ws); d.setDate(ws.getDate()+i); return localDate(d);
+    });
+    const grid=document.getElementById('pw-task-grid');
+    grid.innerHTML=`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
+      ${days.map(d=>`<div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-dim);text-align:center;padding:2px 0">
+        ${new Date(d+'T00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric'})}</div>`).join('')}
+      ${days.map(d=>{
+        const dt=TASKS.filter(t=>t.due===d&&!t._parent);
+        return `<div style="background:var(--ink-faint);border-radius:6px;padding:6px;min-height:56px;font-size:12px;font-family:'Cormorant Garamond',serif;overflow:hidden">
+          ${dt.map(t=>`<div style="padding:1px 0;color:${t.done?'var(--ink-dim)':'var(--ink)'};text-decoration:${t.done?'line-through':'none'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${t.title.replace(/"/g,'&quot;')}">${t.title}</div>`).join('')}
+        </div>`;
+      }).join('')}
+    </div>`;
+
+    // Stats
+    const doneTasks=TASKS.filter(t=>t.done&&days.includes(t.due)).length;
+    const totalTasks=TASKS.filter(t=>days.includes(t.due)).length;
+    document.getElementById('pw-stats').innerHTML=`
+      <div class="plan-stat-bar"><div class="plan-stat-bar-label"><span>Tasks Done</span><span>${doneTasks}/${totalTasks}</span></div>
+        <div class="plan-stat-bar-track"><div class="plan-stat-bar-fill" style="width:${totalTasks?Math.round(doneTasks/totalTasks*100):0}%"></div></div></div>`;
+
+    // Wire autosave
+    ['pw-intention','pw-p1','pw-p2','pw-p3','pw-went-well','pw-carry-fwd'].forEach(id=>{
+      document.getElementById(id).oninput=()=>scheduleSave('week',key);
+    });
+  }
+
+  async function buildMonthPlan(){
+    const now=new Date();
+    const target=new Date(now.getFullYear(),now.getMonth()+_planMonthOffset,1);
+    const key=monthKey(target);
+    document.getElementById('plan-month-label').textContent=
+      target.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+
+    let data={};
+    if(typeof fbUid!=='undefined'&&fbUid&&window.CDX_DB){
+      try{
+        const { doc, getDoc, collection } = window.CDX_FB;
+        const snap=await getDoc(doc(collection(window.CDX_DB,'users',fbUid,'monthlyPlans'),key));
+        if(snap.exists()) data=snap.data();
+      }catch(e){}
+    }
+    document.getElementById('pm-intention').value=data.intention||'';
+    document.getElementById('pm-intention').oninput=()=>scheduleSave('month',key);
+
+    // Calendar grid
+    const daysInMonth=new Date(target.getFullYear(),target.getMonth()+1,0).getDate();
+    const firstDow=(new Date(target.getFullYear(),target.getMonth(),1).getDay()+6)%7;
+    const todayStr=localDate(new Date());
+    const calEl=document.getElementById('pm-cal-grid');
+    let html=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>
+      `<div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-dim);text-align:center;padding:2px">${d}</div>`).join('');
+    for(let i=0;i<firstDow;i++) html+=`<div></div>`;
+    for(let d=1;d<=daysInMonth;d++){
+      const ds=`${key}-${String(d).padStart(2,'0')}`;
+      const ev=EVENTS.filter(e=>e.startISO&&e.startISO.startsWith(ds)).length;
+      const isToday=ds===todayStr;
+      html+=`<div class="pm-day-cell${isToday?' today':''}">
+        <span>${d}</span>${ev?`<div class="pm-event-dot"></div>`:''}
+      </div>`;
+    }
+    calEl.innerHTML=html;
+
+    // Milestones
+    renderMilestones(data.milestones||[],key);
+
+    // Stats
+    const doneTasks=TASKS.filter(t=>t.done&&t.due&&t.due.startsWith(key)).length;
+    const totalTasks=TASKS.filter(t=>t.due&&t.due.startsWith(key)).length;
+    document.getElementById('pm-stats').innerHTML=`
+      <div class="plan-stat-bar" style="margin-top:12px"><div class="plan-stat-bar-label"><span>Tasks Done</span><span>${doneTasks}/${totalTasks}</span></div>
+        <div class="plan-stat-bar-track"><div class="plan-stat-bar-fill" style="width:${totalTasks?Math.round(doneTasks/totalTasks*100):0}%"></div></div></div>`;
+  }
+
+  function renderMilestones(milestones,key){
+    const container=document.getElementById('pm-milestones');
+    container.innerHTML=milestones.map((m,i)=>`
+      <div class="milestone-row" data-id="${m.id||i}">
+        <input type="checkbox"${m.done?' checked':''} onchange="schedulePlanSaveGlobal('month','${key}')">
+        <input type="date" value="${m.date||''}" onchange="schedulePlanSaveGlobal('month','${key}')">
+        <input type="text" value="${(m.title||'').replace(/"/g,'&quot;')}" placeholder="Milestone..." oninput="schedulePlanSaveGlobal('month','${key}')">
+        <button onclick="this.parentElement.remove();schedulePlanSaveGlobal('month','${key}')" style="background:none;border:none;color:var(--ink-dim);cursor:pointer;padding:0 4px">&#x2715;</button>
+      </div>`).join('');
+  }
+
+  window.addMilestone=function(){
+    const container=document.getElementById('pm-milestones');
+    const target=new Date();
+    target.setMonth(target.getMonth()+_planMonthOffset);
+    const key=monthKey(target);
+    const row=document.createElement('div');
+    row.className='milestone-row';
+    row.dataset.id=Date.now();
+    row.innerHTML=`
+      <input type="checkbox">
+      <input type="date" value="${localDate(new Date())}" onchange="schedulePlanSaveGlobal('month','${key}')">
+      <input type="text" placeholder="Milestone..." oninput="schedulePlanSaveGlobal('month','${key}')">
+      <button onclick="this.parentElement.remove();schedulePlanSaveGlobal('month','${key}')" style="background:none;border:none;color:var(--ink-dim);cursor:pointer;padding:0 4px">&#x2715;</button>`;
+    container.appendChild(row);
+    row.querySelector('input[type="text"]').focus();
+  };
+
+  function scheduleSave(tab,key){
+    clearTimeout(_planSaveTimer);
+    _planSaveTimer=setTimeout(()=>savePlan(tab,key),800);
+  }
+  // Expose for inline onchange handlers in milestone rows
+  window.schedulePlanSaveGlobal=scheduleSave;
+
+  async function savePlan(tab,key){
+    if(typeof fbUid==='undefined'||!fbUid||!window.CDX_DB) return;
+    const { doc, setDoc, collection, serverTimestamp } = window.CDX_FB;
+    let payload;
+    if(tab==='week'){
+      payload={
+        intention:document.getElementById('pw-intention').value,
+        priorities:[
+          document.getElementById('pw-p1').value,
+          document.getElementById('pw-p2').value,
+          document.getElementById('pw-p3').value,
+        ],
+        reviewWentWell:document.getElementById('pw-went-well').value,
+        reviewCarryForward:document.getElementById('pw-carry-fwd').value,
+        updatedAt:serverTimestamp(),
+      };
+    }else{
+      const milestones=[];
+      document.querySelectorAll('#pm-milestones .milestone-row').forEach(row=>{
+        milestones.push({
+          id:row.dataset.id,
+          date:row.querySelector('input[type="date"]').value,
+          title:row.querySelector('input[type="text"]').value,
+          done:row.querySelector('input[type="checkbox"]').checked,
+        });
+      });
+      payload={
+        intention:document.getElementById('pm-intention').value,
+        milestones,
+        updatedAt:serverTimestamp(),
+      };
+    }
+    try{
+      await setDoc(doc(collection(window.CDX_DB,'users',fbUid,tab==='week'?'weeklyPlans':'monthlyPlans'),key),payload,{merge:true});
+    }catch(e){ console.warn('plan save error:',e); }
+  }
+
+  // Esc to close
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&document.getElementById('plan-overlay').classList.contains('open')){
+      window.closePlanOverlay();
+    }
+  });
 })();
 </script>
 
