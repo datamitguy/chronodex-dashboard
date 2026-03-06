@@ -1707,19 +1707,7 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
       <span class="lifeos-header-title">&#10010; Life OS</span>
       <button class="lifeos-hbtn" id="lifeos-add-btn">+ Project</button>
       <button class="lifeos-hbtn" id="lifeos-sync-btn">&#8635; Sync</button>
-      <button class="lifeos-hbtn" id="lifeos-sheet-btn" title="Link Google Sheet (required on new devices)">&#128202; Sheet</button>
       <button class="lifeos-hclose" id="lifeos-close-btn">&#10005; Close</button>
-      <!-- Sheet link popup -->
-      <div id="lifeos-sheet-pop" style="display:none;position:absolute;top:44px;right:60px;z-index:50;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:16px;width:360px;box-shadow:0 6px 24px rgba(0,0,0,0.35)">
-        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:8px">Google Sheet</div>
-        <a id="lifeos-sheet-link" href="#" target="_blank" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);word-break:break-all;display:block;margin-bottom:12px;text-decoration:none">(not linked)</a>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-dim);margin-bottom:6px;letter-spacing:0.10em">ON A NEW DEVICE — paste the Sheet URL below:</div>
-        <input id="lifeos-sheet-inp" type="text" placeholder="https://docs.google.com/spreadsheets/d/…" autocomplete="off" style="width:100%;background:var(--ink-faint);border:1.5px solid var(--border);border-radius:4px;color:var(--ink);font-family:'JetBrains Mono',monospace;font-size:11px;padding:7px 9px;outline:none;margin-bottom:10px">
-        <div style="display:flex;gap:8px">
-          <button id="lifeos-sheet-set" style="flex:1;background:var(--accent-dim);border:1.5px solid var(--accent);border-radius:4px;color:var(--accent);cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;padding:7px;letter-spacing:0.08em;text-transform:uppercase">Link &amp; Sync</button>
-          <button id="lifeos-sheet-pop-close" style="background:none;border:1.5px solid var(--border);border-radius:4px;color:var(--ink-dim);cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;padding:7px 12px">Cancel</button>
-        </div>
-      </div>
     </div>
 
     <!-- Body -->
@@ -1969,6 +1957,28 @@ const GCAL_COLORS = {'1':'#58a8f0','2':'#46d4a0','3':'#8ccc60','4':'#38c8d8','5'
 // ── AUTH ──────────────────────────────────────────────
 let accessToken = null, tokenExpiry = 0, tokenClient = null, currentUser = '';
 let fbUid = null;   // Firebase UID — set after sign-in; used as Firestore path: users/{fbUid}/
+
+// ── calMeta helpers — Firebase-backed event↔task link storage ─────────────────
+async function writeCalMeta(evId, data, status='active'){
+  if(!fbUid||!window.CDX_DB||!evId) return;
+  const {doc,setDoc,serverTimestamp}=window.CDX_FB;
+  await setDoc(doc(window.CDX_DB,'users',fbUid,'calMeta',evId),
+    {...data,status,updatedAt:serverTimestamp()},{merge:true});
+}
+async function deleteCalMeta(evId){
+  if(!fbUid||!window.CDX_DB||!evId) return;
+  const {doc,deleteDoc}=window.CDX_FB;
+  await deleteDoc(doc(window.CDX_DB,'users',fbUid,'calMeta',evId));
+}
+async function getCalMetaByTaskId(taskId){
+  if(!fbUid||!window.CDX_DB) return null;
+  const {collection,query,where,getDocs}=window.CDX_FB;
+  const snap=await getDocs(
+    query(collection(window.CDX_DB,'users',fbUid,'calMeta'),where('linkedTaskId','==',taskId))
+  );
+  return snap.empty?null:{id:snap.docs[0].id,...snap.docs[0].data()};
+}
+// ──────────────────────────────────────────────────────────────────────────────
 
 try {
   const s = JSON.parse(localStorage.getItem('cdx_tok') || 'null');
@@ -2321,6 +2331,48 @@ async function fetchTasks(){
 }
 
 // ── LOAD ALL ──────────────────────────────────────────
+async function reconcileCalMeta(){
+  // Compare Firebase calMeta with current EVENTS/TASKS arrays.
+  // If an event linked in calMeta has disappeared from Google → cascade-delete the task.
+  // If a task linked in calMeta has disappeared from Google → cascade-delete the event.
+  if(!fbUid||!window.CDX_DB) return;
+  const {collection,getDocs,deleteDoc,doc}=window.CDX_FB;
+  let snap;
+  try{ snap=await getDocs(collection(window.CDX_DB,'users',fbUid,'calMeta')); }catch(e){ return; }
+  const evIds =new Set(EVENTS.map(e=>e.evId));
+  const taskIds=new Set(TASKS.map(t=>t._id));
+  let changed=false;
+  for(const d of snap.docs){
+    const m=d.data();
+    if(m.status==='pending') continue; // skip in-flight writes
+    const evGone  =!evIds.has(d.id);
+    const taskGone=m.linkedTaskId&&!taskIds.has(m.linkedTaskId);
+    if(evGone&&!taskGone&&m.linkedTaskId&&m.linkedListId){
+      // Event deleted externally → cascade-delete linked task
+      try{
+        await fetch(TASKS_API+'/lists/'+encodeURIComponent(m.linkedListId)+'/tasks/'+encodeURIComponent(m.linkedTaskId),
+          {method:'DELETE',headers:{Authorization:'Bearer '+accessToken}});
+        TASKS=TASKS.filter(t=>t._id!==m.linkedTaskId);
+        changed=true;
+      }catch(e){}
+      try{ await deleteDoc(doc(window.CDX_DB,'users',fbUid,'calMeta',d.id)); }catch(e){}
+    }else if(taskGone&&!evGone&&d.id){
+      // Task deleted externally → cascade-delete linked event
+      try{
+        await fetch(CAL_API+'/calendars/'+encodeURIComponent(m.calId)+'/events/'+d.id,
+          {method:'DELETE',headers:{Authorization:'Bearer '+accessToken}});
+        EVENTS=EVENTS.filter(e=>e.evId!==d.id);
+        changed=true;
+      }catch(e){}
+      try{ await deleteDoc(doc(window.CDX_DB,'users',fbUid,'calMeta',d.id)); }catch(e){}
+    }else if(evGone&&taskGone){
+      // Both gone — clean up orphaned calMeta doc
+      try{ await deleteDoc(doc(window.CDX_DB,'users',fbUid,'calMeta',d.id)); }catch(e){}
+    }
+  }
+  if(changed){ renderLeft(); buildTasks(); drawCosmodex(); }
+}
+
 async function loadAllData({silent=false}={}){
   showSyncBar('Syncing\u2026','syncing');
   try{
@@ -2328,6 +2380,7 @@ async function loadAllData({silent=false}={}){
     await Promise.all([fetchEvents(),fetchTasks()]);
     buildCalTabs(); buildTaskTabs();
     renderLeft(); buildTasks(); updateClock(); drawCosmodex();
+    reconcileCalMeta().catch(e=>console.warn('calMeta reconcile:',e)); // non-blocking
     const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
     showSyncBar('Synced \u00b7 '+t,'ok');
   }catch(err){
@@ -2574,6 +2627,9 @@ document.getElementById('t2e-save').addEventListener('click',async()=>{
   const endDT  =new Date(startDT.getTime()+dur*60000);
   document.getElementById('t2e-saving').style.display='';
   document.getElementById('t2e-save').disabled=true;
+  // Firebase-first: write pending calMeta before Google API call
+  const _t2ePendingKey='pending_'+Date.now();
+  if(_t2eSourceTaskId) await writeCalMeta(_t2ePendingKey,{linkedTaskId:_t2eSourceTaskId,linkedListId:_t2eSourceListId,calId,date,startTime:start,durationMin:dur,status:'pending'});
   try{
     const newEv=await apiPost(CAL_API+'/calendars/'+encodeURIComponent(calId)+'/events',{
       summary:title,
@@ -2592,6 +2648,9 @@ document.getElementById('t2e-save').addEventListener('click',async()=>{
     ]);
     // Store calendar badge (includes evId so delete-event can find this task)
     if(_t2eSourceTaskId){
+      // Confirm calMeta with real evId; remove pending placeholder
+      await writeCalMeta(newEv.id,{linkedTaskId:_t2eSourceTaskId,linkedListId:_t2eSourceListId,calId,date,startTime:start,durationMin:dur});
+      await deleteCalMeta(_t2ePendingKey);
       try{
         const tags=JSON.parse(localStorage.getItem('cdx_cal_tags')||'{}');
         tags[_t2eSourceTaskId]={date,start,dur:parseInt(document.getElementById('t2e-dur').value)||30,evId:newEv.id,calId};
@@ -2603,7 +2662,7 @@ document.getElementById('t2e-save').addEventListener('click',async()=>{
       }catch(e){}
     }
     await loadAllData();
-  }catch(err){ showSyncBar('⚠ '+err.message,'err'); }
+  }catch(err){ await deleteCalMeta(_t2ePendingKey); showSyncBar('⚠ '+err.message,'err'); }
   finally{
     document.getElementById('t2e-saving').style.display='none';
     document.getElementById('t2e-save').disabled=false;
@@ -3325,7 +3384,26 @@ async function deleteTask(task){
       method:'DELETE', headers:{Authorization:'Bearer '+accessToken}
     });
     TASKS=TASKS.filter(t=>t._id!==task._id&&t._parent!==task._id); // remove task + its children
-    buildTasks();
+    // Cascade: delete linked calendar event (if any) via localStorage forward link
+    try{
+      const tags=JSON.parse(localStorage.getItem('cdx_cal_tags')||'{}');
+      let ct=tags[task._id];
+      // Cross-device fallback: check Firebase calMeta if localStorage has no link
+      if(!ct) ct=await getCalMetaByTaskId(task._id);
+      if(ct&&ct.evId&&ct.calId){
+        if(ct.status!=='deleting') await writeCalMeta(ct.evId,{status:'deleting'});
+        await fetch(CAL_API+'/calendars/'+encodeURIComponent(ct.calId)+'/events/'+ct.evId,{
+          method:'DELETE', headers:{Authorization:'Bearer '+accessToken}
+        });
+        await deleteCalMeta(ct.evId);
+        delete tags[task._id];
+        localStorage.setItem('cdx_cal_tags',JSON.stringify(tags));
+        const evMap=JSON.parse(localStorage.getItem('cdx_ev_task')||'{}');
+        if(evMap[ct.evId]){ delete evMap[ct.evId]; localStorage.setItem('cdx_ev_task',JSON.stringify(evMap)); }
+        EVENTS=EVENTS.filter(e=>e.evId!==ct.evId);
+      }
+    }catch(ce){ console.warn('deleteTask: linked event cascade failed:',ce); }
+    buildTasks(); renderLeft(); drawCosmodex();
     showSyncBar('Task deleted','ok');
   }catch(e){ showSyncBar('\u26a0 Delete failed','err'); }
 }
@@ -3343,7 +3421,16 @@ async function deleteEventDirect(ev){
     // Delete linked task (if any) — covers both t2e flow and ev-save auto-task
     try{
       const evMap=JSON.parse(localStorage.getItem('cdx_ev_task')||'{}');
-      const link=evMap[ev.evId];
+      let link=evMap[ev.evId];
+      // Cross-device fallback: check Firebase calMeta if localStorage has no link
+      if(!link&&fbUid&&window.CDX_DB){
+        const {doc,getDoc}=window.CDX_FB;
+        const metaSnap=await getDoc(doc(window.CDX_DB,'users',fbUid,'calMeta',ev.evId));
+        if(metaSnap.exists()){
+          const m=metaSnap.data();
+          if(m.linkedTaskId&&m.linkedListId) link={taskId:m.linkedTaskId,listId:m.linkedListId};
+        }
+      }
       if(link&&link.taskId&&link.listId){
         await fetch(TASKS_API+'/lists/'+encodeURIComponent(link.listId)+'/tasks/'+encodeURIComponent(link.taskId),{
           method:'DELETE', headers:{Authorization:'Bearer '+accessToken}
@@ -3356,7 +3443,8 @@ async function deleteEventDirect(ev){
           const badgeEntry=Object.entries(tags).find(([,b])=>b.evId===ev.evId);
           if(badgeEntry){ delete tags[badgeEntry[0]]; localStorage.setItem('cdx_cal_tags',JSON.stringify(tags)); }
         }catch(e){}
-        TASKS=TASKS.filter(t=>t.id!==link.taskId);
+        await deleteCalMeta(ev.evId);
+        TASKS=TASKS.filter(t=>t._id!==link.taskId);
       }
     }catch(te){ console.warn('Linked task delete failed:',te); }
 
@@ -3511,6 +3599,9 @@ document.getElementById('ev-save').addEventListener('click',async()=>{
       }
       showSyncBar('Event updated \u2713','ok');
     }else{
+      // Firebase-first: write pending calMeta before Google API calls
+      const _pendingKey='pending_'+Date.now();
+      await writeCalMeta(_pendingKey,{calId,date,startTime:start,durationMin:dur,status:'pending'});
       // Create new event — keep the response so we can store the link
       const createdEv=await apiPost(CAL_API+'/calendars/'+encodeURIComponent(calId)+'/events',{
         summary:title, start:{dateTime:toISO(startDT)}, end:{dateTime:toISO(endDT)},
@@ -3525,14 +3616,28 @@ document.getElementById('ev-save').addEventListener('click',async()=>{
             title,
             due:new Date(date+'T00:00:00').toISOString(),
           });
+          // Confirm calMeta with real IDs; remove pending placeholder
+          await writeCalMeta(createdEv.id,{
+            linkedTaskId:createdTask.id,linkedListId:otherList.id,
+            calId,date,startTime:start,durationMin:dur
+          });
+          await deleteCalMeta(_pendingKey);
           // Store reverse link: evId → {taskId, listId} so delete-event can clean up the task
           try{
             const evMap=JSON.parse(localStorage.getItem('cdx_ev_task')||'{}');
             evMap[createdEv.id]={taskId:createdTask.id, listId:otherList.id};
             localStorage.setItem('cdx_ev_task',JSON.stringify(evMap));
           }catch(me){}
+          // Store forward link: taskId → {evId, calId, date, start, dur} so delete-task can cascade
+          try{
+            const tags=JSON.parse(localStorage.getItem('cdx_cal_tags')||'{}');
+            tags[createdTask.id]={evId:createdEv.id, calId, date, start, dur};
+            localStorage.setItem('cdx_cal_tags',JSON.stringify(tags));
+          }catch(me){}
+        }else{
+          await deleteCalMeta(_pendingKey); // no task was created, clean up pending doc
         }
-      }catch(te){ console.warn('Auto-task for event failed:',te); }
+      }catch(te){ console.warn('Auto-task for event failed:',te); await deleteCalMeta(_pendingKey); }
       showSyncBar('Event added \u2713','ok');
     }
     closeAddEvent();
@@ -4397,27 +4502,6 @@ document.getElementById('lifeos-sync-btn').addEventListener('click', ()=>{
   showSyncBar('Life OS · '+_losProjects.length+' projects · live sync','ok');
 });
 
-// ── Firebase Console link (replaces old Sheet link popup) ─────────
-document.getElementById('lifeos-sheet-btn').addEventListener('click', ()=>{
-  const pop  = document.getElementById('lifeos-sheet-pop');
-  const link = document.getElementById('lifeos-sheet-link');
-  const open = pop.style.display === 'none';
-  if(open){
-    const url = fbUid
-      ? `https://console.firebase.google.com/project/cosmodex-fffbe/firestore/data/~2Fusers~2F${fbUid}~2Fprojects`
-      : 'https://console.firebase.google.com/project/cosmodex-fffbe/firestore';
-    link.href = url; link.textContent = 'Open Firebase Console →';
-    pop.style.display = 'block';
-  } else {
-    pop.style.display = 'none';
-  }
-});
-document.getElementById('lifeos-sheet-pop-close').addEventListener('click', ()=>{
-  document.getElementById('lifeos-sheet-pop').style.display = 'none';
-});
-document.getElementById('lifeos-sheet-set').addEventListener('click', ()=>{
-  document.getElementById('lifeos-sheet-pop').style.display = 'none';
-});
 
 // ── Category chips ─────────────────────────────────────
 function losBuildChips(){
