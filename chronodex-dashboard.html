@@ -80,18 +80,18 @@ button, a, [role="button"] {
   --pomo-bg:#060a12;
 }
 [data-theme="light"] {
-  --bg:#f2f5f9; --surface:#ffffff; --border:#c8d8ea;
-  --ink:#0d1e36; --ink-dim:#4a6a8a; --ink-faint:#e4ecf4;
-  --accent:#1160c0;
-  --accent-dim:#ccddf5;
-  --accent-glow:rgba(17,96,192,0.10);
-  --gold:#1160c0; --gold-dim:#ccddf5;
-  --red:#c42b2b;
-  --blue:#1160c0;
-  --green:#1160c0;
-  --amber:#1160c0;
-  --lotus:#1160c0;
-  --pomo-bg:#eaf0f8;
+  --bg:#eef2f7; --surface:#ffffff; --border:#bdd0e8;
+  --ink:#0b1a30; --ink-dim:#3c5574; --ink-faint:#dce8f5;
+  --accent:#1a6fdb;
+  --accent-dim:#c5d9f7;
+  --accent-glow:rgba(26,111,219,0.12);
+  --gold:#b06800; --gold-dim:#fdecc7;
+  --red:#b91c1c;
+  --blue:#1a6fdb;
+  --green:#16803a;
+  --amber:#b06800;
+  --lotus:#6d28d9;
+  --pomo-bg:#e4edf8;
 }
 /* Light mode — secondary text uses ink-dim (grey-blue); accent only for truly highlighted items */
 [data-theme="light"] .tab:not(.active),
@@ -479,7 +479,7 @@ body { display:flex; flex-direction:row; height:100dvh; overflow:hidden; max-wid
   width:72px; height:72px; border-radius:50%;
   background:rgba(9,13,20,0.85); backdrop-filter:blur(22px);
   -webkit-backdrop-filter:blur(22px);
-  border:1px solid var(--border);
+  border:1px solid rgba(61,184,255,0.25);
   display:flex; align-items:center; justify-content:center;
   cursor:pointer; z-index:200; overflow:hidden;
   transition:width 360ms cubic-bezier(0.25,0.46,0.45,0.94),
@@ -519,17 +519,25 @@ body { display:flex; flex-direction:row; height:100dvh; overflow:hidden; max-wid
   border-radius:20px; cursor:default;
   animation-play-state:paused !important;
   box-shadow:0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(61,184,255,0.15) !important;
-  z-index:850; overflow:auto;
+  z-index:850; overflow:hidden; background:var(--bg);
+}
+[data-theme="light"] #panel-chrono {
+  background:rgba(255,255,255,0.92);
+  border-color:rgba(26,111,219,0.25);
+}
+[data-theme="light"] #panel-chrono.orb-open {
+  background:#ffffff;
+  box-shadow:0 24px 80px rgba(0,0,0,0.18), 0 0 0 1px rgba(26,111,219,0.18) !important;
 }
 #panel-chrono.orb-open .chrono-wrapper {
   flex-direction:column; padding:14px 20px 16px;
-  justify-content:flex-start; gap:8px; width:auto; height:auto; min-height:100%;
+  justify-content:center; gap:6px; width:100%; height:100%; overflow:hidden;
 }
 #panel-chrono.orb-open .time-display { display:block; text-align:center; }
 #panel-chrono.orb-open .time-big  { font-size:clamp(22px, 3vw, 42px); }
 #panel-chrono.orb-open .time-date { display:block; font-size:13px; }
 #panel-chrono.orb-open .chrono-canvas-wrap {
-  display:block; width:min(90vw,90vh); position:relative; margin:0 auto;
+  display:block; width:100%; max-width:min(72vw,72vh); position:relative; margin:0 auto; flex-shrink:1;
 }
 #panel-chrono.orb-open #cosmodex-canvas {
   width:100% !important; height:auto !important;
@@ -1437,6 +1445,73 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
 }
 .lifeos-del-btn:active { background:rgba(224,85,85,0.15); }
 
+/* ══ JOURNEY MAP ══ */
+#cdx-journey-canvas { display:block; width:100%; border-radius:12px; cursor:default; }
+.journey-stats { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:8px; }
+.journey-stat { font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.12em;
+  text-transform:uppercase; color:var(--ink-dim); }
+.journey-stat strong { color:var(--accent); font-size:16px; display:block; margin-bottom:2px; }
+.journey-milestone-list { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+.journey-milestone { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.08em;
+  padding:3px 8px; border-radius:20px; border:1px solid var(--border);
+  color:var(--ink-dim); background:var(--ink-faint); }
+.journey-milestone.reached { color:var(--accent); border-color:var(--accent); background:var(--accent-dim); }
+
+/* ══ PRODUCTIVITY BADGES ══ */
+.cdx-badges-wall { display:flex; flex-wrap:wrap; gap:10px; }
+.cdx-badge {
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  padding:10px 14px; border-radius:10px; border:1px solid var(--border);
+  background:var(--ink-faint); min-width:80px; position:relative;
+  font-family:'JetBrains Mono',monospace; transition:border-color 200ms;
+}
+.cdx-badge.earned { border-color:var(--accent); background:var(--accent-dim); }
+.cdx-badge-icon { font-size:24px; line-height:1; }
+.cdx-badge-name { font-size:9px; letter-spacing:0.10em; text-transform:uppercase;
+  color:var(--ink-dim); text-align:center; }
+.cdx-badge.earned .cdx-badge-name { color:var(--accent); }
+.cdx-badge-week { font-size:8px; opacity:0.5; text-align:center; }
+.cdx-badges-empty { font-family:'JetBrains Mono',monospace; font-size:12px;
+  color:var(--ink-dim); padding:12px 0; }
+
+/* ══ DICE & WHEEL ══ */
+#cdx-dice-section {
+  display:none; width:100%; max-width:420px; margin:0 auto;
+  text-align:center; padding:0 8px; flex-shrink:0;
+}
+#panel-chrono.orb-open #cdx-dice-section { display:block; }
+.cdx-dice-row { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:8px; }
+.cdx-dice-btn {
+  font-size:28px; background:none; border:1.5px solid var(--border); border-radius:10px;
+  color:var(--accent); cursor:pointer; padding:8px 14px; line-height:1;
+  transition:border-color 200ms, transform 180ms;
+  font-family:'JetBrains Mono',monospace;
+}
+.cdx-dice-btn:hover { border-color:var(--accent); transform:scale(1.08); }
+.cdx-dice-btn:active { transform:scale(0.95); }
+.cdx-wheel-btn {
+  font-size:13px; background:none; border:1.5px solid var(--border); border-radius:8px;
+  color:var(--ink-dim); cursor:pointer; padding:5px 12px; letter-spacing:0.08em;
+  font-family:'JetBrains Mono',monospace; text-transform:uppercase;
+  transition:border-color 200ms, color 200ms;
+}
+.cdx-wheel-btn:hover { border-color:var(--accent); color:var(--accent); }
+.cdx-dice-result {
+  font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0.05em;
+  color:var(--ink); min-height:36px; padding:6px 10px; border-radius:8px;
+  background:var(--ink-faint); border:1px solid var(--border); margin-top:4px;
+  line-height:1.4; word-break:break-word;
+  transition:opacity 220ms;
+}
+.cdx-dice-lbl { font-size:9px; letter-spacing:0.15em; text-transform:uppercase;
+  color:var(--ink-dim); margin-bottom:4px; opacity:0.7; }
+/* Wheel canvas */
+#cdx-wheel-canvas { display:none; width:min(50vw,50vh); height:min(50vw,50vh);
+  margin:8px auto 0; border-radius:50%; }
+#cdx-wheel-canvas.visible { display:block; }
+@keyframes cdx-spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+.cdx-dice-btn.rolling { animation:cdx-spin 0.25s linear infinite; display:inline-block; }
+
 /* ══ HABITS OVERLAY ══ */
 #habits-overlay {
   display:none; position:fixed; inset:0; z-index:820;
@@ -1934,6 +2009,17 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
       <span class="cdx-ni-icon">◭</span> Life OS
     </div>
   </div>
+  <div class="cdx-nav-sec">
+    <div class="cdx-nav-sec-lbl">Tools</div>
+    <div class="cdx-ni" onclick="document.getElementById('notes-btn').click()">
+      <div class="cdx-ni-glow"></div>
+      <span class="cdx-ni-icon">&#9998;</span> Notes
+    </div>
+    <div class="cdx-ni" onclick="document.getElementById('pomo-open-btn').click()">
+      <div class="cdx-ni-glow"></div>
+      <span class="cdx-ni-icon">&#9650;</span> Focus
+    </div>
+  </div>
   <div class="cdx-nav-footer">
     <button class="cdx-nav-ft-btn" title="Toggle theme" onclick="document.getElementById('theme-btn').click()">◑</button>
     <button class="cdx-nav-ft-btn" title="Focus timer" onclick="document.getElementById('pomo-open-btn').click()">▲</button>
@@ -1985,8 +2071,6 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
     <span class="cdx-pg-sub" id="cdx-pg-sub"></span>
     <div class="cdx-pg-actions">
       <div class="cdx-hbtn-grp">
-        <button class="cdx-hbtn" onclick="document.getElementById('notes-btn').click()" title="Quick note">&#9998; Notes</button>
-        <button class="cdx-hbtn" onclick="document.getElementById('pomo-open-btn').click()" title="Focus timer">&#9650; Focus</button>
         <button class="cdx-hbtn accent" onclick="document.getElementById('cosmos-btn').click()" title="Ask Cosmos">&#9670; Ask Cosmos</button>
       </div>
       <div class="cdx-hbtn-sep"></div>
@@ -2080,6 +2164,16 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
       <div class="next-lbl">Next · 30 min</div>
       <div class="next-title" id="next-title">—</div>
       <div class="next-time" id="next-time"></div>
+    </div>
+    <!-- Dice + Wheel — only visible in expanded orb -->
+    <div id="cdx-dice-section">
+      <div class="cdx-dice-lbl">Pick something to do</div>
+      <div class="cdx-dice-row">
+        <button class="cdx-dice-btn" id="cdx-dice-btn" onclick="rollDice()" title="Roll from Dice list">&#9861;</button>
+        <button class="cdx-wheel-btn" id="cdx-wheel-btn" onclick="spinWheel()">&#9654; Spin wheel</button>
+      </div>
+      <div class="cdx-dice-result" id="cdx-dice-result" style="display:none"></div>
+      <canvas id="cdx-wheel-canvas"></canvas>
     </div>
   </div>
 </section>
@@ -2270,6 +2364,11 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
         <span>4h+</span>
       </div>
     </div>
+    <!-- Badges -->
+    <div class="insights-widget">
+      <div class="insights-widget-title">Productivity Badges</div>
+      <div id="ins-badges-wall" class="cdx-badges-wall"><div class="cdx-badges-empty">Complete focus sessions and habits to earn badges.</div></div>
+    </div>
   </div>
 </div>
 
@@ -2284,6 +2383,7 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
     <button class="habits-tab active" id="htab-habits" onclick="switchHabitsTab('habits')">Habits</button>
     <button class="habits-tab" id="htab-routines" onclick="switchHabitsTab('routines')">Routines</button>
     <button class="habits-tab" id="htab-behaviours" onclick="switchHabitsTab('behaviours')">Behaviours</button>
+    <button class="habits-tab" id="htab-journey" onclick="switchHabitsTab('journey')">Journey</button>
   </div>
   <!-- Habits tab -->
   <div id="hpane-habits" class="habits-body">
@@ -2335,6 +2435,15 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
     <div>
       <div class="habits-section-lbl">Reflection Notes</div>
       <textarea class="habits-textarea" id="behav-notes" placeholder="Weekly reflection, friction points, what's working&#8230;" oninput="behavSave()"></textarea>
+    </div>
+  </div>
+  <!-- Journey tab -->
+  <div id="hpane-journey" class="habits-body" style="display:none">
+    <div>
+      <div class="habits-section-lbl">Your Habit Journey</div>
+      <div class="journey-stats" id="journey-stats"></div>
+      <canvas id="cdx-journey-canvas" height="220"></canvas>
+      <div class="journey-milestone-list" id="journey-milestones"></div>
     </div>
   </div>
 </div>
@@ -3203,7 +3312,8 @@ function filteredEvents(){
 }
 
 function filteredTasks(){
-  return activeTaskTab==='all' ? TASKS : TASKS.filter(t=>t._list===activeTaskTab);
+  if(activeTaskTab==='all') return TASKS.filter(t=>t._listName.toLowerCase()!=='dice');
+  return TASKS.filter(t=>t._list===activeTaskTab);
 }
 
 // ── THEME ─────────────────────────────────────────────
@@ -4689,6 +4799,18 @@ async function logFocusSession(){
       eventId:      _pomoCurrentEvent ? (_pomoCurrentEvent.evId||'') : '',
     });
   } catch(e){ console.warn('logFocusSession error:', e); }
+  // Evaluate badges after each session (non-blocking)
+  try {
+    // Count sessions this week for badge evaluation
+    const { collection, query, where, getDocs } = window.CDX_FB;
+    const d7=new Date(); d7.setDate(d7.getDate()-6); d7.setHours(0,0,0,0);
+    const since=localDateStr(d7);
+    const snap=await getDocs(query(
+      collection(window.CDX_DB,'users',fbUid,'focusSessions'),
+      where('date','>=',since)
+    ));
+    evaluateBadges(snap.size, undefined);
+  } catch(e){ console.warn('badge eval error:', e); }
 }
 
 // ── SCRIBBLE BOARD ────────────────────────────────────
@@ -5174,6 +5296,384 @@ async function buildInsights(){
     c.style.background=dark?`rgba(61,184,255,${alpha.toFixed(2)})`:`rgba(11,98,196,${alpha.toFixed(2)})`;
     gridLeg.appendChild(c);
   });
+
+  // Evaluate + render badges
+  try {
+    // Count this week's focus sessions
+    const wStart=new Date(now); const dow=wStart.getDay();
+    wStart.setDate(now.getDate()-(dow===0?6:dow-1)); wStart.setHours(0,0,0,0);
+    const wSince=localDateStr(wStart);
+    const wFocus=Object.entries(dayFocus).filter(([d])=>d>=wSince).reduce((s,[,h])=>s+h,0);
+    const wSessions=sessions.filter(s=>s.date>=wSince).length;
+    await evaluateBadges(wSessions, undefined);
+  } catch(e){}
+  renderBadges();
+}
+
+// ══════════════════════════════════════════════════════
+// HABITS JOURNEY MAP
+// ══════════════════════════════════════════════════════
+function renderJourney(){
+  const canvas = document.getElementById('cdx-journey-canvas');
+  const statsEl = document.getElementById('journey-stats');
+  const milesEl = document.getElementById('journey-milestones');
+  if(!canvas) return;
+
+  // Count total completions across all habitLogs
+  let total = 0;
+  Object.values(_habitLogs).forEach(log=>{
+    Object.values(log.completions||{}).forEach(v=>{ if(v) total++; });
+  });
+
+  // Current streak (consecutive days with any completion ending today/yesterday)
+  let streak = 0;
+  const today = new Date();
+  for(let i=0;;i++){
+    const d=new Date(today); d.setDate(today.getDate()-i);
+    const ds=localDateStr(d);
+    const log=_habitLogs[ds];
+    if(log&&Object.values(log.completions||{}).some(v=>v)) streak++;
+    else break;
+  }
+
+  // Milestones
+  const MILES = [0,10,25,50,100,200,365,500];
+  const MILE_LABELS = ['Start','10','25','50','100','200','365','500+'];
+  const MILE_ICONS  = ['🚀','⭐','🌙','💫','🪐','🌌','🌟','🏆'];
+
+  // Stat display
+  statsEl.innerHTML =
+    `<div class="journey-stat"><strong>${total}</strong>total completed</div>` +
+    `<div class="journey-stat"><strong>${streak}</strong>day streak</div>` +
+    `<div class="journey-stat"><strong>${_habits.length}</strong>active habits</div>`;
+
+  // Canvas draw
+  const W = canvas.offsetWidth || 600;
+  const H = 220;
+  const DPR = Math.min(window.devicePixelRatio||1, 2);
+  canvas.width  = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(DPR, DPR);
+
+  const dark = document.documentElement.dataset.theme !== 'light';
+  const bgColor   = dark ? '#030508' : '#eef2f7';
+  const pathColor = dark ? 'rgba(61,184,255,0.12)' : 'rgba(26,111,219,0.12)';
+  const dotColor  = dark ? 'rgba(61,184,255,0.22)' : 'rgba(26,111,219,0.15)';
+  const accentRgb = dark ? '61,184,255' : '26,111,219';
+  const inkDim    = dark ? 'rgba(68,88,112,0.9)' : 'rgba(60,85,116,0.9)';
+
+  // Background
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0,0,W,H);
+
+  // Starfield (deterministic)
+  for(let i=0;i<50;i++){
+    const x=((i*137.508)%W), y=((i*97.31+13)%H);
+    const r=i%5===0?1.2:0.5;
+    const a=0.1+(i%7)*0.04;
+    ctx.fillStyle=`rgba(200,220,255,${a})`;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  }
+
+  // Path waypoints — winding S-curve
+  const n = MILES.length;
+  const pts = MILES.map((_,i)=>{
+    const t = i/(n-1);
+    const x = 28 + t*(W-56);
+    const row = i%2===0 ? 0.75 : 0.30;
+    const y = H*row + Math.sin(t*Math.PI*2)*H*0.06;
+    return {x,y};
+  });
+
+  // Draw dashed path between consecutive waypoints
+  ctx.save();
+  ctx.strokeStyle = pathColor;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([5,7]);
+  ctx.beginPath();
+  pts.forEach((p,i)=> i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
+  ctx.stroke();
+  ctx.restore();
+
+  // Find current segment position
+  let curSeg = 0;
+  for(let i=0;i<MILES.length-1;i++){
+    if(total >= MILES[i]) curSeg = i;
+  }
+  const segEnd = curSeg < MILES.length-1 ? MILES[curSeg+1] : MILES[curSeg];
+  const segProgress = segEnd > MILES[curSeg]
+    ? Math.min(1,(total-MILES[curSeg])/(segEnd-MILES[curSeg])) : 1;
+  const fromPt = pts[curSeg];
+  const toPt   = pts[Math.min(curSeg+1, pts.length-1)];
+  const charX  = fromPt.x + (toPt.x-fromPt.x)*segProgress;
+  const charY  = fromPt.y + (toPt.y-fromPt.y)*segProgress;
+
+  // Draw milestone planets
+  pts.forEach((pt,i)=>{
+    const reached = total >= MILES[i];
+    if(reached){
+      const g = ctx.createRadialGradient(pt.x,pt.y,0,pt.x,pt.y,18);
+      g.addColorStop(0,`rgba(${accentRgb},0.28)`);
+      g.addColorStop(1,`rgba(${accentRgb},0)`);
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(pt.x,pt.y,18,0,Math.PI*2); ctx.fill();
+    }
+    ctx.beginPath(); ctx.arc(pt.x,pt.y,i===0||i===n-1?10:7,0,Math.PI*2);
+    ctx.fillStyle = reached ? `rgba(${accentRgb},0.9)` : dotColor;
+    ctx.fill();
+    ctx.strokeStyle = reached ? `rgba(${accentRgb},0.6)` : 'transparent';
+    ctx.lineWidth=1.5; ctx.stroke();
+
+    // Icon label
+    ctx.font=`${i===0||i===n-1?14:11}px serif`;
+    ctx.textAlign='center';
+    ctx.fillText(MILE_ICONS[i], pt.x, pt.y-14);
+
+    // Number label
+    ctx.font=`bold 9px JetBrains Mono,monospace`;
+    ctx.fillStyle = reached ? `rgba(${accentRgb},0.8)` : inkDim;
+    ctx.fillText(MILE_LABELS[i], pt.x, pt.y+22);
+  });
+
+  // Rocket at current position
+  ctx.font='16px serif';
+  ctx.textAlign='center';
+  ctx.fillText('🚀', charX, charY+5);
+
+  // Glow behind rocket
+  const rg = ctx.createRadialGradient(charX,charY-2,0,charX,charY-2,14);
+  rg.addColorStop(0,`rgba(${accentRgb},0.35)`);
+  rg.addColorStop(1,`rgba(${accentRgb},0)`);
+  ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(charX,charY-2,14,0,Math.PI*2); ctx.fill();
+  ctx.font='16px serif'; ctx.fillText('🚀', charX, charY+5);
+
+  // Milestone badges list
+  milesEl.innerHTML = MILES.map((m,i)=>{
+    const reached = total >= m;
+    return `<span class="journey-milestone${reached?' reached':''}">${MILE_ICONS[i]} ${MILE_LABELS[i]}</span>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// PRODUCTIVITY BADGES
+// ══════════════════════════════════════════════════════
+const CDX_BADGE_DEFS = [
+  {id:'orbit',   name:'Orbit',        icon:'🌀', desc:'3+ focus sessions in a week',  test:(f,h)=>f>=3},
+  {id:'deep',    name:'Deep Focus',   icon:'🔵', desc:'7+ focus sessions in a week',  test:(f,h)=>f>=7},
+  {id:'streak',  name:'Streak',       icon:'🔥', desc:'3+ habit days in a week',      test:(f,h)=>h>=3},
+  {id:'stellar', name:'Stellar',      icon:'⭐', desc:'5+ habit days in a week',      test:(f,h)=>h>=5},
+  {id:'perfect', name:'Perfect Week', icon:'🌟', desc:'7 habit days',                 test:(f,h)=>h>=7},
+  {id:'champion',name:'Champion',     icon:'🏆', desc:'Focus + Habits both threshold',test:(f,h)=>f>=5&&h>=5},
+];
+
+function isoWeekKey(date){
+  const d=new Date(date); d.setHours(0,0,0,0);
+  const wd=new Date(d); wd.setDate(d.getDate()+3-(d.getDay()+6)%7);
+  const wk1=new Date(wd.getFullYear(),0,4);
+  const wn=1+Math.round(((wd-wk1)/86400000-3+(wk1.getDay()+6)%7)/7);
+  return `${wd.getFullYear()}-W${String(wn).padStart(2,'0')}`;
+}
+
+async function evaluateBadges(focusSessionsForWeek, habitLogsForWeek){
+  if(!fbUid||!window.CDX_DB) return;
+  const {doc,setDoc,getDoc}=window.CDX_FB;
+  const weekKey=isoWeekKey(new Date());
+
+  // Focus count this week
+  const focusCount = focusSessionsForWeek || 0;
+  // Habit days this week (days with ≥1 completion)
+  let habitDays = 0;
+  if(habitLogsForWeek!==undefined){
+    habitDays = habitLogsForWeek;
+  } else {
+    const now=new Date();
+    for(let i=6;i>=0;i--){
+      const d=new Date(now); d.setDate(now.getDate()-i);
+      const ds=localDateStr(d);
+      const log=_habitLogs[ds];
+      if(log&&Object.values(log.completions||{}).some(v=>v)) habitDays++;
+    }
+  }
+
+  const earned = CDX_BADGE_DEFS
+    .filter(b=>b.test(focusCount,habitDays))
+    .map(b=>b.id);
+
+  if(!earned.length) return;
+  try{
+    const ref=doc(window.CDX_DB,'users',fbUid,'badges',weekKey);
+    const snap=await getDoc(ref);
+    const existing=(snap.exists()&&snap.data().badges)||[];
+    const merged=[...new Set([...existing,...earned])];
+    await setDoc(ref,{weekOf:weekKey,badges:merged,earnedAt:new Date().toISOString()},{merge:true});
+  }catch(e){console.warn('evaluateBadges:',e);}
+}
+
+async function renderBadges(){
+  const wall=document.getElementById('ins-badges-wall');
+  if(!wall) return;
+  if(!fbUid||!window.CDX_DB){
+    wall.innerHTML='<div class="cdx-badges-empty">Sign in to see badges.</div>'; return;
+  }
+  wall.innerHTML='<div class="cdx-badges-empty" style="opacity:0.5">Loading…</div>';
+  try{
+    const {collection,getDocs,query,orderBy,limit}=window.CDX_FB;
+    const snap=await getDocs(query(
+      collection(window.CDX_DB,'users',fbUid,'badges'),
+      orderBy('weekOf','desc'), limit(26)
+    ));
+    if(snap.empty){ wall.innerHTML='<div class="cdx-badges-empty">No badges yet — complete focus sessions and habits this week.</div>'; return; }
+    const cards=[];
+    snap.docs.forEach(d=>{
+      const data=d.data();
+      const wk=data.weekOf||d.id;
+      (data.badges||[]).forEach(bid=>{
+        const def=CDX_BADGE_DEFS.find(b=>b.id===bid);
+        if(def) cards.push({...def,weekOf:wk});
+      });
+    });
+    if(!cards.length){ wall.innerHTML='<div class="cdx-badges-empty">No badges earned yet.</div>'; return; }
+    wall.innerHTML=cards.map(c=>
+      `<div class="cdx-badge earned" title="${c.desc}">
+        <div class="cdx-badge-icon">${c.icon}</div>
+        <div class="cdx-badge-name">${c.name}</div>
+        <div class="cdx-badge-week">${c.weekOf}</div>
+      </div>`
+    ).join('');
+  }catch(e){
+    console.warn('renderBadges:',e);
+    wall.innerHTML='<div class="cdx-badges-empty">Could not load badges.</div>';
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// DICE & SPINNING WHEEL
+// ══════════════════════════════════════════════════════
+const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+
+function getDiceTasks(){
+  return TASKS.filter(t=>t._listName.toLowerCase()==='dice'&&!t.done);
+}
+function getNonDiceTasks(){
+  return TASKS.filter(t=>t._listName.toLowerCase()!=='dice'&&!t.done);
+}
+
+function rollDice(){
+  const btn=document.getElementById('cdx-dice-btn');
+  const result=document.getElementById('cdx-dice-result');
+  if(!btn||!result) return;
+  const dice=getDiceTasks();
+  if(!dice.length){
+    result.style.display='';
+    result.textContent='No tasks in your Dice list. Add tasks to a Google Tasks list named "Dice".';
+    return;
+  }
+  // Animate dice spin
+  btn.classList.add('rolling');
+  result.style.display='none';
+  let i=0;
+  const frames=14;
+  const anim=setInterval(()=>{
+    btn.textContent=DICE_FACES[i%6];
+    i++;
+    if(i>=frames){
+      clearInterval(anim);
+      btn.classList.remove('rolling');
+      const pick=dice[Math.floor(Math.random()*dice.length)];
+      const face=DICE_FACES[Math.floor(Math.random()*6)];
+      btn.textContent=face;
+      result.textContent='🎯 '+pick.title+(pick.due?' · due '+pick.due:'');
+      result.style.display='';
+      result.style.opacity='0';
+      setTimeout(()=>result.style.opacity='1',20);
+    }
+  },55);
+}
+
+let _wheelAnim=null;
+let _wheelAngle=0;
+let _wheelTasks=[];
+
+function spinWheel(){
+  const canvas=document.getElementById('cdx-wheel-canvas');
+  if(!canvas) return;
+  const tasks=getNonDiceTasks().filter(t=>!t._parent).slice(0,8);
+  if(!tasks.length){
+    const result=document.getElementById('cdx-dice-result');
+    result.textContent='No upcoming tasks to spin.'; result.style.display='';
+    return;
+  }
+  _wheelTasks=tasks;
+  canvas.classList.toggle('visible',true);
+  const size=Math.min(parseInt(canvas.style.width||200)||200,200);
+  const DPR=Math.min(window.devicePixelRatio||1,2);
+  canvas.width=size*DPR; canvas.height=size*DPR;
+  canvas.style.width=size+'px'; canvas.style.height=size+'px';
+
+  if(_wheelAnim){ cancelAnimationFrame(_wheelAnim); _wheelAnim=null; return; }
+  const dark=document.documentElement.dataset.theme!=='light';
+  const COLORS=dark
+    ?['rgba(61,184,255,0.35)','rgba(61,184,255,0.20)','rgba(61,184,255,0.50)','rgba(100,200,255,0.30)']
+    :['rgba(26,111,219,0.25)','rgba(26,111,219,0.12)','rgba(26,111,219,0.40)','rgba(60,130,240,0.20)'];
+
+  const slices=_wheelTasks.length;
+  const arc=2*Math.PI/slices;
+  let velocity=0.22+Math.random()*0.14;
+  let decelFrames=0;
+  const totalFrames=Math.floor(60*(2+Math.random()*1.5));
+
+  function draw(){
+    const ctx=canvas.getContext('2d');
+    const w=size, r=w/2-2;
+    ctx.scale(DPR,DPR);
+    ctx.clearRect(0,0,w,w);
+    ctx.save(); ctx.translate(w/2,w/2);
+    _wheelTasks.forEach((t,i)=>{
+      const startA=_wheelAngle+i*arc;
+      ctx.beginPath(); ctx.moveTo(0,0);
+      ctx.arc(0,0,r,startA,startA+arc);
+      ctx.fillStyle=COLORS[i%COLORS.length]; ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1; ctx.stroke();
+      ctx.save();
+      ctx.rotate(startA+arc/2);
+      ctx.font=`bold ${Math.floor(w*0.055)}px JetBrains Mono,monospace`;
+      ctx.fillStyle=dark?'rgba(204,224,248,0.9)':'rgba(11,26,48,0.8)';
+      ctx.textAlign='right';
+      const label=(t.title||'').slice(0,14)+(t.title&&t.title.length>14?'…':'');
+      ctx.fillText(label,r-8,4);
+      ctx.restore();
+    });
+    // Pointer
+    ctx.fillStyle=dark?'#3db8ff':'#1a6fdb';
+    ctx.beginPath(); ctx.moveTo(r+2,0); ctx.lineTo(r+12,-5); ctx.lineTo(r+12,5); ctx.fill();
+    ctx.restore();
+    ctx.scale(1/DPR,1/DPR);
+  }
+
+  function step(){
+    decelFrames++;
+    if(decelFrames>totalFrames*0.6){
+      velocity*=0.975;
+    }
+    _wheelAngle+=velocity;
+    draw();
+    if(velocity>0.003&&decelFrames<totalFrames*3){
+      _wheelAnim=requestAnimationFrame(step);
+    } else {
+      _wheelAnim=null;
+      // Determine winner
+      const norm=(((-_wheelAngle%(2*Math.PI))+2*Math.PI)%(2*Math.PI));
+      const idx=Math.floor(norm/(2*Math.PI/_wheelTasks.length))%_wheelTasks.length;
+      const winner=_wheelTasks[idx];
+      const result=document.getElementById('cdx-dice-result');
+      result.textContent='🌀 '+winner.title+(winner.due?' · due '+winner.due:'');
+      result.style.display=''; result.style.opacity='0';
+      setTimeout(()=>result.style.opacity='1',20);
+    }
+  }
+  step();
 }
 
 // ── SIDEBAR PANEL TOGGLES ────────────────────────────
@@ -5636,13 +6136,14 @@ function closeHabits(){
 }
 
 function switchHabitsTab(tab){
-  ['habits','routines','behaviours'].forEach(t=>{
+  ['habits','routines','behaviours','journey'].forEach(t=>{
     document.getElementById('htab-'+t).classList.toggle('active', t===tab);
     document.getElementById('hpane-'+t).style.display = t===tab ? 'flex' : 'none';
   });
   if(tab==='habits')      renderHabits();
   if(tab==='routines')    renderRoutines();
   if(tab==='behaviours')  renderBehaviours();
+  if(tab==='journey')     renderJourney();
 }
 
 // ── HABITS TAB ──────────────────────────────────────
