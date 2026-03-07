@@ -112,14 +112,14 @@ button, a, [role="button"] {
 [data-theme="light"] .month-day-num { color: var(--accent); }
 
 html, body {
-  width: 100%; height: 100%; overflow: hidden;
+  width: 100%; height: 100%; overflow: hidden; max-width: 100%;
   background: var(--bg); color: var(--ink); font-family: 'Cormorant Garamond',serif;
   overscroll-behavior: none;          /* kill rubber-band scroll on iOS */
   -webkit-text-size-adjust: 100%;     /* prevent iOS font inflation in landscape */
   text-size-adjust: 100%;
 }
-html { height: 100dvh; }
-body { display:flex; flex-direction:row; height:100dvh; overflow:hidden; }
+html { height: 100dvh; overflow: hidden; }
+body { display:flex; flex-direction:row; height:100dvh; overflow:hidden; max-width:100vw; }
 
 /* Old header redistributed to #cdx-nav + #cdx-page-hd; kept in DOM for mobile compat */
 #app-header { display:none !important; }
@@ -390,22 +390,20 @@ body { display:flex; flex-direction:row; height:100dvh; overflow:hidden; }
 #cdx-nav::-webkit-scrollbar { display:none; }
 #cdx-nav.nav-collapsed { width:0; }
 .cdx-nav-ws {
-  padding:12px; border-bottom:1px solid var(--border);
-  display:flex; align-items:center; gap:9px; flex-shrink:0; min-height:50px;
+  padding:10px 12px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:9px; flex-shrink:0; min-height:54px;
   overflow:hidden; white-space:nowrap;
 }
 .cdx-nav-avatar {
-  width:28px; height:28px; border-radius:7px; flex-shrink:0;
-  background:var(--accent-dim); border:1px solid rgba(61,184,255,0.3);
-  display:flex; align-items:center; justify-content:center;
-  font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--accent);
+  width:32px; height:32px; flex-shrink:0;
+  color:var(--accent); display:flex; align-items:center; justify-content:center;
 }
-.cdx-nav-ws-name { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink); line-height:1.2; }
-.cdx-nav-ws-plan { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--ink-dim); letter-spacing:0.05em; }
+.cdx-nav-ws-name { font-family:'JetBrains Mono',monospace; font-size:15px; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent); line-height:1.2; font-weight:500; }
+.cdx-nav-ws-plan { display:none; }
 .cdx-nav-sec { padding:6px 8px 2px; }
-.cdx-nav-sec-lbl { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.15em; text-transform:uppercase; color:var(--ink-dim); padding:6px 6px 3px; opacity:0.45; white-space:nowrap; }
+.cdx-nav-sec-lbl { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.15em; text-transform:uppercase; color:var(--ink-dim); padding:6px 12px 3px; opacity:0.45; white-space:nowrap; }
 .cdx-ni {
-  display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:5px;
+  display:flex; align-items:center; gap:8px; padding:7px 12px; border-radius:5px;
   cursor:pointer; white-space:nowrap; overflow:hidden;
   font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim);
   transition:all 180ms cubic-bezier(0.25,0.46,0.45,0.94);
@@ -477,8 +475,8 @@ body { display:flex; flex-direction:row; height:100dvh; overflow:hidden; }
 #cdx-orb-backdrop.open { display:block; }
 
 #panel-chrono {
-  position:fixed; bottom:22px; right:22px;
-  width:96px; height:96px; border-radius:50%;
+  position:fixed; bottom:100px; right:16px;
+  width:72px; height:72px; border-radius:50%;
   background:rgba(9,13,20,0.85); backdrop-filter:blur(22px);
   -webkit-backdrop-filter:blur(22px);
   border:1px solid var(--border);
@@ -506,7 +504,7 @@ body { display:flex; flex-direction:row; height:100dvh; overflow:hidden; }
   display:flex; align-items:center; justify-content:center; gap:0;
 }
 #panel-chrono .time-display { text-align:center; }
-#panel-chrono .time-big  { font-size:16px; color:var(--accent); letter-spacing:0.04em; line-height:1; }
+#panel-chrono .time-big  { font-size:13px; color:var(--accent); letter-spacing:0.04em; line-height:1; }
 #panel-chrono .time-date { display:none; }
 
 /* Clock SVG overlay — hidden in mini state */
@@ -857,7 +855,7 @@ body { display:flex; flex-direction:row; height:100dvh; overflow:hidden; }
 .signout-btn { background:none; border:1px solid var(--border); border-radius:3px; color:var(--ink-dim); font-family:'JetBrains Mono',monospace; font-size:11px; padding:4px 10px; cursor:pointer; min-height:30px; }
 .signout-btn:active { background:var(--ink-faint); }
 .loading-msg { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-dim); padding:20px 16px; text-align:center; }
-#reconnect-bar { position:fixed; bottom:0; left:0; right:0; z-index:2050; background:var(--surface); border-top:2px solid var(--gold); padding:8px 16px; display:flex; align-items:center; gap:10px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-dim); }
+#reconnect-bar { position:fixed; bottom:44px; left:0; right:0; z-index:2200; background:var(--surface); border-top:2px solid var(--gold); border-bottom:1px solid var(--border); padding:8px 16px; display:flex; align-items:center; gap:10px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-dim); }
 #reconnect-btn { background:var(--gold-dim); border:1.5px solid var(--gold); color:var(--gold); font-family:'JetBrains Mono',monospace; font-size:11px; padding:5px 14px; border-radius:4px; cursor:pointer; }
 
 /* ══ ADD ENTRY MODAL ══ */
@@ -1786,7 +1784,7 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
 #plan-overlay.open { display:flex; }
 #plan-overlay-box {
   background:var(--surface); border:1px solid var(--border);
-  border-radius:16px; width:min(920px,96vw); max-height:88vh;
+  border-radius:16px; width:min(1280px,96vw); max-height:92vh;
   display:flex; flex-direction:column; overflow:hidden;
 }
 #plan-overlay-header {
@@ -1895,11 +1893,18 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
 <!-- LINEAR TWIN: LEFT NAV -->
 <nav id="cdx-nav">
   <div class="cdx-nav-ws">
-    <div class="cdx-nav-avatar" id="cdx-nav-avatar">C</div>
-    <div>
-      <div class="cdx-nav-ws-name">Cosmodex</div>
-      <div class="cdx-nav-ws-plan" id="cdx-nav-user-plan">Personal</div>
+    <div class="cdx-nav-avatar" id="cdx-nav-avatar">
+      <svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" width="28" height="28" aria-hidden="true">
+        <circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.5" opacity="0.7"/>
+        <circle cx="11" cy="11" r="5.5" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+        <circle cx="11" cy="11" r="1.5" fill="currentColor"/>
+        <line x1="11" y1="2" x2="11" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="11" y1="17" x2="11" y2="20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+        <line x1="2" y1="11" x2="5" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+        <line x1="17" y1="11" x2="20" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+      </svg>
     </div>
+    <div class="cdx-nav-ws-name">Cosmodex</div>
     <button onclick="document.getElementById('cdx-nav').classList.toggle('nav-collapsed')" style="margin-left:auto;background:none;border:none;color:var(--ink-dim);cursor:pointer;font-size:15px;padding:2px 6px;border-radius:4px;transition:background 180ms" title="Collapse">⋮</button>
   </div>
   <div class="cdx-nav-sec">
@@ -1932,7 +1937,7 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
   <div class="cdx-nav-footer">
     <button class="cdx-nav-ft-btn" title="Toggle theme" onclick="document.getElementById('theme-btn').click()">◑</button>
     <button class="cdx-nav-ft-btn" title="Focus timer" onclick="document.getElementById('pomo-open-btn').click()">▲</button>
-    <button class="cdx-nav-ft-btn" title="Command palette" onclick="document.querySelector('#cmd-palette')&&document.querySelector('#cmd-palette').classList.add('open')">⌘</button>
+    <button class="cdx-nav-ft-btn" title="Command palette" onclick="window.openCmdPalette&&window.openCmdPalette()">⌘</button>
   </div>
 </nav>
 
@@ -1984,10 +1989,6 @@ textarea.lifeos-inp { resize:vertical; min-height:90px; font-family:'Cormorant G
         <button class="cdx-hbtn" onclick="document.getElementById('pomo-open-btn').click()" title="Focus timer">&#9650; Focus</button>
         <button class="cdx-hbtn accent" onclick="document.getElementById('cosmos-btn').click()" title="Ask Cosmos">&#9670; Ask Cosmos</button>
       </div>
-      <div class="cdx-hbtn-sep"></div>
-      <button class="cdx-hbtn" onclick="openInsights()" title="Insights">Insights</button>
-      <button class="cdx-hbtn" onclick="openHabits()" title="Habits">Habits</button>
-      <button class="cdx-hbtn" onclick="openPlanOverlay('week')" title="Planning">Plan</button>
       <div class="cdx-hbtn-sep"></div>
       <button class="cdx-hbtn" onclick="document.getElementById('theme-btn').click()" title="Toggle theme">&#9788;</button>
     </div>
@@ -2711,7 +2712,6 @@ function initGIS(){
         // Firebase session is active — show small reconnect bar, not full overlay
         const rb = document.getElementById('reconnect-bar');
         if(rb) rb.style.display = '';
-        showSyncBar('Calendar needs reconnection — click Reconnect', 'err');
         return;
       }
       const btn = document.getElementById('signin-btn');
@@ -6691,16 +6691,7 @@ ${ctx}`;
   }
   setInterval(syncNavTodayCount, 2000);
 
-  /* ── Nav user avatar initial ── */
-  function syncAvatar() {
-    const syncUser = document.getElementById('sync-user');
-    const avatar   = document.getElementById('cdx-nav-avatar');
-    if (syncUser && avatar && syncUser.textContent) {
-      const email = syncUser.textContent.trim();
-      if (email) avatar.textContent = email[0].toUpperCase();
-    }
-  }
-  setInterval(syncAvatar, 2000);
+  /* ── Nav user avatar — logo is SVG, no text update needed ── */
 
   /* ── Page header shimmer (cursor glow removed) ── */
   document.addEventListener('mousemove', function(e) {
