@@ -2760,6 +2760,26 @@ try {
   }
 } catch(e){}
 
+// ── Redirect-flow fragment parser ──────────────────────────────────────────────
+// GIS redirect mode appends #access_token=...&expires_in=... to the URL after Google auth.
+// We parse it here (before anything else runs) as a reliable fallback — avoids the race
+// between GIS's internal fragment reader and onAuthStateChanged showing "reconnecting" again.
+// If found, store it on window; initGIS() (or the wait loop) will apply it after setup.
+;(function(){
+  const h = window.location.hash;
+  if(!h || !h.includes('access_token=')) return;
+  try {
+    const p = new URLSearchParams(h.replace(/^#/,''));
+    const tok = p.get('access_token');
+    const exp = parseInt(p.get('expires_in') || '3600', 10);
+    if(tok){
+      window._cdxRedirectToken = { token: tok, expiresIn: exp };
+      // Remove fragment immediately — prevents GIS from double-processing and cleans the URL
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  } catch(e){}
+})();
+
 function saveSession(){
   try{
     localStorage.setItem('cdx_tok', JSON.stringify({token:accessToken,expiry:tokenExpiry,user:currentUser,sv:SCOPE_VER}));
@@ -2784,14 +2804,25 @@ function _maybeAutoConnect(){
   if(hint){ try{ tokenClient.requestAccessToken({ prompt:'none', login_hint:hint }); }catch(e){} }
 }
 
+async function _applyGoogleToken(token, expiresIn){
+  accessToken  = token;
+  tokenExpiry  = Date.now() + (expiresIn - 60) * 1000;
+  _silentAuthFromRestore = false;
+  const rb = document.getElementById('reconnect-bar');
+  if(rb) rb.style.display = 'none';
+  await fetchUserInfo(); saveSession();
+  await fbSignInWithGoogleToken(accessToken);
+  document.getElementById('signin-overlay').classList.add('hidden');
+  document.getElementById('sync-user').textContent = currentUser;
+  await loadAllData();
+}
+
 function initGIS(){
-  // Use redirect flow on mobile — popup auth is silently blocked by iOS Safari and Android Chrome
-  const _isMobileAuth = window.innerWidth <= 720 || /Mobi|Android/i.test(navigator.userAgent);
-  const _redirectUri  = window.location.origin + window.location.pathname;
+  // Always use popup mode — works on desktop and regular mobile browsers.
+  // iOS PWA blocks popups; error_callback fires and we show a helpful message.
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID, scope: SCOPES,
-    ux_mode:      _isMobileAuth ? 'redirect' : 'popup',
-    redirect_uri: _isMobileAuth ? _redirectUri : undefined,
+    ux_mode: 'popup',
     callback: async (resp) => {
       if(resp.error){
         // Reset button so user can retry
@@ -2802,36 +2833,45 @@ function initGIS(){
         showSyncBar('Auth error: '+resp.error,'err'); return;
       }
       clearTimeout(_silentReconnectTimer);
-      accessToken = resp.access_token;
-      tokenExpiry  = Date.now() + (resp.expires_in - 60)*1000;
-      _silentAuthFromRestore = false;
-      const rb = document.getElementById('reconnect-bar');
-      if(rb) rb.style.display = 'none';
-      await fetchUserInfo(); saveSession();
-      await fbSignInWithGoogleToken(accessToken);   // sign into Firebase with same Google token
-      document.getElementById('signin-overlay').classList.add('hidden');
-      document.getElementById('sync-user').textContent = currentUser;
-      await loadAllData();
+      await _applyGoogleToken(resp.access_token, resp.expires_in);
     },
-    // error_callback fires when silent prompt:'none' fails (no existing session / revoked)
-    error_callback: ()=>{
+    // error_callback fires when silent prompt:'none' fails, OR popup blocked on iOS PWA
+    error_callback: (err)=>{
       clearTimeout(_silentReconnectTimer);
       if(_silentAuthFromRestore){
         _silentAuthFromRestore = false;
-        // Firebase session is active — show small reconnect bar, not full overlay
         const rb = document.getElementById('reconnect-bar');
         if(rb) rb.style.display = '';
         return;
       }
       const btn = document.getElementById('signin-btn');
-      if(btn){ btn.textContent = 'Sign in with Google'; btn.disabled = false; }
       const sub = document.querySelector('#signin-overlay .signin-sub');
+      // Popup was blocked (iOS PWA standalone mode) — show clear instructions
+      const errCode = (err&&err.type)||'';
+      const isPopupBlocked = errCode==='popup_failed_to_open' || errCode==='popup_blocked_by_browser';
+      const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode:standalone)').matches;
+      if(isPopupBlocked || (isStandalone && !errCode)){
+        if(sub) sub.innerHTML = 'Pop-ups are blocked in this app.<br>Open in Safari to sign in, then return here.';
+        if(btn){ btn.textContent = 'Open in Safari'; btn.disabled = false;
+          btn.dataset.cdxAction = 'safari'; }
+        return;
+      }
+      if(btn){ btn.textContent = 'Sign in with Google'; btn.disabled = false;
+        delete btn.dataset.cdxAction; }
       if(sub) sub.innerHTML = 'Your day, at a glance.<br>Sign in to load your calendar &amp; tasks.';
     },
   });
 
   // Mark GIS as ready
   _gisTokenClientReady = true;
+
+  // Apply a token that was already extracted from the redirect URL fragment (before GIS ran)
+  if(window._cdxRedirectToken){
+    const {token, expiresIn} = window._cdxRedirectToken;
+    window._cdxRedirectToken = null;
+    _applyGoogleToken(token, expiresIn);
+    return; // skip auto-connect / silent reconnect below — we already have the token
+  }
 
   // If user tapped the sign-in button before GIS finished loading — GIS is now ready.
   // Restore subtitle message; button was never disabled (Fix 3), user can tap again.
@@ -2927,16 +2967,15 @@ async function fetchUserInfo(){
 let _pendingSignIn = false;
 function requestToken(){
   if(!tokenClient){
-    // GIS not loaded yet — mark pending and show message; do NOT disable the button
-    // (disabling causes permanent stuck state if GIS is slow or fails)
     _pendingSignIn = true;
     const sub = document.querySelector('#signin-overlay .signin-sub');
     if(sub) sub.innerHTML = 'Connecting to Google&hellip; tap again in a moment.';
     return;
   }
   const hint = localStorage.getItem('cdx_user_hint') || '';
-  const opts = { prompt: 'select_account' };
-  if(hint) opts.login_hint = hint;
+  // On first login (no hint) use 'select_account' so Google always shows account picker.
+  // On reconnect (hint known), omit prompt so popup shows briefly or silently re-auths.
+  const opts = hint ? { login_hint: hint } : { prompt: 'select_account' };
   tokenClient.requestAccessToken(opts);
 }
 
@@ -2958,10 +2997,20 @@ function signOut(){
   document.getElementById('sync-bar').classList.remove('visible');
 }
 
-document.getElementById('signin-btn').addEventListener('click', requestToken);
+document.getElementById('signin-btn').addEventListener('click', ()=>{
+  const btn = document.getElementById('signin-btn');
+  if(btn.dataset.cdxAction === 'safari'){
+    // iOS PWA popup-blocked fallback — open the app in regular Safari for auth
+    window.open(window.location.href, '_blank');
+    return;
+  }
+  requestToken();
+});
 document.getElementById('signout-btn').addEventListener('click', signOut);
 document.getElementById('reconnect-btn').addEventListener('click', () => {
   document.getElementById('reconnect-bar').style.display = 'none';
+  const btn = document.getElementById('signin-btn');
+  if(btn) delete btn.dataset.cdxAction; // clear any PWA fallback state
   requestToken();
 });
 
