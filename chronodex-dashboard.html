@@ -2427,7 +2427,7 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 /* ── Planning dashboard card grid ──────────────────────── */
 .ms-dash-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 20px;
   padding: 24px;
 }
@@ -5110,7 +5110,7 @@ select.sched-input { background: #181818; }
           <div class="plan-panel-header">
             <span class="plan-panel-label">Projects</span>
             <div style="display:flex;gap:6px;align-items:center;margin-left:auto">
-              <button id="ms-archived-btn" class="btn-ghost" style="font-size:10px;padding:3px 8px;display:none;color:var(--muted)">⊡ Archived</button>
+              <button id="ms-archived-btn" class="btn-ghost" style="font-size:10px;padding:3px 8px;color:var(--muted)">⊡ Archived</button>
               <button id="ms-add-project-btn" class="btn-primary" style="font-size:10px;padding:5px 11px">+ New</button>
               <button class="plan-panel-toggle" id="plan-left-toggle" title="Collapse">‹</button>
             </div>
@@ -8393,10 +8393,14 @@ function renderMilestoneDashboard() {
   if (archBtn) {
     if (archivedProjs.length) {
       archBtn.textContent = `⊡ Archived (${archivedProjs.length})`;
-      archBtn.style.display = '';
+      archBtn.style.opacity = '1';
+      archBtn.style.pointerEvents = '';
       archBtn.onclick = showArchivedProjectsOverlay;
     } else {
-      archBtn.style.display = 'none';
+      archBtn.textContent = '⊡ Archived';
+      archBtn.style.opacity = '0.35';
+      archBtn.style.pointerEvents = 'none';
+      archBtn.onclick = null;
     }
   }
 
