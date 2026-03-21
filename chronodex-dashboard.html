@@ -2467,7 +2467,7 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 }
 /* Task chips inside card — hidden on card, visible in detail view */
 .ms-card-tasks {
-  display: none;
+  display: none !important;
 }
 .ms-card-task-chip {
   font-family: var(--font-mono);
@@ -8460,10 +8460,10 @@ function renderMilestoneDashboard() {
         <div class="ms-dash-card-footer">
           <div>
             <div class="ms-dash-pct-label" style="color:${isComplete ? 'rgb(53,249,47)' : 'rgba(255,255,255,0.75)'}">${pct}%</div>
-            <div class="ms-dash-acts-label">${doneActs} / ${totalActs} tasks done</div>
+            <div class="ms-dash-acts-label">${doneActs}/${totalActs} done</div>
           </div>
           <div style="text-align:right;display:flex;align-items:center;gap:8px">
-            <div class="ms-dash-milestones-count">${events.length} milestone${events.length !== 1 ? 's' : ''}</div>
+            <div class="ms-dash-milestones-count">${events.length} ms</div>
             <button class="btn-ghost ms-archive-btn" data-ms-archive="${proj.id}" style="font-size:9px;padding:3px 8px;color:var(--muted);border-color:var(--border)" title="Mark as done & archive">✓ Done</button>
           </div>
         </div>
