@@ -68,9 +68,7 @@
 
 <style>
 
-/* ═══════════════════════════════════════════════════════════
-   DESIGN TOKENS
-   ═══════════════════════════════════════════════════════════ */
+/* ══ DESIGN TOKENS ══ */
 :root {
   /* Backgrounds — pure black base; surface used for left nav to differentiate */
   --bg:          #000000;
@@ -109,6 +107,7 @@
   /* Motion */
   --ease-fast:   all 0.2s ease;
   --ease-panel:  cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-glass:  cubic-bezier(0.25, 1, 0.5, 1);
 
   /* Glass language — Liquid Glass OS */
   --glass-bg:        rgba(255, 255, 255, 0.03);
@@ -116,9 +115,7 @@
   --glass-highlight: rgba(255, 255, 255, 0.20);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   RESET & BASE
-   ═══════════════════════════════════════════════════════════ */
+/* ══ RESET & BASE ══ */
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
 :focus-visible {
@@ -137,6 +134,13 @@ html { font-size:16px; -webkit-font-smoothing:antialiased; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.26); }
 * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.18) transparent; }
 
+/* ── Tabular numbers — prevent layout jitter on all time/metric displays ── */
+.orb-time-clock, #page-date, .cal-event-time, .stat-card-number,
+.nav-item-count, .orb-next-label, .habit-streak, .focus-timer-display,
+.pomo-time, .insight-count, .task-row-time {
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Global placeholder ─────────────────────────────── */
 ::placeholder { color: rgba(255,255,255,0.32); }
 
@@ -149,14 +153,6 @@ body {
   overflow: hidden;
   display: flex;
   position: relative;
-}
-
-/* Subtle grid overlay — removed */
-body::before {
-  content: '';
-  position: fixed; inset: 0;
-  pointer-events: none;
-  z-index: 0;
 }
 
 /* Paper grain texture */
@@ -178,9 +174,7 @@ body::after {
   opacity: 1; transition: opacity 400ms ease;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   KEYFRAMES
-   ═══════════════════════════════════════════════════════════ */
+/* ══ KEYFRAMES ══ */
 @keyframes fadeUp {
   from { opacity:0; transform:translateY(14px); }
   to   { opacity:1; transform:translateY(0); }
@@ -196,9 +190,7 @@ body::after {
   to   { transform: rotate(360deg); }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   CURSOR SPOTLIGHT
-   ═══════════════════════════════════════════════════════════ */
+/* ══ CURSOR SPOTLIGHT ══ */
 #cursor-spotlight {
   position: fixed;
   width: 520px; height: 520px;
@@ -210,9 +202,7 @@ body::after {
   opacity: 0;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   LEFT NAV
-   ═══════════════════════════════════════════════════════════ */
+/* ══ LEFT NAV ══ */
 #left-nav {
   width: var(--nav-width);
   min-width: var(--nav-width);
@@ -412,9 +402,7 @@ body::after {
   color: var(--cream);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   APP SHELL
-   ═══════════════════════════════════════════════════════════ */
+/* ══ APP SHELL ══ */
 #app-shell {
   flex: 1;
   display: flex;
@@ -426,9 +414,7 @@ body::after {
   min-width: 0;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   PAGE HEADER
-   ═══════════════════════════════════════════════════════════ */
+/* ══ PAGE HEADER ══ */
 #page-header {
   height: var(--header-h);
   min-height: var(--header-h);
@@ -520,9 +506,7 @@ body::after {
   border-color: var(--gold);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   MAIN CONTENT
-   ═══════════════════════════════════════════════════════════ */
+/* ══ MAIN CONTENT ══ */
 #main-content {
   flex: 1;
   display: flex;
@@ -1322,9 +1306,7 @@ body::after {
   outline-offset: -2px;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   COSMODEX ORB (floating, bottom-right)
-   ═══════════════════════════════════════════════════════════ */
+/* ══ COSMODEX ORB (floating, bottom-right) ══ */
 #cosmodex-orb {
   position: fixed;
   bottom: 24px; right: 24px;
@@ -1392,7 +1374,9 @@ body::after {
 #orb-backdrop {
   display: none;
   position: fixed; inset: 0;
-  background: rgba(7,7,7,0.75);
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(8px) brightness(0.4);
+  -webkit-backdrop-filter: blur(8px) brightness(0.4);
   z-index: 497;
 }
 
@@ -1514,8 +1498,8 @@ body::after {
   position: fixed;
   inset: 0;
   z-index: 600;
-  background: rgba(7,7,7,0.82);
-  backdrop-filter: blur(6px);
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(8px) brightness(0.4);
   align-items: center;
   justify-content: center;
 }
@@ -1575,9 +1559,7 @@ body::after {
   cursor: default;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   OVERLAYS (shared base)
-   ═══════════════════════════════════════════════════════════ */
+/* ══ OVERLAYS (shared base) ══ */
 /* Global: fix native select/option dropdown in dark theme */
 select { color-scheme: dark; }
 select option { background: #181818; color: rgba(255,255,255,0.88); }
@@ -1588,20 +1570,20 @@ select option { background: #181818; color: rgba(255,255,255,0.88); }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(7,7,7,0.72);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(8px) brightness(0.4);
+  -webkit-backdrop-filter: blur(8px) brightness(0.4);
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
-  transition: opacity 0.25s ease, visibility 0s linear 0.25s;
+  transition: opacity 0.3s var(--ease-glass), visibility 0s linear 0.3s;
 }
 
 .overlay.open {
   opacity: 1;
   pointer-events: all;
   visibility: visible;
-  transition: opacity 0.25s ease, visibility 0s linear 0s;
+  transition: opacity 0.3s var(--ease-glass), visibility 0s linear 0s;
 }
 
 .overlay-panel {
@@ -1693,9 +1675,7 @@ select option { background: #181818; color: rgba(255,255,255,0.88); }
   color: var(--muted);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   SIGN-IN OVERLAY (z-index 2000)
-   ═══════════════════════════════════════════════════════════ */
+/* ══ SIGN-IN OVERLAY (z-index 2000) ══ */
 #signin-overlay {
   position: fixed; inset: 0;
   z-index: 2000;
@@ -1775,9 +1755,7 @@ select option { background: #181818; color: rgba(255,255,255,0.88); }
 
 .signin-btn:hover { background: var(--gold-hover); transform: translateY(-1px); }
 
-/* ═══════════════════════════════════════════════════════════
-   COMMAND PALETTE (z-index 900)
-   ═══════════════════════════════════════════════════════════ */
+/* ══ COMMAND PALETTE (z-index 900) ══ */
 #cmd-palette {
   position: fixed; inset: 0;
   z-index: 900;
@@ -1785,11 +1763,12 @@ select option { background: #181818; color: rgba(255,255,255,0.88); }
   align-items: flex-start;
   justify-content: center;
   padding-top: 15vh;
-  background: rgba(7,7,7,0.65);
-  backdrop-filter: blur(8px);
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(8px) brightness(0.4);
+  -webkit-backdrop-filter: blur(8px) brightness(0.4);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s;
+  transition: opacity 0.25s var(--ease-glass);
 }
 
 #cmd-palette.open { opacity: 1; pointer-events: all; }
@@ -1875,9 +1854,7 @@ select option { background: #181818; color: rgba(255,255,255,0.88); }
   color: var(--muted);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   MOBILE NAV
-   ═══════════════════════════════════════════════════════════ */
+/* ══ MOBILE NAV ══ */
 #mobile-nav {
   display: none;
   position: fixed;
@@ -1939,9 +1916,7 @@ select option { background: #181818; color: rgba(255,255,255,0.88); }
 
 #mob-fab:hover { transform: scale(1.05); background: var(--gold-hover); }
 
-/* ═══════════════════════════════════════════════════════════
-   MOBILE DRAWER
-   ═══════════════════════════════════════════════════════════ */
+/* ══ MOBILE DRAWER ══ */
 #mob-more-drawer {
   position: fixed;
   bottom: var(--mobile-nav-h);
@@ -1995,9 +1970,7 @@ select option { background: #181818; color: rgba(255,255,255,0.88); }
 /* Hide mobile shortcut bar globally */
 #mobile-nav, #mob-fab, #mob-more-drawer { display: none !important; }
 
-/* ═══════════════════════════════════════════════════════════
-   RESPONSIVE — MOBILE (≤720px)
-   ═══════════════════════════════════════════════════════════ */
+/* ══ RESPONSIVE — MOBILE (≤720px) ══ */
 @media (max-width: 720px) {
   body { flex-direction: column; }
 
@@ -2021,9 +1994,7 @@ select option { background: #181818; color: rgba(255,255,255,0.88); }
   .header-actions .hdr-btn:not(.always-visible) { display: none; }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   STAT CARDS (for overlays)
-   ═══════════════════════════════════════════════════════════ */
+/* ══ STAT CARDS (for overlays) ══ */
 .stat-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -2038,6 +2009,12 @@ select option { background: #181818; color: rgba(255,255,255,0.88); }
   padding: 16px;
   position: relative;
   overflow: hidden;
+  transition: transform 0.3s var(--ease-glass), border-color 0.3s var(--ease-glass), box-shadow 0.3s var(--ease-glass);
+}
+.stat-card:hover {
+  transform: scale(1.02) translateY(-2px);
+  border-color: rgba(255,255,255,0.3);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.9);
 }
 
 .stat-card::before {
@@ -2067,9 +2044,7 @@ select option { background: #181818; color: rgba(255,255,255,0.88); }
   display: block;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   SHARED BUTTON + FORM UTILITIES
-   ═══════════════════════════════════════════════════════════ */
+/* ══ SHARED BUTTON + FORM UTILITIES ══ */
 .btn-primary {
   background: var(--gold); color: var(--ink);
   border: none; border-radius: 8px; padding: 8px 16px;
@@ -2104,9 +2079,7 @@ select.form-input { background: #181818; }
 .form-input:focus { border-color: var(--gold); }
 textarea.form-input { resize: vertical; min-height: 60px; }
 
-/* ═══════════════════════════════════════════════════════════
-   LISTS PANEL (legacy styles kept for compatibility)
-   ═══════════════════════════════════════════════════════════ */
+/* ══ LISTS PANEL (legacy styles kept for compatibility) ══ */
 .lists-tile-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -2116,13 +2089,13 @@ textarea.form-input { resize: vertical; min-height: 60px; }
   border-radius: 16px;
   padding: 20px 16px 16px;
   cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.15s;
+  transition: transform 0.3s var(--ease-glass), border-color 0.3s var(--ease-glass), box-shadow 0.3s var(--ease-glass);
   min-height: 100px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
-.list-tile:hover { transform: translateY(-2px); opacity: 0.9; }
+.list-tile:hover { transform: scale(1.02) translateY(-2px); border-color: rgba(255,255,255,0.3); box-shadow: 0 20px 50px rgba(0,0,0,0.9); }
 .list-tile-name {
   font-family: var(--font-display);
   font-size: 15px;
@@ -2449,9 +2422,7 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 .keystone-row-v2:hover .keystone-del { opacity: 0.5; }
 .keystone-del:hover { opacity: 1 !important; color: var(--rust); }
 
-/* ═══════════════════════════════════════════════════════════
-   MILESTONES PANEL
-   ═══════════════════════════════════════════════════════════ */
+/* ══ MILESTONES PANEL ══ */
 
 /* ── Planning dashboard card grid ──────────────────────── */
 .ms-dash-grid {
@@ -2525,7 +2496,7 @@ textarea.form-input { resize: vertical; min-height: 60px; }
   padding: 1px;
   border-radius: 22px;
   cursor: pointer;
-  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease;
+  transition: transform 0.3s var(--ease-glass), box-shadow 0.3s var(--ease-glass);
   position: relative;
   /* Glass rim: bright top-left highlight, fading around the edges, faint bottom-right catch-light */
   background: linear-gradient(
@@ -2544,7 +2515,7 @@ textarea.form-input { resize: vertical; min-height: 60px; }
     inset 0 0 0 0.5px rgba(255,255,255,0.04);
 }
 .ms-dash-card-outer:hover {
-  transform: translateY(-6px) scale(1.005);
+  transform: scale(1.02) translateY(-2px);
   box-shadow:
     0 24px 64px rgba(0,0,0,0.72),
     0 6px 20px rgba(0,0,0,0.55),
@@ -3399,9 +3370,7 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 }
 .ms-activity-row:hover .ms-activity-del { opacity: 1; }
 
-/* ═══════════════════════════════════════════════════════════
-   CATEGORIES
-   ═══════════════════════════════════════════════════════════ */
+/* ══ CATEGORIES ══ */
 .cat-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
 .cat-badge {
   font-family:var(--font-mono); font-size:9px;
@@ -3416,9 +3385,7 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 .cat-creative { background:rgba(196,154,108,0.12); color:#c49a6c; border:1px solid rgba(196,154,108,0.3); }
 .cat-admin    { background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.55); border:1px solid rgba(255,255,255,0.15); }
 
-/* ═══════════════════════════════════════════════════════════
-   CALENDAR — WEEK VIEW
-   ═══════════════════════════════════════════════════════════ */
+/* ══ CALENDAR — WEEK VIEW ══ */
 .week-header-row {
   display:grid; grid-template-columns:48px repeat(7,1fr);
   border-bottom:1px solid var(--border); flex-shrink:0;
@@ -3461,9 +3428,7 @@ textarea.form-input { resize: vertical; min-height: 60px; }
   font-family:var(--font-mono); font-size:8px; color:var(--muted);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   CALENDAR — MONTH VIEW
-   ═══════════════════════════════════════════════════════════ */
+/* ══ CALENDAR — MONTH VIEW ══ */
 .month-dow-header {
   display:grid; grid-template-columns:repeat(7,1fr);
   border-bottom:1px solid var(--border); flex-shrink:0;
@@ -3509,9 +3474,7 @@ textarea.form-input { resize: vertical; min-height: 60px; }
   box-shadow: 0 4px 16px rgba(0,0,0,0.5);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   SCHEDULE MODAL
-   ═══════════════════════════════════════════════════════════ */
+/* ══ SCHEDULE MODAL ══ */
 .sched-label {
   font-family:var(--font-mono); font-size:9px; letter-spacing:0.12em;
   text-transform:uppercase; color:var(--muted); margin-bottom:5px; display:block;
@@ -3545,9 +3508,7 @@ select.sched-input { background: #181818; }
   border:1px solid rgba(107,159,212,0.25); color:var(--blue); white-space:nowrap;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   SETTINGS OVERLAY
-   ═══════════════════════════════════════════════════════════ */
+/* ══ SETTINGS OVERLAY ══ */
 .settings-section { margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--border); }
 .settings-section:last-child { border-bottom:none; }
 .settings-section-title { font-family:var(--font-display); font-size:16px; font-weight:300; color:var(--cream); margin-bottom:4px; }
@@ -3606,9 +3567,7 @@ select.sched-input { background: #181818; }
 /* ── Day view — active tab default ─────────────────────── */
 .view-tab[data-view="day"] { /* initially set by JS */ }
 
-/* ═══════════════════════════════════════════════════════════
-   HABIT BUILDER — ADDITIONAL TOKENS
-   ═══════════════════════════════════════════════════════════ */
+/* ══ HABIT BUILDER — ADDITIONAL TOKENS ══ */
 :root {
   --elev2:       rgba(255,255,255,0.05);
   --border2:     rgba(255,255,255,0.10);
@@ -3622,9 +3581,7 @@ select.sched-input { background: #181818; }
   --ease:        cubic-bezier(0.16,1,0.3,1);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   HABIT BUILDER — LAUNCHER TAB
-   ═══════════════════════════════════════════════════════════ */
+/* ══ HABIT BUILDER — LAUNCHER TAB ══ */
 .hb-launcher-wrap { display:flex; flex-direction:column; gap:28px; max-width:1100px; }
 
 .hb-hero {
@@ -3741,9 +3698,7 @@ select.sched-input { background: #181818; }
 .hb-launch-btn:active { transform:translateY(0); }
 .hb-lb-sub { font-family:var(--font-mono); font-size:10px; letter-spacing:0.12em; text-transform:uppercase; margin-top:4px; display:block; opacity:.7; }
 
-/* ═══════════════════════════════════════════════════════════
-   HABIT BUILDER — BUILDER TAB
-   ═══════════════════════════════════════════════════════════ */
+/* ══ HABIT BUILDER — BUILDER TAB ══ */
 .hb-builder-layout { display:grid; grid-template-columns:320px 1fr; gap:24px; align-items:start; max-width:1100px; }
 
 .hb-library { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:24px; }
@@ -3831,9 +3786,7 @@ select.sched-input { background: #181818; }
 
 .hb-divider { border:none; border-top:1px solid var(--border); margin:20px 0; }
 
-/* ═══════════════════════════════════════════════════════════
-   HABIT BUILDER — PROGRESS TAB
-   ═══════════════════════════════════════════════════════════ */
+/* ══ HABIT BUILDER — PROGRESS TAB ══ */
 .hb-progress-layout { max-width:1100px; }
 .hb-prog-top { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px; }
 .hb-prog-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:24px; }
@@ -3876,9 +3829,7 @@ select.sched-input { background: #181818; }
 .hb-ab-fill { height:100%; border-radius:2px; transition:width 1s var(--ease); }
 .hb-stack-note { font-size:11px; color:var(--muted); font-style:italic; padding:8px 12px; background:var(--elevated); border-radius:var(--r-sm); }
 
-/* ═══════════════════════════════════════════════════════════
-   HABIT BUILDER — INSIGHTS (for insights overlay)
-   ═══════════════════════════════════════════════════════════ */
+/* ══ HABIT BUILDER — INSIGHTS (for insights overlay) ══ */
 .hb-insight-layout { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
 .hb-insight-card { background:var(--elevated); border:1px solid var(--border); border-radius:var(--r-lg); padding:24px; }
 .hb-friction-insight { margin-bottom:16px; }
@@ -3944,9 +3895,7 @@ select.sched-input { background: #181818; }
   .hb-routine-grid,.hb-prog-top,.hb-habits-grid,.hb-cue-grid,.hb-why-reward,.hb-insight-layout { grid-template-columns:1fr; }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   TOAST NOTIFICATIONS
-   ═══════════════════════════════════════════════════════════ */
+/* ══ TOAST NOTIFICATIONS ══ */
 #cdx-toast-container {
   position: fixed;
   bottom: 80px;
@@ -4089,14 +4038,12 @@ select.sched-input { background: #181818; }
 .energy-pill.active.energy-creative { background: rgba(255,255,255,0.12);  border-color: var(--gold);  color: var(--gold); }
 .energy-pill.active.energy-quick    { background: rgba(74,124,94,0.12);   border-color: var(--sage);  color: var(--sage); }
 
-/* ═══════════════════════════════════════════════════════════
-   DAILY RITUAL OVERLAY
-   ═══════════════════════════════════════════════════════════ */
+/* ══ DAILY RITUAL OVERLAY ══ */
 #ritual-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.72);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(8px) brightness(0.4);
+  -webkit-backdrop-filter: blur(8px) brightness(0.4);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -4275,8 +4222,8 @@ select.sched-input { background: #181818; }
 #reentry-modal {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.72);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(8px) brightness(0.4);
+  -webkit-backdrop-filter: blur(8px) brightness(0.4);
   z-index: 870;
   display: flex; align-items: center; justify-content: center;
   opacity: 0; pointer-events: none;
@@ -4368,14 +4315,12 @@ select.sched-input { background: #181818; }
 }
 .reentry-skip-btn:hover { border-color: var(--gold); color: var(--cream); }
 
-/* ═══════════════════════════════════════════════════════════
-   COMMIT MODE
-   ═══════════════════════════════════════════════════════════ */
+/* ══ COMMIT MODE ══ */
 #commit-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.78);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(8px) brightness(0.4);
+  -webkit-backdrop-filter: blur(8px) brightness(0.4);
   z-index: 950;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
@@ -4507,8 +4452,8 @@ select.sched-input { background: #181818; }
 #friction-modal {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.72);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(8px) brightness(0.4);
+  -webkit-backdrop-filter: blur(8px) brightness(0.4);
   z-index: 960;
   display: flex; align-items: center; justify-content: center;
   opacity: 0; pointer-events: none;
@@ -4624,9 +4569,7 @@ select.sched-input { background: #181818; }
 }
 .friction-someday-btn:hover { border-color: var(--gold); color: var(--gold); }
 
-/* ═══════════════════════════════════════════════════════════
-   DONE WALL
-   ═══════════════════════════════════════════════════════════ */
+/* ══ DONE WALL ══ */
 .done-wall-stats {
   display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
   padding: 16px 0; border-bottom: 1px solid var(--border);
@@ -4934,9 +4877,7 @@ select.sched-input { background: #181818; }
 <!-- Cursor spotlight -->
 <div id="cursor-spotlight"></div>
 
-<!-- ═══════════════════════════════════════════════════════
-     LEFT NAV
-     ═══════════════════════════════════════════════════════ -->
+<!-- ══ LEFT NAV ══ -->
 <nav id="left-nav">
 
   <div class="nav-workspace">
@@ -5033,9 +4974,7 @@ select.sched-input { background: #181818; }
   </div>
 </nav>
 
-<!-- ═══════════════════════════════════════════════════════
-     APP SHELL
-     ═══════════════════════════════════════════════════════ -->
+<!-- ══ APP SHELL ══ -->
 <div id="app-shell">
 
   <!-- Page Header -->
@@ -6005,12 +5944,12 @@ select.sched-input { background: #181818; }
     </div><!-- /panel-insights -->
 
     <!-- Articles / Reading Panel -->
-    <div id="panel-getabstract" style="display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:#1a1612;gap:20px">
-      <div style="font-size:2.5rem">⬡</div>
-      <div style="color:#c9a227;font-size:1.2rem;font-weight:600">GetAbstract</div>
-      <div style="color:#888;font-size:.875rem;text-align:center;max-width:380px;line-height:1.6">GetAbstract blocks embedding in external apps. Open it in a companion window — your browser login session is shared automatically.</div>
-      <button onclick="window.open('https://www.getabstract.com/en/my-library','getabstract-window','width=1200,height=800')" style="margin-top:4px;padding:11px 28px;background:#c9a227;color:#1a1612;border:none;border-radius:6px;font-size:.9rem;font-weight:700;cursor:pointer;letter-spacing:.02em">Open GetAbstract ↗</button>
-      <div style="color:#555;font-size:.75rem">The window stays open as you navigate Cosmodex</div>
+    <div id="panel-getabstract" style="display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;gap:20px">
+      <div style="font-size:2.5rem;opacity:0.7">⬡</div>
+      <div style="color:var(--cream);font-family:var(--font-display);font-size:1.2rem;font-weight:300;letter-spacing:0.08em">GetAbstract</div>
+      <div style="color:var(--muted);font-size:.875rem;text-align:center;max-width:380px;line-height:1.6">GetAbstract blocks embedding in external apps. Open it in a companion window — your browser login session is shared automatically.</div>
+      <button onclick="window.open('https://www.getabstract.com/en/my-library','getabstract-window','width=1200,height=800')" class="btn-primary" style="margin-top:4px">Open GetAbstract ↗</button>
+      <div style="color:var(--muted);font-size:.75rem;opacity:0.6">The window stays open as you navigate Cosmodex</div>
     </div>
 
     <div id="panel-articles" style="display:none;flex:1;flex-direction:row;overflow:hidden">
@@ -6053,9 +5992,7 @@ select.sched-input { background: #181818; }
   </div><!-- /main-content -->
 </div><!-- /app-shell -->
 
-<!-- ═══════════════════════════════════════════════════════
-     COSMODEX ORB
-     ═══════════════════════════════════════════════════════ -->
+<!-- ══ COSMODEX ORB ══ -->
 <div id="cosmodex-orb" title="Open Cosmodex dial">
   <canvas id="cosmodex-canvas"></canvas>
   <div id="orb-header">
@@ -6087,9 +6024,7 @@ select.sched-input { background: #181818; }
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     OVERLAYS
-     ═══════════════════════════════════════════════════════ -->
+<!-- ══ OVERLAYS ══ -->
 
 <!-- Sign-in -->
 <div id="signin-overlay">
@@ -6653,9 +6588,7 @@ select.sched-input { background: #181818; }
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     MOBILE BOTTOM NAV
-     ═══════════════════════════════════════════════════════ -->
+<!-- ══ MOBILE BOTTOM NAV ══ -->
 <nav id="mobile-nav">
   <button class="mob-nav-btn active" data-mob="calendar">
     <span class="mob-nav-icon">◻</span>
@@ -6726,9 +6659,7 @@ select.sched-input { background: #181818; }
 <script>
 'use strict';
 
-/* ══════════════════════════════════════════════════════════
-   CONSTANTS
-   ══════════════════════════════════════════════════════════ */
+/* ══ CONSTANTS ══ */
 let CATEGORIES = {};
 
 // Load saved categories from localStorage
@@ -6817,9 +6748,7 @@ const HK_HOLIDAYS = [
   { date:'2026-12-26', name:'Boxing Day',               type:'public' },
 ];
 
-/* ══════════════════════════════════════════════════════════
-   STATE
-   ══════════════════════════════════════════════════════════ */
+/* ══ STATE ══ */
 let TASKS      = [];
 let CAL_EVENTS = [];
 let HOLIDAYS   = {};
@@ -6991,9 +6920,7 @@ document.querySelectorAll('.nav-item[data-panel]').forEach(item => {
   });
 });
 
-/* ══════════════════════════════════════════════════════════
-   PANEL SWITCHING (Calendar/Tasks ↔ Milestones)
-   ══════════════════════════════════════════════════════════ */
+/* ══ PANEL SWITCHING (Calendar/Tasks ↔ Milestones) ══ */
 function showMainPanel(name) {
   _mainPanel = name;
   document.getElementById('panel-calendar').style.display    = name === 'default' ? '' : 'none';
@@ -7019,9 +6946,7 @@ function showMainPanel(name) {
   else { stopTimedrift(); }
 }
 
-/* ══════════════════════════════════════════════════════════
-   LISTS — FIRESTORE CRUD
-   ══════════════════════════════════════════════════════════ */
+/* ══ LISTS — FIRESTORE CRUD ══ */
 async function addList(title) {
   if (!title?.trim()) { showToast('List name cannot be empty', 'error'); return; }
   const { addDoc, serverTimestamp } = window.CDX_FB;
@@ -7097,9 +7022,7 @@ async function deleteListItem(listId, itemId) {
   }
 }
 
-/* ══════════════════════════════════════════════════════════
-   LISTS PAGE — RENDER
-   ══════════════════════════════════════════════════════════ */
+/* ══ LISTS PAGE — RENDER ══ */
 function renderLists() {
   const sidebar = document.getElementById('lists-sidebar-items');
   if (!sidebar) return;
@@ -7263,9 +7186,7 @@ function initListsPage() {
   });
 }
 
-/* ══════════════════════════════════════════════════════════
-   HABITS — HELPERS
-   ══════════════════════════════════════════════════════════ */
+/* ══ HABITS — HELPERS ══ */
 function getHabitsUid() { return window.CDX_USER?.uid || null; }
 
 function last7Days() {
@@ -7274,9 +7195,7 @@ function last7Days() {
   return days;
 }
 
-/* ══════════════════════════════════════════════════════════
-   HABITS — SUBSCRIBE
-   ══════════════════════════════════════════════════════════ */
+/* ══ HABITS — SUBSCRIBE ══ */
 function habitsSubscribe() {
   const uid = getHabitsUid();
   if (!uid || !window.CDX_DB) return;
@@ -7355,9 +7274,7 @@ function hbSettingsSubscribe() {
   }, err => console.warn('hbSettings onSnapshot:', err.message));
 }
 
-/* ══════════════════════════════════════════════════════════
-   HABITS — TAB SWITCH
-   ══════════════════════════════════════════════════════════ */
+/* ══ HABITS — TAB SWITCH ══ */
 function switchHabitsTab(tab) {
   _habitsTab = tab;
   ['tracker','launcher','builder','progress'].forEach(t => {
@@ -7372,9 +7289,7 @@ function switchHabitsTab(tab) {
   if (tab === 'progress') { hbBuildHeatmap(); }
 }
 
-/* ══════════════════════════════════════════════════════════
-   HABITS — RENDER
-   ══════════════════════════════════════════════════════════ */
+/* ══ HABITS — RENDER ══ */
 function renderHabits() {
   const days     = last7Days();
   const todayStr = localDateStr(new Date());
@@ -7439,9 +7354,7 @@ function habitsStreak(h) {
   return s;
 }
 
-/* ══════════════════════════════════════════════════════════
-   HABITS — CRUD
-   ══════════════════════════════════════════════════════════ */
+/* ══ HABITS — CRUD ══ */
 async function habitsAddNew() {
   const inp  = document.getElementById('habit-new-inp');
   const name = inp.value.trim();
@@ -7506,9 +7419,7 @@ async function habitDelete(habitId) {
   }
 }
 
-/* ══════════════════════════════════════════════════════════
-   ROUTINES
-   ══════════════════════════════════════════════════════════ */
+/* ══ ROUTINES ══ */
 function renderRoutines() {
   ['morning','evening'].forEach(slot => {
     const list  = document.getElementById('routines-'+slot+'-list');
@@ -7562,9 +7473,7 @@ function routinesSave(data) {
   }, 800);
 }
 
-/* ══════════════════════════════════════════════════════════
-   BEHAVIOURS
-   ══════════════════════════════════════════════════════════ */
+/* ══ BEHAVIOURS ══ */
 function renderBehaviours() {
   const idEl = document.getElementById('behav-identity');
   const notesEl = document.getElementById('behav-notes');
@@ -7624,9 +7533,7 @@ function behavKeystoneDelete(i) {
   renderBehaviours();
 }
 
-/* ══════════════════════════════════════════════════════════
-   HABITS — INIT
-   ══════════════════════════════════════════════════════════ */
+/* ══ HABITS — INIT ══ */
 function initHabitsPage() {
   // Tab buttons
   document.querySelectorAll('.habits-v2-tab[data-htab]').forEach(btn => {
@@ -7650,9 +7557,7 @@ function initHabitsPage() {
   renderHabits();
 }
 
-/* ══════════════════════════════════════════════════════════
-   HABIT BUILDER — LIBRARY & CLOCK
-   ══════════════════════════════════════════════════════════ */
+/* ══ HABIT BUILDER — LIBRARY & CLOCK ══ */
 const HB_HABITS = [
   {icon:'📖',name:'Read 15 pages',cat:'mind',dur:'20 min',tag:'Compound Knowledge',identity:'"I am a curious, continuous learner who compounds knowledge daily."',sbNew:'I will read for 15 min'},
   {icon:'📓',name:'10-min journaling',cat:'mind',dur:'10 min',tag:'Mental Clarity',identity:'"I am a reflective, intentional person who thinks before I act."',sbNew:'I will write in my journal for 10 min'},
@@ -8027,9 +7932,7 @@ function hbBuildHeatmap() {
   }
 }
 
-/* ══════════════════════════════════════════════════════════
-   INSIGHTS — RENDER
-   ══════════════════════════════════════════════════════════ */
+/* ══ INSIGHTS — RENDER ══ */
 function renderInsights() {
   const logs    = _habitLogs;   // { dateStr: { date, completions: { habitId: true } } }
   const habits  = _habits;      // active habits
@@ -8306,9 +8209,7 @@ function _weekPct(dates, habits) {
   return Math.round(done / (dates.length * habits.length) * 100);
 }
 
-/* ══════════════════════════════════════════════════════════
-   MILESTONES — FIRESTORE CRUD
-   ══════════════════════════════════════════════════════════ */
+/* ══ MILESTONES — FIRESTORE CRUD ══ */
 async function addMilestoneProject(title, startDate, endDate, color, category='', notes='', missionBrief='', antiGoals='') {
   const { addDoc, serverTimestamp } = window.CDX_FB;
   const ref = await addDoc(_uc('milestoneProjects'),
@@ -8441,9 +8342,7 @@ async function addMilestoneActivity(eventId, text, taskId=null) {
   await updateMilestoneEvent(eventId, { activities: [...(ev.activities||[]), newAct] });
 }
 
-/* ══════════════════════════════════════════════════════════
-   MILESTONES — RENDER
-   ══════════════════════════════════════════════════════════ */
+/* ══ MILESTONES — RENDER ══ */
 function msDateToPercent(dateStr, startDate, endDate) {
   const d = new Date(dateStr).getTime();
   const s = new Date(startDate).getTime();
@@ -9407,9 +9306,7 @@ function initMilestonesPanel() {
   }
 }
 
-/* ══════════════════════════════════════════════════════════
-   PLANNING WIDGETS (Week / Month panels in Planning page)
-   ══════════════════════════════════════════════════════════ */
+/* ══ PLANNING WIDGETS (Week / Month panels in Planning page) ══ */
 (function(){
   let _planWeekOffset = 0;
   let _planMonthOffset = 0;
@@ -9802,9 +9699,7 @@ function initMilestonesPanel() {
   };
 })();
 
-/* ══════════════════════════════════════════════════════════
-   RSS FEED READER
-   ══════════════════════════════════════════════════════════ */
+/* ══ RSS FEED READER ══ */
 (function() {
   const RSS_SOURCES = [
     // Product Management (Substack-first)
@@ -10084,9 +9979,7 @@ function initMilestonesPanel() {
   };
 })();
 
-/* ══════════════════════════════════════════════════════════
-   ORB PETAL QUICK-ADD
-   ══════════════════════════════════════════════════════════ */
+/* ══ ORB PETAL QUICK-ADD ══ */
 function openOrbAddTaskModal(hour) {
   _orbClickHour = hour;
   const label = hour === 0 ? '12am' : hour < 12 ? `${hour}am` : hour === 12 ? '12pm' : `${hour - 12}pm`;
@@ -10167,9 +10060,7 @@ function updateCalNowLine() {
 // Update every minute so it stays accurate
 _calNowLineInterval = setInterval(updateCalNowLine, 60 * 1000);
 
-/* ══════════════════════════════════════════════════════════
-   TIMEDRIFT — SVG rotating rings (cosmodex-timedrift v9)
-   ══════════════════════════════════════════════════════════ */
+/* ══ TIMEDRIFT — SVG rotating rings (cosmodex-timedrift v9) ══ */
 const _TD_NS = 'http://www.w3.org/2000/svg';
 const _tdMk = t => document.createElementNS(_TD_NS, t);
 const _TD_CX = 500, _TD_CY = 500;
@@ -10583,9 +10474,7 @@ function stopTimedrift(){
 }
 
 
-/* ══════════════════════════════════════════════════════════
-   HELPERS
-   ══════════════════════════════════════════════════════════ */
+/* ══ HELPERS ══ */
 function escHtml(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -10641,17 +10530,13 @@ function updateNavCounts() {
   if (todayEl) todayEl.textContent = TASKS.filter(t => !t.done && t.dueDate === today).length || '—';
 }
 
-/* ══════════════════════════════════════════════════════════
-   FIREBASE HELPERS
-   ══════════════════════════════════════════════════════════ */
+/* ══ FIREBASE HELPERS ══ */
 function waitForFirebase(fn) {
   if (window.CDX_DB && window.CDX_FB) { fn(); return; }
   setTimeout(() => waitForFirebase(fn), 120);
 }
 
-/* ══════════════════════════════════════════════════════════
-   USER-SCOPED FIRESTORE HELPERS
-   ══════════════════════════════════════════════════════════ */
+/* ══ USER-SCOPED FIRESTORE HELPERS ══ */
 function _uc(name) { // user-scoped collection ref
   const uid = window.CDX_USER?.uid;
   if (!uid) throw new Error('Not authenticated');
@@ -10663,9 +10548,7 @@ function _ud(name, id) { // user-scoped doc ref
   return window.CDX_FB.doc(window.CDX_DB, 'users', uid, name, id);
 }
 
-/* ══════════════════════════════════════════════════════════
-   DATA INIT
-   ══════════════════════════════════════════════════════════ */
+/* ══ DATA INIT ══ */
 function initData() {
   const { onSnapshot, query, orderBy } = window.CDX_FB;
 
@@ -10731,9 +10614,7 @@ function initData() {
   seedHolidays();
 }
 
-/* ══════════════════════════════════════════════════════════
-   HOLIDAYS
-   ══════════════════════════════════════════════════════════ */
+/* ══ HOLIDAYS ══ */
 async function seedHolidays() {
   const { getDoc, writeBatch } = window.CDX_FB;
   const db = window.CDX_DB;
@@ -10757,9 +10638,7 @@ async function deleteHoliday(docId) {
   await deleteDoc(_ud('holidays', docId));
 }
 
-/* ══════════════════════════════════════════════════════════
-   RENDER TASKS
-   ══════════════════════════════════════════════════════════ */
+/* ══ RENDER TASKS ══ */
 function renderTasks() {
   const body = document.getElementById('tasks-body');
   if (!body) return;
